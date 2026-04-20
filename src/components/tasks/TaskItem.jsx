@@ -19,6 +19,7 @@ export function TaskItem({ task }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTeamId, setShareTeamId] = useState('')
+  const [optimisticSharedInKanban, setOptimisticSharedInKanban] = useState(false)
   const menuRef = useRef(null)
   const toggleTask = useStore(s => s.toggleTask)
   const deleteTask = useStore(s => s.deleteTask)
@@ -80,14 +81,23 @@ export function TaskItem({ task }) {
   const alreadyInKanban = useMemo(
     () => {
       if (isSharedRemote) {
-        return (board?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
+        return optimisticSharedInKanban || (board?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
       }
       return (board?.cards ?? []).some(c => c.sourceTaskId === task.id)
     },
-    [board, isSharedRemote, sharedTaskId, task.id],
+    [board, isSharedRemote, optimisticSharedInKanban, sharedTaskId, task.id],
   )
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+
+  useEffect(() => {
+    if (!isSharedRemote) {
+      setOptimisticSharedInKanban(false)
+      return
+    }
+    const hasSharedCard = (board?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
+    if (hasSharedCard) setOptimisticSharedInKanban(false)
+  }, [isSharedRemote, board, sharedTaskId])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -98,15 +108,20 @@ export function TaskItem({ task }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [menuOpen])
 
-  const addToKanban = () => {
+  const addToKanban = async () => {
     if (alreadyInKanban) return
     if (isSharedRemote) {
-      addSharedTaskToKanbanForTeam({
-        teamId: sharedTeamId,
-        sharedTaskId,
-        semId: boardId,
-        columnId: todoColumnId,
-      })
+      setOptimisticSharedInKanban(true)
+      try {
+        await addSharedTaskToKanbanForTeam({
+          teamId: sharedTeamId,
+          sharedTaskId,
+          semId: boardId,
+          columnId: todoColumnId,
+        })
+      } catch {
+        setOptimisticSharedInKanban(false)
+      }
       return
     }
     addKanbanCard(boardId, {
