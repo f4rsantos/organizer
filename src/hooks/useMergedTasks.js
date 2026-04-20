@@ -90,7 +90,13 @@ export function useMergedTasks(semesterId) {
       if (task.semesterId !== semesterId) return false
       const sharedTeamId = task?.sharedRef?.teamId
       if (!sharedTeamId) return true
-      return !activeTeamIds.has(sharedTeamId)
+      if (!activeTeamIds.has(sharedTeamId)) return true
+
+      const sharedTaskId = task?.sharedRef?.sharedTaskId
+      if (!sharedTaskId) return true
+      const remoteTasks = runtimeTeams[sharedTeamId]?.state?.tasks ?? []
+      const remoteCopyExists = remoteTasks.some(remoteTask => remoteTask?.id === sharedTaskId)
+      return !remoteCopyExists
     })
 
     const remote = (collabEnabled ? memberships : []).flatMap(membership => {
