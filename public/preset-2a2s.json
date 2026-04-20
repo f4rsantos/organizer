@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "theme": "dark",
+  "lang": "pt",
+  "onboardingDone": true,
+  "activeSemesterId": "prum8rhsmmv5ze5o",
+  "semesters": [
+    {
+      "id": "prum8rhsmmv5ze5o",
+      "name": "2o Semestre 2o Ano",
+      "startDate": "2026-02-09",
+      "endDate": "2026-06-03",
+      "presetKey": "2a2s"
+    }
+  ],
+  "classes": [
+    {
+      "id": "283ejcx0mmv5zk50",
+      "ects": 6,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "CBD",
+      "color": "#f97316"
+    },
+    {
+      "id": "fvrwpm4ommv5znhv",
+      "ects": 6,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "IES",
+      "color": "#22c55e"
+    },
+    {
+      "id": "yeg2qbzfmmv5zs8i",
+      "ects": 6,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "Redes",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "m9nqyp6wmmv5zy2d",
+      "ects": 6,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "MPEI",
+      "color": "#64748b"
+    },
+    {
+      "id": "f4dz766bmmv602mm",
+      "ects": 6,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "CT2",
+      "color": "#ec4899"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "27if4mhpmmv651ps",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "TP1",
+      "classId": "283ejcx0mmv5zk50",
+      "priority": "high",
+      "dueDate": "2026-04-15",
+      "weekStart": 10,
+      "weekEnd": 10
+    },
+    {
+      "id": "1omr3zk3mmv65pvd",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "TP2",
+      "classId": "283ejcx0mmv5zk50",
+      "priority": "high",
+      "dueDate": "2026-06-03",
+      "weekStart": 17,
+      "weekEnd": 17
+    },
+    {
+      "id": "tkr4x89hmmv6al3b",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Iteração 2",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": null,
+      "dueDate": "2026-03-18",
+      "weekStart": 6,
+      "weekEnd": 6
+    },
+    {
+      "id": "s1jwb7qhmmv6axwu",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Guião 4",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": "medium",
+      "dueDate": "2026-04-04",
+      "weekStart": 8,
+      "weekEnd": 8
+    },
+    {
+      "id": "6ydlfhwmmmv6bhol",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Iteração 3",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": "medium",
+      "dueDate": "2026-04-22",
+      "weekStart": 11,
+      "weekEnd": 11
+    },
+    {
+      "id": "kjv7ktbpmmv6bzel",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Guião 5",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": "medium",
+      "dueDate": "2026-05-09",
+      "weekStart": 13,
+      "weekEnd": 13
+    },
+    {
+      "id": "q5dxcf6wmmv6cdj7",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Iteração 5",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": "medium",
+      "dueDate": "2026-05-27",
+      "weekStart": 16,
+      "weekEnd": 16
+    },
+    {
+      "id": "zrq9qnirmmv6d6s1",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Teste TP",
+      "classId": "m9nqyp6wmmv5zy2d",
+      "priority": "high",
+      "dueDate": "2026-03-27",
+      "weekStart": 7,
+      "weekEnd": 7
+    },
+    {
+      "id": "qztb14bbmmv6e5lj",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "PL03",
+      "classId": "m9nqyp6wmmv5zy2d",
+      "priority": "medium",
+      "dueDate": "2026-03-22",
+      "weekStart": 6,
+      "weekEnd": 6
+    },
+    {
+      "id": "sa7aj2kymmv6g8fn",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Teste / Projeto",
+      "classId": "f4dz766bmmv602mm",
+      "priority": "high",
+      "dueDate": "2026-04-23",
+      "weekStart": 11,
+      "weekEnd": 11
+    },
+    {
+      "id": "2hzxqgqjmmv6gs5l",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Teste P",
+      "classId": "yeg2qbzfmmv5zs8i",
+      "priority": "high",
+      "dueDate": "2026-03-26",
+      "weekStart": 7,
+      "weekEnd": 7
+    },
+    {
+      "id": "embnbg06mmv6hmjb",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "TP",
+      "classId": "fvrwpm4ommv5znhv",
+      "priority": "high",
+      "dueDate": "2026-06-08",
+      "weekStart": 17,
+      "weekEnd": 17
+    },
+    {
+      "id": "k77embccmmv6hysm",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "TP",
+      "classId": "yeg2qbzfmmv5zs8i",
+      "priority": "high",
+      "dueDate": "2026-06-12",
+      "weekStart": 17,
+      "weekEnd": 17
+    },
+    {
+      "id": "0bc3stjbmmv6iqjf",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Buba",
+      "classId": null,
+      "priority": "high",
+      "dueDate": null,
+      "weekStart": 12,
+      "weekEnd": 12
+    },
+    {
+      "id": "ns23lubommv6xjb2",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Apresentação do Projeto",
+      "classId": "yeg2qbzfmmv5zs8i",
+      "priority": "high",
+      "dueDate": "2026-05-29",
+      "weekStart": 16,
+      "weekEnd": 16
+    },
+    {
+      "id": "v6le0lv4mmv6yjuu",
+      "done": false,
+      "semesterId": "prum8rhsmmv5ze5o",
+      "title": "Teste P",
+      "classId": "yeg2qbzfmmv5zs8i",
+      "priority": "high",
+      "dueDate": "2026-05-22",
+      "weekStart": 15,
+      "weekEnd": 15
+    }
+  ],
+  "kanban": {
+    "prum8rhsmmv5ze5o": {
+      "columns": [
+        {
+          "id": "col_todo",
+          "title": "To Do",
+          "order": 0
+        },
+        {
+          "id": "col_inprogress",
+          "title": "In Progress",
+          "order": 1
+        },
+        {
+          "id": "col_done",
+          "title": "Done",
+          "order": 2
+        }
+      ],
+      "cards": []
+    }
+  },
+  "grades": {
+    "prum8rhsmmv5ze5o": {
+      "283ejcx0mmv5zk50": {
+        "components": [
+          {
+            "id": "s61vn2eimmv66qvn",
+            "name": "TP1",
+            "weight": 0.225,
+            "grade": null
+          },
+          {
+            "id": "hyccte1mmmv6okld",
+            "name": "TP2",
+            "weight": 0.225,
+            "grade": null
+          },
+          {
+            "id": "chnn0cwammv6orrt",
+            "name": "AC",
+            "weight": 0.05,
+            "grade": null
+          },
+          {
+            "id": "ptiqmoytmmv6oxmq",
+            "name": "Prática",
+            "weight": 0.5,
+            "grade": null
+          }
+        ],
+        "targetGrade": 9.5
+      },
+      "fvrwpm4ommv5znhv": {
+        "components": [
+          {
+            "id": "bq2uqxxmmmv6p6m1",
+            "name": "Quizzes",
+            "weight": 0.105,
+            "grade": null
+          },
+          {
+            "id": "gp2kk1qlmmv6sj88",
+            "name": "TP",
+            "weight": 0.245,
+            "grade": null
+          },
+          {
+            "id": "szp0bhjmmmv6tfx0",
+            "name": "Guiões",
+            "weight": 0.26,
+            "grade": null
+          },
+          {
+            "id": "v1ulp3slmmv6tz1y",
+            "name": "Projeto",
+            "weight": 0.39,
+            "grade": null
+          }
+        ],
+        "targetGrade": 9.5
+      },
+      "yeg2qbzfmmv5zs8i": {
+        "components": [
+          {
+            "id": "m2guluz0mmv6udbq",
+            "name": "Projeto",
+            "weight": 0.25,
+            "grade": null
+          },
+          {
+            "id": "xsq2h9clmmv6ys6k",
+            "name": "Teste P1",
+            "weight": 0.125,
+            "grade": null
+          },
+          {
+            "id": "md8rcykemmv6z84g",
+            "name": "Teste P2",
+            "weight": 0.125,
+            "grade": null
+          },
+          {
+            "id": "7jesh1m3mmv6zcwi",
+            "name": "Teste TP",
+            "weight": 0.5,
+            "grade": null
+          }
+        ],
+        "targetGrade": 9.5
+      },
+      "f4dz766bmmv602mm": {
+        "components": [
+          {
+            "id": "kdm4d4z4mmv6zz5c",
+            "name": "Primeira CT",
+            "weight": 0.33299999999999996,
+            "grade": null
+          },
+          {
+            "id": "ocej83lymmv70h19",
+            "name": "Segunda CT",
+            "weight": 0.33299999999999996,
+            "grade": null
+          },
+          {
+            "id": "7oh75h0ummv70mme",
+            "name": "Terceira CT",
+            "weight": 0.33399999999999996,
+            "grade": null
+          }
+        ],
+        "targetGrade": 9.5
+      },
+      "m9nqyp6wmmv5zy2d": {
+        "components": [
+          {
+            "id": "bpcj53j9mmv712e9",
+            "name": "Teste TP",
+            "weight": 0.35,
+            "grade": null
+          },
+          {
+            "id": "oc2eheyummv71ocy",
+            "name": "Projeto P",
+            "weight": 0.3,
+            "grade": null
+          },
+          {
+            "id": "02vdpxr9mmv72obt",
+            "name": "Teste P",
+            "weight": 0.25,
+            "grade": null
+          },
+          {
+            "id": "99b37wslmmv72t6m",
+            "name": "Participação",
+            "weight": 0.1,
+            "grade": null
+          }
+        ],
+        "targetGrade": 9.5
+      }
+    }
+  },
+  "settings": {
+    "defaultWeekRangeSpan": 1,
+    "passThreshold": 9.5,
+    "taskSpanMode": "single"
+  },
+  "courseAvg": {
+    "totalFinalGrade": "",
+    "numSemesters": ""
+  },
+  "holidays": [
+    {
+      "id": "gt0931mzmmv6146l",
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "Férias da Páscoa",
+      "startDate": "2026-04-01",
+      "endDate": "2026-04-10"
+    },
+    {
+      "id": "bhw4xp3wmmv6278u",
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "Dia de Santa Joana",
+      "startDate": "2026-05-12",
+      "endDate": "2026-05-12"
+    },
+    {
+      "id": "rxbd5uggmmv63b6g",
+      "semesterId": "prum8rhsmmv5ze5o",
+      "name": "Semana Académica",
+      "startDate": "2026-04-27",
+      "endDate": "2026-05-01"
+    }
+  ]
+}
