@@ -25,6 +25,7 @@ export function useCollabActions() {
   const semesters = useStore(s => s.semesters ?? [])
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
   const updateTask = useStore(s => s.updateTask)
 
   const teams = useMemo(() => memberships.map(m => {
@@ -52,6 +53,16 @@ export function useCollabActions() {
     if (!team) return false
     if (team.hostUserId === userId) return true
     return team.membersCanEditShared !== false
+  }
+
+  const applyRuntimeTeamState = (teamId, updater) => {
+    const runtime = runtimeTeams[teamId]
+    if (!runtime) return
+    const nextState = updater(runtime.state ?? { tasks: [], kanban: { columns: [], cards: [] } })
+    setCollabRuntimeTeam(teamId, {
+      ...runtime,
+      state: nextState,
+    })
   }
 
   const shareTaskToTeam = async ({ task, teamId, localBoard }) => {
@@ -209,6 +220,16 @@ export function useCollabActions() {
         },
       }),
     })
+
+    applyRuntimeTeamState(teamId, state => ({
+      ...state,
+      kanban: {
+        ...(state?.kanban ?? { columns: [], cards: [] }),
+        cards: (state?.kanban?.cards ?? []).map(card => card.id === sharedCardId
+          ? { ...card, columnId: targetColumnId, updatedAt: Date.now() }
+          : card),
+      },
+    }))
   }
 
   const updateSharedCard = async ({ teamId, sharedCardId, patch }) => {
@@ -231,6 +252,16 @@ export function useCollabActions() {
         },
       }),
     })
+
+    applyRuntimeTeamState(teamId, state => ({
+      ...state,
+      kanban: {
+        ...(state?.kanban ?? { columns: [], cards: [] }),
+        cards: (state?.kanban?.cards ?? []).map(card => card.id === sharedCardId
+          ? { ...card, ...patch, updatedAt: Date.now() }
+          : card),
+      },
+    }))
   }
 
   const deleteSharedCard = async ({ teamId, sharedCardId }) => {
@@ -251,6 +282,14 @@ export function useCollabActions() {
         },
       }),
     })
+
+    applyRuntimeTeamState(teamId, state => ({
+      ...state,
+      kanban: {
+        ...(state?.kanban ?? { columns: [], cards: [] }),
+        cards: (state?.kanban?.cards ?? []).filter(card => card.id !== sharedCardId),
+      },
+    }))
   }
 
   const shareKanbanCardToTeam = async ({ card, teamId, semId, localBoard }) => {
@@ -284,6 +323,24 @@ export function useCollabActions() {
         },
       }),
     })
+
+    applyRuntimeTeamState(teamId, state => ({
+      ...state,
+      kanban: {
+        ...(state?.kanban ?? { columns: [], cards: [] }),
+        cards: [
+          ...(state?.kanban?.cards ?? []),
+          {
+            ...card,
+            id: sharedCardId,
+            semesterId: semId,
+            columnId: cardColumnId,
+            sharedByUserId: userId,
+            updatedAt: Date.now(),
+          },
+        ],
+      },
+    }))
   }
 
   const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, semId, columnId }) => {
@@ -323,6 +380,34 @@ export function useCollabActions() {
           },
         }
       },
+    })
+
+    applyRuntimeTeamState(teamId, state => {
+      const cards = state?.kanban?.cards ?? []
+      const already = cards.some(card => card.sharedTaskId === sharedTaskId && card.semesterId === semId)
+      if (already) return state
+
+      const nextCards = [
+        ...cards,
+        {
+          id: nanoid(),
+          title: (state?.tasks ?? []).find(task => task.id === sharedTaskId)?.title ?? 'Task',
+          semesterId: semId,
+          columnId,
+          checklist: [],
+          sharedTaskId,
+          sharedByUserId: userId,
+          updatedAt: Date.now(),
+        },
+      ]
+
+      return {
+        ...state,
+        kanban: {
+          ...(state?.kanban ?? { columns: [], cards: [] }),
+          cards: nextCards,
+        },
+      }
     })
   }
 

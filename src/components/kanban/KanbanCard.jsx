@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Trash2, ExternalLink, Share2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ExternalLink, Menu, Share2, Trash2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { CardDetailDialog } from './CardDetailDialog'
 import { cn } from '@/lib/utils'
@@ -15,10 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const PRIORITY_DOT = { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-emerald-500' }
 
-export function KanbanCard({ card, semId, nextColumnId = null, localBoard }) {
+export function KanbanCard({ card, semId, prevColumnId = null, nextColumnId = null, localBoard }) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTeamId, setShareTeamId] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
   const deleteCard = useStore(s => s.deleteKanbanCard)
   const moveCard = useStore(s => s.moveKanbanCard)
   const updateCard = useStore(s => s.updateKanbanCard)
@@ -28,6 +30,7 @@ export function KanbanCard({ card, semId, nextColumnId = null, localBoard }) {
   const t = useStrings(lang)
   const {
     teams,
+    getTeamName,
     shareKanbanCardToTeam,
     moveSharedCard,
     updateSharedCard,
@@ -40,6 +43,11 @@ export function KanbanCard({ card, semId, nextColumnId = null, localBoard }) {
   const sharedCardId = card?.sharedMeta?.sharedCardId
   const sourceTask = card?.sourceTaskId ? tasks.find(task => task.id === card.sourceTaskId) : null
   const isBackedBySharedTask = !!sourceTask?.sharedRef?.teamId
+  const sharedBadgeText = useMemo(() => {
+    const teamId = card?.sharedMeta?.teamId ?? sourceTask?.sharedRef?.teamId
+    if (!teamId) return null
+    return getTeamName(teamId) ?? 'shared'
+  }, [card?.sharedMeta?.teamId, sourceTask?.sharedRef?.teamId, getTeamName])
   const canShareCard = !isSharedRemote && !isBackedBySharedTask && teams.length > 0
 
   const style = { transform: CSS.Transform.toString(transform), transition }
@@ -55,6 +63,24 @@ export function KanbanCard({ card, semId, nextColumnId = null, localBoard }) {
       return
     }
     updateCard(semId, card.id, patch)
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  const handleMoveLeft = async () => {
+    if (!prevColumnId) return
+    if (isSharedRemote) {
+      await moveSharedCard({ teamId: sharedTeamId, sharedCardId, targetColumnId: prevColumnId })
+      return
+    }
+    moveCard(semId, card.id, prevColumnId)
   }
 
   const handleMoveRight = async () => {
@@ -117,31 +143,48 @@ export function KanbanCard({ card, semId, nextColumnId = null, localBoard }) {
         <div className="flex items-start gap-2">
           {card.priority && <span className={cn('mt-1.5 h-2 w-2 rounded-full shrink-0', PRIORITY_DOT[card.priority])} />}
           <p className="flex-1 text-sm font-medium leading-snug">{card.title || 'Untitled'}</p>
-          <div className="flex gap-1 shrink-0">
-            {nextColumnId && (
+          <div ref={menuRef} className="flex gap-1 shrink-0">
+            {menuOpen ? (
+              <>
+                {prevColumnId && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    title={t.moveLeft}
+                    onPointerDown={e => e.stopPropagation()} onClick={() => { handleMoveLeft(); setMenuOpen(false) }}>
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {nextColumnId && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    title={t.moveRight}
+                    onPointerDown={e => e.stopPropagation()} onClick={() => { handleMoveRight(); setMenuOpen(false) }}>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {canShareCard && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onPointerDown={e => e.stopPropagation()} onClick={() => { openShare(); setMenuOpen(false) }}>
+                    <Share2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onPointerDown={e => e.stopPropagation()} onClick={() => { setDetailOpen(true); setMenuOpen(false) }}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  onPointerDown={e => e.stopPropagation()} onClick={() => { handleDelete(); setMenuOpen(false) }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            ) : (
               <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                title={t.moveRight}
-                onPointerDown={e => e.stopPropagation()} onClick={handleMoveRight}>
-                <ArrowRight className="h-3.5 w-3.5" />
+                onPointerDown={e => e.stopPropagation()} onClick={() => setMenuOpen(true)}>
+                <Menu className="h-3.5 w-3.5" />
               </Button>
             )}
-            {canShareCard && (
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onPointerDown={e => e.stopPropagation()} onClick={openShare}>
-                <Share2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              onPointerDown={e => e.stopPropagation()} onClick={() => setDetailOpen(true)}>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
-              onPointerDown={e => e.stopPropagation()} onClick={handleDelete}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
         {card.dueDate && <Badge variant="secondary" className="text-xs h-5">{card.dueDate}</Badge>}
+        {sharedBadgeText && <Badge variant="outline" className="text-xs h-5">{sharedBadgeText}</Badge>}
         {checklist.length > 0 && (
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">

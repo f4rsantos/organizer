@@ -13,6 +13,7 @@ export function KanbanBoard({ semId, board, localBoard }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const columns = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
   const activeColIndex = activeCard ? columns.findIndex(c => c.id === activeCard.columnId) : -1
+  const activePrevColId = activeColIndex > 0 ? (columns[activeColIndex - 1]?.id ?? null) : null
   const activeNextColId = activeColIndex >= 0 ? (columns[activeColIndex + 1]?.id ?? null) : null
 
   const onDragStart = ({ active }) => {
@@ -44,13 +45,20 @@ export function KanbanBoard({ semId, board, localBoard }) {
         {columns.map((col, index) => (
           <KanbanColumn key={col.id} col={col} semId={semId}
             localBoard={localBoard}
+            prevColumnId={index > 0 ? (columns[index - 1]?.id ?? null) : null}
             nextColumnId={columns[index + 1]?.id ?? null}
             cards={(board.cards ?? []).filter(c => c.columnId === col.id).sort((a, b) => a.order - b.order)} />
         ))}
       </div>
       <DragOverlay>
         {activeCard && (
-          <KanbanCard card={activeCard} semId={semId} nextColumnId={activeNextColId} localBoard={localBoard} />
+          <KanbanCard
+            card={activeCard}
+            semId={semId}
+            prevColumnId={activePrevColId}
+            nextColumnId={activeNextColId}
+            localBoard={localBoard}
+          />
         )}
       </DragOverlay>
     </DndContext>

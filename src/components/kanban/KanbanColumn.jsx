@@ -10,7 +10,7 @@ import { useStrings } from '@/lib/strings'
 import { KanbanCard } from './KanbanCard'
 import { nanoid } from '@/lib/ids'
 
-export function KanbanColumn({ col, cards, semId, nextColumnId = null, localBoard }) {
+export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColumnId = null, localBoard }) {
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const addCard = useStore(s => s.addKanbanCard)
@@ -34,7 +34,16 @@ export function KanbanColumn({ col, cards, semId, nextColumnId = null, localBoar
       <div ref={setNodeRef}
         className={`flex flex-col gap-2 flex-1 rounded-xl p-2 overflow-y-auto transition-colors ${isOver ? 'bg-accent/60' : 'bg-secondary/40'}`}>
         <SortableContext items={cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          {cards.map(card => <KanbanCard key={card.id} card={card} semId={semId} nextColumnId={nextColumnId} localBoard={localBoard} />)}
+          {cards.map(card => (
+            <KanbanCard
+              key={card.id}
+              card={card}
+              semId={semId}
+              prevColumnId={prevColumnId}
+              nextColumnId={nextColumnId}
+              localBoard={localBoard}
+            />
+          ))}
         </SortableContext>
       </div>
       {adding

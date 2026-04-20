@@ -290,10 +290,30 @@ export const useStore = create((set, get) => ({
       ? { ...task, sharedRef: null }
       : task),
   })),
-  deleteLocalSharedTasksByTeam: teamId => set(s => persist({
-    ...s,
-    tasks: s.tasks.filter(task => task?.sharedRef?.teamId !== teamId),
-  })),
+  deleteLocalSharedTasksByTeam: teamId => set(s => {
+    const removedTaskIds = new Set(
+      s.tasks
+        .filter(task => task?.sharedRef?.teamId === teamId)
+        .map(task => task.id)
+    )
+
+    const tasks = s.tasks.filter(task => task?.sharedRef?.teamId !== teamId)
+    const kanban = Object.fromEntries(
+      Object.entries(s.kanban ?? {}).map(([boardId, board]) => [
+        boardId,
+        {
+          ...board,
+          cards: (board?.cards ?? []).filter(card => !removedTaskIds.has(card?.sourceTaskId)),
+        },
+      ])
+    )
+
+    return persist({
+      ...s,
+      tasks,
+      kanban,
+    })
+  }),
   setFocusSync: data => set(s => persist({
     ...s,
     focusSync: {
