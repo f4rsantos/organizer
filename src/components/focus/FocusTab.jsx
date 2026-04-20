@@ -30,7 +30,7 @@ export function FocusTab() {
   const prevPomodoroPhaseRef = useRef('focus')
   const containerRef = useRef(null)
 
-  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, secsToNextBreak, activeBreakSource,
+  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, secsToNextBreak, scheduledPct, activeBreakSource,
     start, pause, resume, reset, skipBreak, nextScheduled } = useFocusClock({
     useInterval: focus.useInterval,
     intervalMins: focus.intervalMins,
@@ -51,8 +51,8 @@ export function FocusTab() {
 
   const focusPct = focus.useInterval
     ? cycleElapsed / (focus.intervalMins * 60)
-    : secsToNextBreak && secsToNextBreak > 0
-      ? cycleElapsed / secsToNextBreak
+    : Number.isFinite(scheduledPct)
+      ? scheduledPct
       : 0
 
   const ringPct = isBreak ? 1 - breakSecsLeft / breakDenom : focusPct

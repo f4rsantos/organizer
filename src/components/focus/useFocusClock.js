@@ -15,11 +15,33 @@ function secsUntilNextBreak(times) {
   const next = nextScheduledBreak(times)
   if (!next) return null
   const now = new Date()
-  const curMins = now.getHours() * 60 + now.getMinutes()
-  const curSecs = now.getSeconds()
-  const diffMins = next - curMins
-  const secsInCurrentMin = 60 - curSecs
-  return Math.max(0, diffMins * 60 + secsInCurrentMin)
+  const nowSecsOfDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+  let nextSecsOfDay = next * 60
+  if (nextSecsOfDay <= nowSecsOfDay) nextSecsOfDay += 24 * 3600
+  return Math.max(0, nextSecsOfDay - nowSecsOfDay)
+}
+
+function scheduledWindowProgress(times) {
+  if (!Array.isArray(times) || times.length === 0) return null
+
+  const sorted = [...times].sort((a, b) => a - b)
+  const now = new Date()
+  const nowSecsOfDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+  const slots = sorted.map(mins => mins * 60)
+
+  let nextIndex = slots.findIndex(slotSecs => slotSecs > nowSecsOfDay)
+  if (nextIndex === -1) nextIndex = 0
+
+  const prevIndex = (nextIndex - 1 + slots.length) % slots.length
+  let prevSecs = slots[prevIndex]
+  let nextSecs = slots[nextIndex]
+
+  if (nextSecs <= nowSecsOfDay) nextSecs += 24 * 3600
+  if (prevSecs > nowSecsOfDay) prevSecs -= 24 * 3600
+
+  const span = Math.max(1, nextSecs - prevSecs)
+  const elapsed = Math.min(span, Math.max(0, nowSecsOfDay - prevSecs))
+  return elapsed / span
 }
 
 export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, useScheduled, scheduledBreakMins, scheduledTimes }) {
@@ -62,6 +84,11 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   const secsToNextBreak = useMemo(() => {
     if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
     return secsUntilNextBreak(scheduledTimes)
+  }, [useScheduled, scheduledTimes, phase, tick])
+
+  const scheduledPct = useMemo(() => {
+    if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
+    return scheduledWindowProgress(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])
 
   useEffect(() => {
@@ -188,7 +215,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   }
 
   return {
-    running, phase, cycleElapsed, totalElapsed, breakSecsLeft, secsToNextBreak, activeBreakSource,
+    running, phase, cycleElapsed, totalElapsed, breakSecsLeft, secsToNextBreak, scheduledPct, activeBreakSource,
     start, pause, resume, reset, skipBreak,
     nextScheduled: useScheduled ? nextScheduledBreak(scheduledTimes) : null,
   }
