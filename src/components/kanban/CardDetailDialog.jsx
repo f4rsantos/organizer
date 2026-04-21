@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Circle, CircleCheck, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { nanoid } from '@/lib/ids'
+import { useStrings } from '@/lib/strings'
 import { ChecklistItem } from './ChecklistItem'
 
 const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]
@@ -13,10 +14,23 @@ const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label:
 export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
   const [local, setLocal] = useState(card)
   const updateCard = useStore(s => s.updateKanbanCard)
-  const classes = useStore(s => (s.classes ?? []).filter(cls => cls.semesterId === semId))
+  const workMode = useStore(s => s.settings?.workMode ?? false)
+  const lang = useStore(s => s.lang ?? 'en')
+  const t = useStrings(lang)
+  const allClasses = useStore(s => s.classes ?? [])
+  const classes = useMemo(
+    () => allClasses.filter(cls => cls.semesterId === semId),
+    [allClasses, semId],
+  )
   const checklistPreviewMode = useStore(s => s.settings?.kanbanChecklistPreviewMode
     ?? (s.settings?.kanbanShowChecklistInline ? 'all' : 'none'))
   const classById = useMemo(() => new Map(classes.map(cls => [cls.id, cls])), [classes])
+  const classLabel = workMode ? (lang === 'pt' ? 'Grupo' : 'Group') : t.class
+  const noneClassLabel = workMode ? (lang === 'pt' ? 'Sem grupo' : 'No group') : (lang === 'pt' ? 'Sem disciplina' : 'No class')
+  const selectedClassLabel = useMemo(() => {
+    if (!local?.classId) return noneClassLabel
+    return classById.get(local.classId)?.name ?? local.className ?? noneClassLabel
+  }, [local?.classId, local?.className, classById, noneClassLabel])
 
   useEffect(() => { if (card) setLocal(card) }, [card])
 
@@ -51,7 +65,7 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Class / group</p>
+            <p className="text-xs font-medium text-muted-foreground">{classLabel}</p>
             <Select
               value={local.classId ?? '__none__'}
               onValueChange={value => {
@@ -63,10 +77,10 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
                 setLocal(c => ({ ...c, classId: value, className: selected?.name ?? null }))
               }}>
               <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="No class / group" />
+                <span>{selectedClassLabel}</span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">No class / group</SelectItem>
+                <SelectItem value="__none__">{noneClassLabel}</SelectItem>
                 {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>)}
               </SelectContent>
             </Select>
