@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus } from 'lucide-react'
+import { Circle, CircleCheck, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { nanoid } from '@/lib/ids'
 import { ChecklistItem } from './ChecklistItem'
@@ -13,6 +13,10 @@ const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label:
 export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
   const [local, setLocal] = useState(card)
   const updateCard = useStore(s => s.updateKanbanCard)
+  const classes = useStore(s => (s.classes ?? []).filter(cls => cls.semesterId === semId))
+  const checklistPreviewMode = useStore(s => s.settings?.kanbanChecklistPreviewMode
+    ?? (s.settings?.kanbanShowChecklistInline ? 'all' : 'none'))
+  const classById = useMemo(() => new Map(classes.map(cls => [cls.id, cls])), [classes])
 
   useEffect(() => { if (card) setLocal(card) }, [card])
 
@@ -45,6 +49,42 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
             <Input type="date" className="h-8 text-sm" value={local.dueDate ?? ''}
               onChange={e => setLocal(c => ({ ...c, dueDate: e.target.value || null }))} />
           </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Class / group</p>
+            <Select
+              value={local.classId ?? '__none__'}
+              onValueChange={value => {
+                if (value === '__none__') {
+                  setLocal(c => ({ ...c, classId: null, className: null }))
+                  return
+                }
+                const selected = classById.get(value)
+                setLocal(c => ({ ...c, classId: value, className: selected?.name ?? null }))
+              }}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="No class / group" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No class / group</SelectItem>
+                {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {checklistPreviewMode === 'card' && (
+            <button type="button" onClick={() => setLocal(c => ({ ...c, checklistPreview: !c.checklistPreview }))}
+              className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-sm text-foreground">Show checklist preview on this card</span>
+                <span className="text-muted-foreground">
+                  {local.checklistPreview
+                    ? <CircleCheck className="h-4 w-4 text-primary" />
+                    : <Circle className="h-4 w-4" />}
+                </span>
+              </span>
+            </button>
+          )}
 
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Checklist</p>

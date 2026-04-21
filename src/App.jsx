@@ -25,9 +25,9 @@ const TABS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
 function TabPanel({ id, activeTab, children }) {
   const isActive = id === activeTab
   return (
-    <div className={cn(
+    <div aria-hidden={!isActive} className={cn(
       'transition-opacity duration-150 h-full w-full',
-      isActive ? 'opacity-100' : 'pointer-events-none opacity-0 absolute inset-0'
+      isActive ? 'opacity-100' : 'pointer-events-none opacity-0 invisible absolute inset-0'
     )}>
       {children}
     </div>

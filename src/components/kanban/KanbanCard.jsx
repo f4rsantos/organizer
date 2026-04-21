@@ -24,8 +24,10 @@ export function KanbanCard({ card, semId, prevColumnId = null, nextColumnId = nu
   const deleteCard = useStore(s => s.deleteKanbanCard)
   const moveCard = useStore(s => s.moveKanbanCard)
   const updateCard = useStore(s => s.updateKanbanCard)
-  const showChecklistInline = useStore(s => s.settings?.kanbanShowChecklistInline ?? false)
+  const checklistPreviewMode = useStore(s => s.settings?.kanbanChecklistPreviewMode
+    ?? (s.settings?.kanbanShowChecklistInline ? 'all' : 'none'))
   const tasks = useStore(s => s.tasks ?? [])
+  const classes = useStore(s => s.classes ?? [])
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const {
@@ -53,6 +55,15 @@ export function KanbanCard({ card, semId, prevColumnId = null, nextColumnId = nu
   const style = { transform: CSS.Transform.toString(transform), transition }
   const checklist = card.checklist ?? []
   const donePct = checklist.length ? checklist.filter(i => i.done).length / checklist.length : null
+  const showChecklistInline = checklistPreviewMode === 'all'
+    || (checklistPreviewMode === 'card' && card?.checklistPreview === true)
+  const classBadgeText = useMemo(() => {
+    const fallback = typeof card?.className === 'string' ? card.className.trim() : ''
+    if (fallback) return fallback
+    if (!card?.classId) return null
+    const semClasses = classes.filter(cls => cls?.semesterId === semId)
+    return semClasses.find(cls => cls.id === card.classId)?.name ?? null
+  }, [card?.classId, card?.className, classes, semId])
 
   const toggleChecklistItem = async (itemId, done) => {
     const patch = {
@@ -184,6 +195,7 @@ export function KanbanCard({ card, semId, prevColumnId = null, nextColumnId = nu
           </div>
         </div>
         {card.dueDate && <Badge variant="secondary" className="text-xs h-5">{card.dueDate}</Badge>}
+        {classBadgeText && <Badge variant="outline" className="text-xs h-5">{classBadgeText}</Badge>}
         {sharedBadgeText && <Badge variant="outline" className="text-xs h-5">{sharedBadgeText}</Badge>}
         {checklist.length > 0 && (
           <div className="flex items-center gap-2">

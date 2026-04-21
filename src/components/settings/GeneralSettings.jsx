@@ -14,7 +14,8 @@ export function GeneralSettings() {
   const workMode = useStore(s => s.settings?.workMode ?? false)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const checklistInlineEnabled = settings.kanbanShowChecklistInline ?? false
+  const kanbanChecklistPreviewMode = settings.kanbanChecklistPreviewMode
+    ?? (settings.kanbanShowChecklistInline ? 'all' : 'none')
   const taskAlertMode = settings.taskAlertMode ?? 'none'
   const taskAlertNextDayTime = settings.taskAlertNextDayTime ?? '18:00'
   const focusAlertMode = settings.focusAlertMode ?? (settings.vibrateOnPageFocus ? 'vibration' : 'none')
@@ -36,6 +37,12 @@ export function GeneralSettings() {
     { value: 'in-app', label: t.taskAlertInApp },
     { value: 'notification', label: t.taskAlertNotification },
     { value: 'both', label: t.taskAlertBoth },
+  ]
+
+  const kanbanChecklistPreviewOptions = [
+    { value: 'none', label: t.kanbanChecklistPreviewNone },
+    { value: 'all', label: t.kanbanChecklistPreviewAll },
+    { value: 'card', label: t.kanbanChecklistPreviewPerCard },
   ]
 
   const handleFocusAlertModeChange = value => {
@@ -76,13 +83,16 @@ export function GeneralSettings() {
       <div className="space-y-1.5">
         <Label>{t.kanbanChecklistInlineLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.kanbanChecklistInlineDesc}</p>
-        <button type="button" onClick={() => updateSettings({ kanbanShowChecklistInline: !checklistInlineEnabled })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {checklistInlineEnabled
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {checklistInlineEnabled ? t.settingEnabled : t.settingDisabled}
-        </button>
+        <Select value={kanbanChecklistPreviewMode} onValueChange={v => updateSettings({ kanbanChecklistPreviewMode: v })}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4}>
+            {kanbanChecklistPreviewOptions.map(option => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">
