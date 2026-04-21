@@ -67,6 +67,12 @@ function normalizeState(state) {
   } else {
     state.settings.pomodoro = { ...getDefaultPomodoroSettings(), ...state.settings.pomodoro }
   }
+  if (typeof state.settings.kanbanChecklistPreviewMode !== 'string') {
+    state.settings.kanbanChecklistPreviewMode = state.settings.kanbanShowChecklistInline ? 'all' : 'none'
+  }
+  if (!['none', 'all', 'card'].includes(state.settings.kanbanChecklistPreviewMode)) {
+    state.settings.kanbanChecklistPreviewMode = 'none'
+  }
   if (typeof state.settings.focusAlertMode !== 'string') {
     state.settings.focusAlertMode = state.settings.vibrateOnPageFocus ? 'vibration' : 'none'
   }

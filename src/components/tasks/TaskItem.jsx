@@ -48,6 +48,10 @@ export function TaskItem({ task }) {
     () => semesters.find(s => s.id === task.semesterId) ?? null,
     [semesters, task.semesterId],
   )
+  const taskClassName = useMemo(
+    () => classes.find(c => c.id === task.classId)?.name ?? null,
+    [classes, task.classId],
+  )
   const weekCount = useMemo(
     () => (semester?.startDate && semester?.endDate ? computeWeekCount(semester.startDate, semester.endDate) : 1),
     [semester],
@@ -118,6 +122,8 @@ export function TaskItem({ task }) {
           sharedTaskId,
           semId: boardId,
           columnId: todoColumnId,
+          classId: task.classId ?? null,
+          className: taskClassName,
         })
       } catch {
         setOptimisticSharedInKanban(false)
@@ -130,6 +136,8 @@ export function TaskItem({ task }) {
       title: task.title,
       priority: task.priority ?? null,
       dueDate: task.dueDate ?? null,
+      classId: task.classId ?? null,
+      className: taskClassName,
       order: todoOrder,
       checklist: [],
     })

@@ -23,6 +23,7 @@ function mondayDateForWeek(semesterStartDate, week) {
 export function useCollabActions() {
   const userId = useStore(s => s.collab?.userId)
   const semesters = useStore(s => s.semesters ?? [])
+  const classes = useStore(s => s.classes ?? [])
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
@@ -77,9 +78,11 @@ export function useCollabActions() {
     const weekStart = Number.isFinite(task?.weekStart) ? task.weekStart : 1
     const weekEndRaw = Number.isFinite(task?.weekEnd) ? task.weekEnd : weekStart
     const weekEnd = Math.max(weekStart, weekEndRaw)
+    const className = classes.find(cls => cls.id === task?.classId)?.name ?? null
     const remoteTask = {
       ...task,
       id: sharedTaskId,
+      className,
       sharedWeekStartDate: canEncodeWeekDates
         ? mondayDateForWeek(taskSemester.startDate, weekStart)
         : null,
@@ -343,7 +346,7 @@ export function useCollabActions() {
     }))
   }
 
-  const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, semId, columnId }) => {
+  const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, semId, columnId, classId = null, className = null }) => {
     const membership = getMembership(teamId)
     const team = getTeam(teamId)
     if (!membership || !team || !userId) return
@@ -357,15 +360,18 @@ export function useCollabActions() {
         const cards = state?.kanban?.cards ?? []
         const already = cards.some(card => card.sharedTaskId === sharedTaskId && card.semesterId === semId)
         if (already) return state
+        const sharedTask = (state?.tasks ?? []).find(task => task.id === sharedTaskId)
 
         const nextCards = [
           ...cards,
           {
             id: nanoid(),
-            title: (state?.tasks ?? []).find(task => task.id === sharedTaskId)?.title ?? 'Task',
+            title: sharedTask?.title ?? 'Task',
             semesterId: semId,
             columnId,
             checklist: [],
+            classId: classId ?? sharedTask?.classId ?? null,
+            className: className ?? sharedTask?.className ?? null,
             sharedTaskId,
             sharedByUserId: userId,
             updatedAt: Date.now(),
@@ -386,15 +392,18 @@ export function useCollabActions() {
       const cards = state?.kanban?.cards ?? []
       const already = cards.some(card => card.sharedTaskId === sharedTaskId && card.semesterId === semId)
       if (already) return state
+      const sharedTask = (state?.tasks ?? []).find(task => task.id === sharedTaskId)
 
       const nextCards = [
         ...cards,
         {
           id: nanoid(),
-          title: (state?.tasks ?? []).find(task => task.id === sharedTaskId)?.title ?? 'Task',
+          title: sharedTask?.title ?? 'Task',
           semesterId: semId,
           columnId,
           checklist: [],
+          classId: classId ?? sharedTask?.classId ?? null,
+          className: className ?? sharedTask?.className ?? null,
           sharedTaskId,
           sharedByUserId: userId,
           updatedAt: Date.now(),

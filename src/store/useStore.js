@@ -27,6 +27,7 @@ function buildInitialState() {
       passThreshold: 9.5,
       taskSpanMode: 'single',
       kanbanShowChecklistInline: false,
+      kanbanChecklistPreviewMode: 'none',
       focusAlertMode: 'none',
       taskAlertMode: 'none',
       focus: {
