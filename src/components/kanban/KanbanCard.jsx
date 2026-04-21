@@ -195,7 +195,7 @@ export function KanbanCard({ card, semId, prevColumnId = null, nextColumnId = nu
           </div>
         </div>
         {card.dueDate && <Badge variant="secondary" className="text-xs h-5">{card.dueDate}</Badge>}
-        {classBadgeText && <Badge variant="outline" className="text-xs h-5">{classBadgeText}</Badge>}
+        {classBadgeText && <Badge variant="secondary" className="text-xs h-5">{classBadgeText}</Badge>}
         {sharedBadgeText && <Badge variant="outline" className="text-xs h-5">{sharedBadgeText}</Badge>}
         {checklist.length > 0 && (
           <div className="flex items-center gap-2">
