@@ -101,21 +101,24 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     setFocusSync(data)
   }, [setFocusSync])
 
+  const nextCycleBaseAfterBreak = useCallback((savedCycleElapsedBase) => {
+    return intervalResetMode === 'continue' ? savedCycleElapsedBase : 0
+  }, [intervalResetMode])
+
   useEffect(() => {
     if (!running || phase !== 'break') return
     if (breakSecsLeft > 0) return
     const now = nowSecs()
-    const nextCycleBase = intervalResetMode === 'continue' ? cycleElapsedBase : 0
     commit({
       status: 'started',
       phase: 'focus',
       startedAt: now,
-      cycleElapsedBase: nextCycleBase,
+      cycleElapsedBase: nextCycleBaseAfterBreak(cycleElapsedBase),
       totalElapsedBase,
       breakSecsLeftBase: 0,
       activeBreakSource: null,
     })
-  }, [running, phase, breakSecsLeft, totalElapsedBase, cycleElapsedBase, intervalResetMode, commit])
+  }, [running, phase, breakSecsLeft, totalElapsedBase, cycleElapsedBase, nextCycleBaseAfterBreak, commit])
 
   useEffect(() => {
     if (!running || phase !== 'focus') return
@@ -128,8 +131,8 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
           status: 'started',
           phase: 'break',
           startedAt: nowSecs(),
-          cycleElapsedBase: 0,
-          totalElapsedBase,
+          cycleElapsedBase: cycleElapsed,
+          totalElapsedBase: totalElapsed,
           breakSecsLeftBase: scheduledBreakMins * 60,
           activeBreakSource: 'scheduled',
         })
@@ -142,13 +145,13 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
         status: 'started',
         phase: 'break',
         startedAt: nowSecs(),
-        cycleElapsedBase: 0,
-        totalElapsedBase,
+        cycleElapsedBase: cycleElapsed,
+        totalElapsedBase: totalElapsed,
         breakSecsLeftBase: intervalBreakMins * 60,
         activeBreakSource: 'interval',
       })
     }
-  }, [running, phase, useScheduled, scheduledTimes, useInterval, cycleElapsed, intervalSecs, intervalBreakMins, scheduledBreakMins, totalElapsedBase, commit])
+  }, [running, phase, useScheduled, scheduledTimes, useInterval, cycleElapsed, totalElapsed, intervalSecs, intervalBreakMins, scheduledBreakMins, commit])
 
   const start = () => {
     commit({
@@ -209,7 +212,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     commit({
       phase: 'focus',
       startedAt: running ? nowSecs() : null,
-      cycleElapsedBase: 0,
+      cycleElapsedBase: nextCycleBaseAfterBreak(cycleElapsedBase),
       breakSecsLeftBase: 0,
       activeBreakSource: null,
     })
