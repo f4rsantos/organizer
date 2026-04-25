@@ -79,15 +79,6 @@ export function FocusSettingsPanel({
               onChange={v => updateFocusSettings({ intervalBreakMins: v })}
             />
           </div>
-          <button
-            onClick={() => updateFocusSettings({ intervalResetMode: (focus.intervalResetMode ?? 'reset') === 'reset' ? 'continue' : 'reset' })}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {(focus.intervalResetMode ?? 'reset') === 'reset'
-              ? <CircleCheck className="h-4 w-4 text-primary" />
-              : <Circle className="h-4 w-4" />}
-            {(focus.intervalResetMode ?? 'reset') === 'reset' ? t.focusAfterBreakReset : t.focusAfterBreakContinue}
-          </button>
         </>
       )}
 
