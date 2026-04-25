@@ -38,6 +38,7 @@ export function FocusTab() {
     useScheduled: focus.useScheduled,
     scheduledBreakMins: focus.scheduledBreakMins,
     scheduledTimes: focus.scheduledTimes,
+    intervalResetMode: focus.intervalResetMode ?? 'reset',
   })
 
   const isBreak = phase === 'break'

@@ -34,7 +34,7 @@ export function FocusWheel({ pct, isBreak, label, sublabel, centerOverlay = null
         </svg>
 
         {centerOverlay && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ transform: 'translateY(50px)' }}>
             {centerOverlay}
           </div>
         )}

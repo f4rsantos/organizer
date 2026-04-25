@@ -66,18 +66,29 @@ export function FocusSettingsPanel({
       </button>
 
       {focus.useInterval && (
-        <div className="flex justify-center gap-8">
-          <BreakDial
-            label={t.focusIntervalEvery}
-            value={focus.intervalMins}
-            onChange={v => updateFocusSettings({ intervalMins: v })}
-          />
-          <BreakDial
-            label={t.focusIntervalBreakFor}
-            value={focus.intervalBreakMins}
-            onChange={v => updateFocusSettings({ intervalBreakMins: v })}
-          />
-        </div>
+        <>
+          <div className="flex justify-center gap-8">
+            <BreakDial
+              label={t.focusIntervalEvery}
+              value={focus.intervalMins}
+              onChange={v => updateFocusSettings({ intervalMins: v })}
+            />
+            <BreakDial
+              label={t.focusIntervalBreakFor}
+              value={focus.intervalBreakMins}
+              onChange={v => updateFocusSettings({ intervalBreakMins: v })}
+            />
+          </div>
+          <button
+            onClick={() => updateFocusSettings({ intervalResetMode: (focus.intervalResetMode ?? 'reset') === 'reset' ? 'continue' : 'reset' })}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {(focus.intervalResetMode ?? 'reset') === 'reset'
+              ? <CircleCheck className="h-4 w-4 text-primary" />
+              : <Circle className="h-4 w-4" />}
+            {(focus.intervalResetMode ?? 'reset') === 'reset' ? t.focusAfterBreakReset : t.focusAfterBreakContinue}
+          </button>
+        </>
       )}
 
       <button

@@ -44,7 +44,7 @@ function scheduledWindowProgress(times) {
   return elapsed / span
 }
 
-export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, useScheduled, scheduledBreakMins, scheduledTimes }) {
+export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, useScheduled, scheduledBreakMins, scheduledTimes, intervalResetMode }) {
   const focusSync = useStore(s => s.focusSync)
   const setFocusSync = useStore(s => s.setFocusSync)
   const [tick, setTick] = useState(0)
@@ -105,16 +105,17 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     if (!running || phase !== 'break') return
     if (breakSecsLeft > 0) return
     const now = nowSecs()
+    const nextCycleBase = intervalResetMode === 'continue' ? cycleElapsedBase : 0
     commit({
       status: 'started',
       phase: 'focus',
       startedAt: now,
-      cycleElapsedBase: 0,
+      cycleElapsedBase: nextCycleBase,
       totalElapsedBase,
       breakSecsLeftBase: 0,
       activeBreakSource: null,
     })
-  }, [running, phase, breakSecsLeft, totalElapsedBase, commit])
+  }, [running, phase, breakSecsLeft, totalElapsedBase, cycleElapsedBase, intervalResetMode, commit])
 
   useEffect(() => {
     if (!running || phase !== 'focus') return
