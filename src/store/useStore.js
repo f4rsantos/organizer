@@ -34,6 +34,7 @@ function buildInitialState() {
         useInterval: true, intervalMins: 25, intervalBreakMins: 5,
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],
         focusLabel: '', breakLabel: '',
+        intervalResetMode: 'reset',
       },
       pomodoro: {
         enabled: false,
@@ -184,6 +185,15 @@ export const useStore = create((set, get) => ({
   deleteKanbanCard: (semId, cardId) => set(s => {
     const board = s.kanban[semId]
     return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: board.cards.filter(c => c.id !== cardId) } } })
+  }),
+  clearKanbanCardSharedRef: (sharedCardId) => set(s => {
+    const kanban = Object.fromEntries(
+      Object.entries(s.kanban ?? {}).map(([boardId, board]) => [
+        boardId,
+        { ...board, cards: (board.cards ?? []).map(c => c?.sharedRef?.sharedCardId === sharedCardId ? { ...c, sharedRef: null } : c) },
+      ])
+    )
+    return persist({ ...s, kanban })
   }),
   clearKanbanDone: semId => set(s => {
     const board = s.kanban[semId]

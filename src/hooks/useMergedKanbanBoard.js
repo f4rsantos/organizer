@@ -46,8 +46,14 @@ export function useMergedKanbanBoard(semId) {
     )
 
     const localCards = (localBoard.cards ?? []).filter(card => {
-      if (!card?.sourceTaskId) return true
-      return !hiddenTaskIds.has(card.sourceTaskId)
+      if (card?.sourceTaskId && hiddenTaskIds.has(card.sourceTaskId)) return false
+      const sharedTeamId = card?.sharedRef?.teamId
+      if (sharedTeamId && activeTeamIds.has(sharedTeamId)) {
+        const sharedCardId = card?.sharedRef?.sharedCardId
+        const remoteCards = runtimeTeams[sharedTeamId]?.state?.kanban?.cards ?? []
+        if (remoteCards.some(rc => rc.id === sharedCardId)) return false
+      }
+      return true
     })
 
     const remoteCards = (collabEnabled ? memberships : []).flatMap(membership => {
