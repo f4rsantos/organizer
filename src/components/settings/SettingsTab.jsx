@@ -12,14 +12,14 @@ import { Button } from '@/components/ui/button'
 import { SemesterDatesForm } from './SemesterDatesForm'
 import { ClassesForm } from './ClassesForm'
 import { GradeConfigForm } from './GradeConfigForm'
-import { KanbanColumnsForm } from './KanbanColumnsForm'
 import { FirebaseSyncButton } from './FirebaseSyncPanel'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
 import { DangerZone } from './DangerZone'
 import { CollabPanel } from './CollabPanel'
 import { CollabConnectButton } from './CollabConnectPanel'
 import { GeneralSettings } from './GeneralSettings'
-import { PomodoroSettings } from './PomodoroSettings'
+import { KanbanSettings } from './KanbanSettings'
+import { FocusSettings } from './FocusSettings'
 import { HolidaysForm } from './HolidaysForm'
 import { PresetOverlay } from '@/components/presets/PresetOverlay'
 import { exportState, importState } from '@/store/persist'
@@ -118,7 +118,6 @@ export function SettingsTab({ syncStatus }) {
   const allClasses = useStore(s => s.classes)
   const grades = useStore(s => s.grades)
   const kanban = useStore(s => s.kanban)
-  const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
   const workMode = useStore(s => s.settings?.workMode ?? false)
   const dismissed = useStore(s => s.dismissedNextSemester ?? {})
   const importData = useStore(s => s.importData)
@@ -189,7 +188,7 @@ export function SettingsTab({ syncStatus }) {
               rel="noreferrer"
               className="text-inherit no-underline hover:no-underline"
             >
-              Made by Fernando Santos
+              Made by f4rsantos
             </a>
           </p>
         </div>
@@ -286,9 +285,16 @@ export function SettingsTab({ syncStatus }) {
               )}
 
               <AccordionItem value="kanban" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.kanbanColumns}</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.kanban}</AccordionTrigger>
                 <AccordionContent className="pb-4">
-                  <KanbanColumnsForm semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
+                  <KanbanSettings semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="focus" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <FocusSettings />
                 </AccordionContent>
               </AccordionItem>
 
@@ -298,15 +304,6 @@ export function SettingsTab({ syncStatus }) {
                   <GeneralSettings />
                 </AccordionContent>
               </AccordionItem>
-
-              {pomodoroEnabled && (
-                <AccordionItem value="pomodoro" className="rounded-xl border border-border bg-card px-4">
-                  <AccordionTrigger className="text-sm font-semibold py-3">{t.pomodoroMode}</AccordionTrigger>
-                  <AccordionContent className="pb-4">
-                    <PomodoroSettings />
-                  </AccordionContent>
-                </AccordionItem>
-              )}
 
               <AccordionItem value="data" className="rounded-xl border border-border bg-card px-4">
                 <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
@@ -336,7 +333,7 @@ export function SettingsTab({ syncStatus }) {
             rel="noreferrer"
             className="text-inherit no-underline hover:no-underline"
           >
-            Made by Fernando Santos
+            Made by f4rsantos
           </a>
         </p>
       </div>

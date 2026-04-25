@@ -101,8 +101,8 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     setFocusSync(data)
   }, [setFocusSync])
 
-  const nextCycleBaseAfterBreak = useCallback((savedCycleElapsedBase) => {
-    return intervalResetMode === 'continue' ? savedCycleElapsedBase : 0
+  const nextTotalBaseAfterBreak = useCallback((savedTotalElapsedBase) => {
+    return intervalResetMode === 'continue' ? savedTotalElapsedBase : 0
   }, [intervalResetMode])
 
   useEffect(() => {
@@ -113,12 +113,12 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
       status: 'started',
       phase: 'focus',
       startedAt: now,
-      cycleElapsedBase: nextCycleBaseAfterBreak(cycleElapsedBase),
-      totalElapsedBase,
+      cycleElapsedBase: 0,
+      totalElapsedBase: nextTotalBaseAfterBreak(totalElapsedBase),
       breakSecsLeftBase: 0,
       activeBreakSource: null,
     })
-  }, [running, phase, breakSecsLeft, totalElapsedBase, cycleElapsedBase, nextCycleBaseAfterBreak, commit])
+  }, [running, phase, breakSecsLeft, totalElapsedBase, nextTotalBaseAfterBreak, commit])
 
   useEffect(() => {
     if (!running || phase !== 'focus') return
@@ -212,7 +212,8 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     commit({
       phase: 'focus',
       startedAt: running ? nowSecs() : null,
-      cycleElapsedBase: nextCycleBaseAfterBreak(cycleElapsedBase),
+      cycleElapsedBase: 0,
+      totalElapsedBase: nextTotalBaseAfterBreak(totalElapsedBase),
       breakSecsLeftBase: 0,
       activeBreakSource: null,
     })
