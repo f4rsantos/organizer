@@ -57,6 +57,8 @@ export function PresetPicker({ onBack, onLoaded }) {
   const setTargetGrade     = useStore(s => s.setTargetGrade)
   const addTask            = useStore(s => s.addTask)
   const getClasses         = () => useStore.getState().classes
+  const activeSemesterId   = useStore(s => s.activeSemesterId)
+  const semesters          = useStore(s => s.semesters ?? [])
 
   const [available, setAvailable] = useState({})
   const [checked,   setChecked]   = useState(false)
@@ -80,7 +82,9 @@ export function PresetPicker({ onBack, onLoaded }) {
     try {
       const data    = await fetchPreset(key)
       const actions = { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses }
-      applyPreset(data, actions, key)
+      const activeSem = semesters.find(s => s.id === activeSemesterId)
+      const previousPresetKey = key === 'summer' ? (activeSem?.presetKey ?? null) : null
+      applyPreset(data, actions, key, previousPresetKey)
       onLoaded()
     } catch {
       setError(t.presetError)

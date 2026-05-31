@@ -28,6 +28,7 @@ export function TaskForm({
 }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const taskDefaultToCalendar = useStore(s => s.settings?.taskDefaultToCalendar ?? false)
   const [form, setForm] = useState({
     title: initialData?.title ?? '',
     classId: initialData?.classId ?? null,
@@ -35,7 +36,7 @@ export function TaskForm({
     dueDate: initialData?.dueDate ?? '',
     weekStart: initialData?.weekStart ?? (defaultWeek ?? 1),
     weekEnd: initialData?.weekEnd ?? (defaultWeek ?? 1),
-    showOnCalendar: initialData?.showOnCalendar ?? false,
+    showOnCalendar: initialData?.showOnCalendar ?? taskDefaultToCalendar,
   })
   const [weeksManuallySet, setWeeksManuallySet] = useState(false)
   const addTask = useStore(s => s.addTask)
