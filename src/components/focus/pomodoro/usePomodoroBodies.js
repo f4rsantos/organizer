@@ -235,6 +235,8 @@ export function usePomodoroBodies({
   cycleElapsed,
   focusRunning,
   resetSignal,
+  periodIds,
+  showPeriodStats,
 }) {
   const [bodies, setBodies] = useState([])
 
@@ -291,8 +293,14 @@ export function usePomodoroBodies({
 
   const syncBodiesFromStore = useCallback(() => {
     const bounds = getBounds()
-    setBodies(prev => buildBodiesFromPomodoros(prev, pomodoros, bounds))
-  }, [getBounds, pomodoros])
+    setBodies(prev => {
+      const next = buildBodiesFromPomodoros(prev, pomodoros, bounds)
+      if (showPeriodStats && periodIds && periodIds.size > 0) {
+        return next.filter(b => periodIds.has(String(b.id)))
+      }
+      return next
+    })
+  }, [getBounds, pomodoros, periodIds, showPeriodStats])
 
   useEffect(() => {
     syncBodiesFromStore()
@@ -388,7 +396,7 @@ export function usePomodoroBodies({
   const handlePointerStart = (id, e) => {
     if (e?.button != null && e.button !== 0) return
     void requestOrientationAccess()
-    draggingRef.current = { id, pointerId: e.pointerId }
+    draggingRef.current = { id, pointerId: e.pointerId, history: [] }
   }
 
   const handlePointerMove = useCallback(e => {
@@ -400,6 +408,15 @@ export function usePomodoroBodies({
     const y = e.clientY - bounds.top
     const { id } = draggingRef.current
 
+    const now = performance.now()
+    const history = draggingRef.current.history
+    history.push({ x, y, t: now })
+    // keep only last 100ms of samples
+    const cutoff = now - 100
+    let i = 0
+    while (i < history.length - 1 && history[i].t < cutoff) i++
+    if (i > 0) history.splice(0, i)
+
     setBodies(prev => prev.map(b => (
       b.id === id ? { ...b, x, y, vx: 0, vy: 0, omega: 0 } : b
     )))
@@ -409,15 +426,33 @@ export function usePomodoroBodies({
     if (!draggingRef.current) return
     if (e.pointerId != null && draggingRef.current.pointerId != null && e.pointerId !== draggingRef.current.pointerId) return
 
-    const { id } = draggingRef.current
+    const { id, history } = draggingRef.current
+
+    let vx = 0
+    let vy = 0
+    if (history && history.length >= 2) {
+      const first = history[0]
+      const last = history[history.length - 1]
+      const dt = (last.t - first.t) / 1000
+      if (dt > 0) {
+        vx = Math.max(-1200, Math.min(1200, (last.x - first.x) / dt))
+        vy = Math.max(-1200, Math.min(1200, (last.y - first.y) / dt))
+      }
+    }
+
+    // fall back to small random kick for taps without movement
+    if (vx === 0 && vy === 0) {
+      vx = (Math.random() - 0.5) * 60
+      vy = -80
+    }
 
     setBodies(prev => prev.map(b => (
       b.id === id
         ? {
           ...b,
-          vx: (Math.random() - 0.5) * 60,
-          vy: -80,
-          omega: (Math.random() - 0.5) * 90,
+          vx,
+          vy,
+          omega: vx * 0.15,
           wobbleLeft: MAX_WOBBLE_SECONDS,
         }
         : b

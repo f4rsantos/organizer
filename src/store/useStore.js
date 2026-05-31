@@ -30,6 +30,7 @@ function buildInitialState() {
       kanbanChecklistPreviewMode: 'none',
       focusAlertMode: 'none',
       taskAlertMode: 'none',
+      taskDefaultToCalendar: false,
       focus: {
         useInterval: true, intervalMins: 25, intervalBreakMins: 5,
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],

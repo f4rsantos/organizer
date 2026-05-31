@@ -19,7 +19,7 @@ export function NextSemesterDialog() {
   if (!sem?.endDate || !sem?.presetKey) return null
 
   const ended = new Date(sem.endDate) < new Date()
-  const nextKey = getNextPresetKey(sem.presetKey)
+  const nextKey = getNextPresetKey(sem.presetKey, sem.previousPresetKey)
   if (!ended || !nextKey || dismissed[activeSemesterId]) return null
 
   return (

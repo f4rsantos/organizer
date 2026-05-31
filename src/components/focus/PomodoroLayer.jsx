@@ -16,6 +16,9 @@ export function PomodoroLayer({ containerRef, focusRunning, phase, cycleElapsed,
   const { enabled = false, resetPeriod = 'week', trackStats = false, showAbandoned = true, showPeriodStats = true } = pomodoroSettings
 
   const [showStats, setShowStats] = useState(false)
+  const periodPomodoros = getPeriodPomodoros(pomodoros, resetPeriod)
+  const periodIds = useMemo(() => new Set(periodPomodoros.map(p => String(p.id))), [periodPomodoros])
+
   const { bodies, handlePointerStart } = usePomodoroBodies({
     containerRef,
     pomodoros,
@@ -25,14 +28,11 @@ export function PomodoroLayer({ containerRef, focusRunning, phase, cycleElapsed,
     cycleElapsed,
     focusRunning,
     resetSignal,
+    periodIds,
+    showPeriodStats,
   })
 
-  const visibleBodies = showAbandoned ? bodies : bodies.filter(b => !b.abandoned)
-  const periodPomodoros = getPeriodPomodoros(pomodoros, resetPeriod)
-  const periodIds = useMemo(() => new Set(periodPomodoros.map(p => String(p.id))), [periodPomodoros])
-  const renderedBodies = showPeriodStats
-    ? visibleBodies.filter(b => periodIds.has(String(b.id)))
-    : visibleBodies
+  const renderedBodies = showAbandoned ? bodies : bodies.filter(b => !b.abandoned)
 
   return (
     <>
