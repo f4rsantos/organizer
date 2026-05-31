@@ -122,6 +122,9 @@ function normalizeState(state) {
   if (!state.dismissedNextSemester || typeof state.dismissedNextSemester !== 'object') {
     state.dismissedNextSemester = {}
   }
+  if (!state.presetUpdatedAt || typeof state.presetUpdatedAt !== 'object') {
+    state.presetUpdatedAt = {}
+  }
 
   return state
 }

@@ -1,4 +1,5 @@
-import { fetchPresetFromFirebase, fetchPresetMetaFromFirebase, storePresetUpdatedAt } from './presetsFirebase'
+import { fetchPresetFromFirebase, fetchPresetMetaFromFirebase } from './presetsFirebase'
+import { nanoid } from '@/lib/ids'
 
 const NEXT_KEY_MAP = {
   '1a1s': '1a2s',
@@ -34,10 +35,10 @@ export function getNextPresetKey(currentKey, previousKey) {
   return NEXT_KEY_MAP[currentKey] ?? null
 }
 
-export async function fetchPreset(key) {
+export async function fetchPreset(key, setPresetUpdatedAt) {
   const remote = await fetchPresetFromFirebase(key)
   if (!remote?.data) throw new Error(`preset-${key} not found`)
-  storePresetUpdatedAt(key, remote.updatedAt)
+  setPresetUpdatedAt?.(key, remote.updatedAt)
 
   const data = { ...remote.data }
 
@@ -75,17 +76,69 @@ export function applyPreset(data, actions, presetKey, previousPresetKey) {
 }
 
 export function updatePreset(semId, data, actions) {
-  const { deleteClass, deleteHoliday, getClasses, getState } = actions
+  const { addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, updateSemester, getClasses, getState } = actions
+
+  if (data.startDate || data.endDate) {
+    const sem = getState().semesters.find(s => s.id === semId)
+    updateSemester(semId, {
+      startDate: data.startDate || sem?.startDate,
+      endDate: data.endDate || sem?.endDate,
+    })
+  }
+
   const existingClasses = getClasses().filter(c => c.semesterId === semId)
-  existingClasses.forEach(c => deleteClass(c.id))
+  const existingClassNames = new Set(existingClasses.map(c => c.name))
+  ;(data.classes ?? []).forEach(cls => {
+    if (!existingClassNames.has(cls.name)) {
+      addClass({ semesterId: semId, name: cls.name, ects: cls.ects ?? 6, color: cls.color })
+    }
+  })
+
+  const allClasses = getClasses().filter(c => c.semesterId === semId)
+  const classIdByName = Object.fromEntries(allClasses.map(c => [c.name, c.id]))
 
   const existingHolidays = (getState().holidays ?? []).filter(h => h.semesterId === semId)
-  existingHolidays.forEach(h => deleteHoliday(h.id))
+  const existingHolidayNames = new Set(existingHolidays.map(h => h.name))
+  ;(data.holidays ?? []).forEach(h => {
+    if (!existingHolidayNames.has(h.name)) {
+      addHoliday(semId, { name: h.name, startDate: h.startDate, endDate: h.endDate })
+    }
+  })
 
   const existingTasks = (getState().tasks ?? []).filter(t => t.semesterId === semId)
-  existingTasks.forEach(t => actions.deleteTask(t.id))
+  const existingTaskKeys = new Set(existingTasks.map(t => `${t.title}|${t.weekStart}`))
+  ;(data.tasks ?? []).forEach(task => {
+    const key = `${task.title}|${task.weekStart}`
+    if (!existingTaskKeys.has(key)) {
+      addTask({
+        semesterId: semId,
+        classId: task.className ? (classIdByName[task.className] ?? null) : null,
+        title: task.title,
+        priority: task.priority ?? null,
+        dueDate: task.dueDate ?? null,
+        weekStart: task.weekStart,
+        weekEnd: task.weekEnd,
+        done: false,
+      })
+    }
+  })
 
-  _populateSemester(semId, data, actions)
+  const grades = data.grades ?? {}
+  for (const [className, gradeData] of Object.entries(grades)) {
+    const classId = classIdByName[className]
+    if (!classId) continue
+    const existingComponents = getState().grades?.[semId]?.[classId]?.components ?? []
+    const existingComponentNames = new Set(existingComponents.map(c => c.name))
+    const newComponents = (gradeData.components ?? [])
+      .map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c }))
+      .filter(c => !existingComponentNames.has(c.name))
+    if (newComponents.length) {
+      setGradeComponents(semId, classId, [...existingComponents, ...newComponents])
+    }
+    if (gradeData.targetGrade != null && existingComponents.length === 0) {
+      setTargetGrade(semId, classId, gradeData.targetGrade)
+    }
+  }
 }
 
 function _populateSemester(semId, data, actions) {
@@ -118,7 +171,7 @@ function _populateSemester(semId, data, actions) {
   for (const [className, gradeData] of Object.entries(grades)) {
     const classId = classIdByName[className]
     if (!classId) continue
-    const components = (gradeData.components ?? []).map(({ grade: _g, ...c }) => c)
+    const components = (gradeData.components ?? []).map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c }))
     if (components.length) setGradeComponents(semId, classId, components)
     if (gradeData.targetGrade != null) setTargetGrade(semId, classId, gradeData.targetGrade)
   }

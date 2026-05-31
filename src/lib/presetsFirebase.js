@@ -10,8 +10,6 @@ const PRESETS_FIREBASE_CONFIG = {
   appId: import.meta.env.VITE_PRESETS_FIREBASE_APP_ID,
 }
 
-const UPDATED_AT_PREFIX = 'presets:updatedAt:'
-
 function getPresetsApp() {
   if (!PRESETS_FIREBASE_CONFIG.projectId) return null
   const existing = getApps().find(a => a.name === 'presets')
@@ -62,25 +60,9 @@ export async function fetchAllPresetMetaFromFirebase() {
   }
 }
 
-export function getStoredPresetUpdatedAt(key) {
-  try {
-    const raw = localStorage.getItem(UPDATED_AT_PREFIX + key)
-    return raw ? Number(raw) : null
-  } catch {
-    return null
-  }
-}
-
-export function storePresetUpdatedAt(key, updatedAt) {
-  try {
-    localStorage.setItem(UPDATED_AT_PREFIX + key, String(updatedAt))
-  } catch {}
-}
-
-export async function checkPresetUpdateAvailable(key) {
-  const stored = getStoredPresetUpdatedAt(key)
-  if (stored === null) return false
+export async function checkPresetUpdateAvailable(key, storedUpdatedAt) {
   const meta = await fetchPresetMetaFromFirebase(key)
   if (!meta) return false
-  return meta.updatedAt > stored
+  if (storedUpdatedAt == null) return meta.updatedAt > 0
+  return meta.updatedAt > storedUpdatedAt
 }
