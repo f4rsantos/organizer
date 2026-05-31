@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Download, Upload, Link, QrCode } from 'lucide-react'
 import QRCode from 'qrcode'
 import { useStore } from '@/store/useStore'
@@ -25,12 +25,9 @@ import { PresetOverlay } from '@/components/presets/PresetOverlay'
 import { exportState, importState } from '@/store/persist'
 import { encodeStateToUrl } from '@/lib/shareUtils'
 import { loadFirebaseConfig } from '@/lib/firebase'
-import { checkPresetUpdateAvailable } from '@/lib/presetsFirebase'
-import { fetchPreset, updatePreset } from '@/lib/presets'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 
 function DataPanel({ syncStatus }) {
   const state = useStore(s => s)
@@ -147,34 +144,9 @@ export function SettingsTab({ syncStatus }) {
   const [showPresets, setShowPresets] = useState(false)
   const [showFirebaseGuide, setShowFirebaseGuide] = useState(false)
   const [importError, setImportError] = useState(null)
-  const [presetUpdateAvailable, setPresetUpdateAvailable] = useState(false)
-  const [presetUpdating, setPresetUpdating] = useState(false)
   const fileInputRef = useRef(null)
   const firebaseConnected = !!loadFirebaseConfig()
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
-
-  useEffect(() => {
-    if (!semester?.presetKey) return
-    let cancelled = false
-    checkPresetUpdateAvailable(semester.presetKey).then(available => {
-      if (!cancelled) setPresetUpdateAvailable(available)
-    })
-    return () => { cancelled = true }
-  }, [semester?.presetKey, activeSemesterId])
-
-  const handleApplyPresetUpdate = async () => {
-    if (!semester?.presetKey || !activeSemesterId) return
-    setPresetUpdating(true)
-    try {
-      const data = await fetchPreset(semester.presetKey)
-      const actions = { addClass, deleteClass, addHoliday, deleteHoliday, setGradeComponents, setTargetGrade, addTask, deleteTask, getClasses, getState }
-      updatePreset(activeSemesterId, data, actions)
-      setPresetUpdateAvailable(false)
-    } catch {
-    } finally {
-      setPresetUpdating(false)
-    }
-  }
 
   const handleFileChange = async e => {
     const file = e.target.files?.[0]
@@ -280,22 +252,6 @@ export function SettingsTab({ syncStatus }) {
                   </Button>
                 </div>
               )}
-              <Dialog open={presetUpdateAvailable} onOpenChange={open => !open && setPresetUpdateAvailable(false)}>
-                <DialogContent showCloseButton={false}>
-                  <DialogHeader>
-                    <DialogTitle>{lang === 'pt' ? 'Preset atualizado' : 'Preset updated'}</DialogTitle>
-                    <DialogDescription>{lang === 'pt' ? 'Queres aplicar as alterações?' : 'Apply the changes to your current semester?'}</DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button variant="ghost" onClick={() => setPresetUpdateAvailable(false)} disabled={presetUpdating}>
-                      {lang === 'pt' ? 'Ignorar' : 'Dismiss'}
-                    </Button>
-                    <Button onClick={handleApplyPresetUpdate} disabled={presetUpdating}>
-                      {presetUpdating ? '…' : (lang === 'pt' ? 'Atualizar' : 'Update')}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
               {!hasValidDates && (
                 <p className="text-xs text-muted-foreground">{t.addUnlocks}</p>
               )}

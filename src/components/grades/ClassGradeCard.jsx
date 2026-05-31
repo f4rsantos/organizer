@@ -31,7 +31,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
         {components.length === 0
           ? <p className="text-xs text-muted-foreground py-2">{t.noGradeComponents}</p>
           : components.map(c => (
-              <GradeComponentRow key={c.id} component={c} onChange={updateGrade}
+              <GradeComponentRow key={c.id ?? c.name} component={c} onChange={updateGrade}
                 onAddSub={addSubcomponent} onRemoveSub={removeSubcomponent} onSubGradeChange={updateSubGrade}
               />
             ))

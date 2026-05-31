@@ -56,9 +56,10 @@ export function PresetPicker({ onBack, onLoaded }) {
   const setGradeComponents = useStore(s => s.setGradeComponents)
   const setTargetGrade     = useStore(s => s.setTargetGrade)
   const addTask            = useStore(s => s.addTask)
-  const getClasses         = () => useStore.getState().classes
-  const activeSemesterId   = useStore(s => s.activeSemesterId)
-  const semesters          = useStore(s => s.semesters ?? [])
+  const getClasses           = () => useStore.getState().classes
+  const setPresetUpdatedAt   = useStore(s => s.setPresetUpdatedAt)
+  const activeSemesterId     = useStore(s => s.activeSemesterId)
+  const semesters            = useStore(s => s.semesters ?? [])
 
   const [available, setAvailable] = useState({})
   const [checked,   setChecked]   = useState(false)
@@ -80,7 +81,7 @@ export function PresetPicker({ onBack, onLoaded }) {
     setLoading(key)
     setError(null)
     try {
-      const data    = await fetchPreset(key)
+      const data    = await fetchPreset(key, setPresetUpdatedAt)
       const actions = { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses }
       const activeSem = semesters.find(s => s.id === activeSemesterId)
       const previousPresetKey = key === 'summer' ? (activeSem?.presetKey ?? null) : null

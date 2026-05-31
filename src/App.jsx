@@ -6,6 +6,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { TabBar, SideBar } from '@/components/layout/TabBar'
 import { Onboarding } from '@/components/layout/Onboarding'
 import { NextSemesterDialog } from '@/components/layout/NextSemesterDialog'
+import { PresetUpdateDialog } from '@/components/layout/PresetUpdateDialog'
 import { TasksTab } from '@/components/tasks/TasksTab'
 import { KanbanTab } from '@/components/kanban/KanbanTab'
 import { GradesTab } from '@/components/grades/GradesTab'
@@ -80,6 +81,7 @@ export default function App() {
       </div>
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
       <NextSemesterDialog />
+      <PresetUpdateDialog />
       {showStorageWarning && <StorageWarningModal onDismiss={() => setShowStorageWarning(false)} />}
     </AppShell>
   )

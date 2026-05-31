@@ -69,6 +69,7 @@ function buildInitialState() {
     courseAvg: { previousAvg: null, numSemesters: 0 },
     holidays: [],
     dismissedNextSemester: {},
+    presetUpdatedAt: {},
   }
 }
 
@@ -354,6 +355,9 @@ export const useStore = create((set, get) => ({
   })),
   dismissNextSemester: semId => set(s => persist({
     ...s, dismissedNextSemester: { ...(s.dismissedNextSemester ?? {}), [semId]: true }
+  })),
+  setPresetUpdatedAt: (key, updatedAt) => set(s => persist({
+    ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
 
   // --- Import / Export ---
