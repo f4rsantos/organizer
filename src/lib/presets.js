@@ -130,7 +130,7 @@ export function updatePreset(semId, data, actions) {
     const existingComponents = getState().grades?.[semId]?.[classId]?.components ?? []
     const existingComponentNames = new Set(existingComponents.map(c => c.name))
     const newComponents = (gradeData.components ?? [])
-      .map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c }))
+      .map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c, grade: null }))
       .filter(c => !existingComponentNames.has(c.name))
     if (newComponents.length) {
       setGradeComponents(semId, classId, [...existingComponents, ...newComponents])
@@ -171,7 +171,7 @@ function _populateSemester(semId, data, actions) {
   for (const [className, gradeData] of Object.entries(grades)) {
     const classId = classIdByName[className]
     if (!classId) continue
-    const components = (gradeData.components ?? []).map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c }))
+    const components = (gradeData.components ?? []).map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c, grade: null }))
     if (components.length) setGradeComponents(semId, classId, components)
     if (gradeData.targetGrade != null) setTargetGrade(semId, classId, gradeData.targetGrade)
   }
