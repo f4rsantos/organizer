@@ -12,7 +12,7 @@ export function flattenComponents(components) {
 
 export function weightedAverage(components) {
   const flat = flattenComponents(components)
-  const graded = flat.filter(c => c.grade !== null && c.grade !== '')
+  const graded = flat.filter(c => c.grade != null && c.grade !== '')
   if (graded.length === 0) return null
   const totalWeight = graded.reduce((sum, c) => sum + c.weight, 0)
   if (totalWeight === 0) return null
@@ -21,7 +21,7 @@ export function weightedAverage(components) {
 
 export function accumulatedScore(components) {
   const flat = flattenComponents(components)
-  const graded = flat.filter(c => c.grade !== null && c.grade !== '')
+  const graded = flat.filter(c => c.grade != null && c.grade !== '')
   if (graded.length === 0) return null
   return roundPT(graded.reduce((sum, c) => sum + c.grade * c.weight, 0))
 }
@@ -29,7 +29,7 @@ export function accumulatedScore(components) {
 export function neededGrade(components, target) {
   const flat = flattenComponents(components)
   const doneWeight = flat
-    .filter(c => c.grade !== null && c.grade !== '')
+    .filter(c => c.grade != null && c.grade !== '')
     .reduce((sum, c) => sum + c.weight * c.grade, 0)
   const remainingWeight = flat
     .filter(c => c.grade === null || c.grade === '')
