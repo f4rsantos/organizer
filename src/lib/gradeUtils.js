@@ -42,7 +42,7 @@ export function ectsWeightedAverage(classes) {
   const valid = classes.filter(c => c.finalGrade !== null)
   const totalEcts = valid.reduce((sum, c) => sum + (c.ects ?? 6), 0)
   if (totalEcts === 0) return null
-  const weighted = valid.reduce((sum, c) => sum + c.finalGrade * (c.ects ?? 6), 0)
+  const weighted = valid.reduce((sum, c) => sum + Math.round(c.finalGrade) * (c.ects ?? 6), 0)
   return roundPT(weighted / totalEcts)
 }
 
