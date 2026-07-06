@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { differenceInCalendarWeeks, isWithinInterval, parseISO } from 'date-fns'
 import { useStore } from '@/store/useStore'
+import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
 
 function toLocalWeek(date, semesterStart) {
   return differenceInCalendarWeeks(date, semesterStart, { weekStartsOn: 1 }) + 1
@@ -88,15 +89,8 @@ export function useMergedTasks(semesterId) {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
     const local = localTasks.filter(task => {
       if (task.semesterId !== semesterId) return false
-      const sharedTeamId = task?.sharedRef?.teamId
-      if (!sharedTeamId) return true
-      if (!activeTeamIds.has(sharedTeamId)) return true
-
-      const sharedTaskId = task?.sharedRef?.sharedTaskId
-      if (!sharedTaskId) return true
-      const remoteTasks = runtimeTeams[sharedTeamId]?.state?.tasks ?? []
-      const remoteCopyExists = remoteTasks.some(remoteTask => remoteTask?.id === sharedTaskId)
-      return !remoteCopyExists
+      if (task.views?.list === false) return false
+      return !isSharedLocalHidden(task, activeTeamIds, runtimeTeams)
     })
 
     const remote = (collabEnabled ? memberships : []).flatMap(membership => {
