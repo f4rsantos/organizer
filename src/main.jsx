@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { decodeStateFromUrl, clearUrlHash } from './lib/shareUtils'
 import { saveState, forceSaveState } from './store/persist'
+import { migrateState } from './store/migrations'
 import { loadFirebaseConfig, pullFromFirebase } from './lib/firebase'
 import { registerPwa } from './pwa/registerPwa'
 
 const urlData = decodeStateFromUrl()
 if (urlData) {
-  saveState(urlData)
+  const { state, status } = migrateState(urlData)
+  if (status === 'ok' || status === 'migrated') saveState(state)
   clearUrlHash()
 }
 
@@ -23,9 +25,9 @@ async function hydrateLocalFromFirebaseBeforeRender() {
     ])
 
     if (remote?.version) {
-      // Keep local storage aligned with cloud before Zustand initializes,
-      // so the UI doesn't briefly render stale local data.
-      forceSaveState(remote)
+      const { state, status } = migrateState(remote)
+      if (status === 'newer') sessionStorage.setItem('organizer:remote-newer', '1')
+      else if (status !== 'invalid') forceSaveState(state)
     }
   } catch {
   }
