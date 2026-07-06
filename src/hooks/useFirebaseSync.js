@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { loadFirebaseConfig, pushToFirebase, pullFromFirebase } from '@/lib/firebase'
+import { migrateState } from '@/store/migrations'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 
@@ -14,6 +15,7 @@ export function useFirebaseSync() {
   const refs = useRef({
     pushTimeout: null,
     isPulling: false,
+    remoteNewer: false,
   })
   const [status, setStatus] = useState('idle')
 
@@ -25,7 +27,16 @@ export function useFirebaseSync() {
     try {
       setStatus('syncing')
       const remote = await pullFromFirebase(config)
-      if (remote?.version) importData(remote)
+      if (remote?.version) {
+        const { state, status: migration } = migrateState(remote)
+        if (migration === 'newer') {
+          refs.current.remoteNewer = true
+          setStatus('remote-newer')
+          return
+        }
+        refs.current.remoteNewer = false
+        if (migration !== 'invalid') importData(state)
+      }
       setStatus('ok')
     } catch {
       setStatus('error')
@@ -37,6 +48,7 @@ export function useFirebaseSync() {
   const push = useCallback(async () => {
     const config = loadFirebaseConfig()
     if (!config) return
+    if (refs.current.remoteNewer) return
     try {
       setStatus('syncing')
       await pushToFirebase(config, getSerializableState())

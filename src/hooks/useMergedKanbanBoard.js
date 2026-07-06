@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
+import { FREE_BOARD_ID, boardIdForTask, taskToCard } from '@/lib/taskUtils'
+import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
 
-const FREE_BOARD_ID = '__free__'
-const EMPTY_BOARD = { columns: [], cards: [] }
+const EMPTY_BOARD = { columns: [] }
 const EMPTY_TASKS = []
 const EMPTY_MEMBERSHIPS = []
 const EMPTY_TEAMS = {}
@@ -39,22 +40,11 @@ export function useMergedKanbanBoard(semId) {
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
-    const hiddenTaskIds = new Set(
-      localTasks
-        .filter(task => activeTeamIds.has(task?.sharedRef?.teamId))
-        .map(task => task.id)
-    )
 
-    const localCards = (localBoard.cards ?? []).filter(card => {
-      if (card?.sourceTaskId && hiddenTaskIds.has(card.sourceTaskId)) return false
-      const sharedTeamId = card?.sharedRef?.teamId
-      if (sharedTeamId && activeTeamIds.has(sharedTeamId)) {
-        const sharedCardId = card?.sharedRef?.sharedCardId
-        const remoteCards = runtimeTeams[sharedTeamId]?.state?.kanban?.cards ?? []
-        if (remoteCards.some(rc => rc.id === sharedCardId)) return false
-      }
-      return true
-    })
+    const localCards = localTasks
+      .filter(task => boardIdForTask(task) === boardId && task.views?.kanban && task.kanban)
+      .filter(task => !isSharedLocalHidden(task, activeTeamIds, runtimeTeams))
+      .map(taskToCard)
 
     const remoteCards = (collabEnabled ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
@@ -68,5 +58,5 @@ export function useMergedKanbanBoard(semId) {
       columns: localBoard.columns ?? [],
       cards: [...localCards, ...remoteCards],
     }
-  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, semId])
+  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, semId, boardId])
 }

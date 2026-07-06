@@ -1,5 +1,21 @@
 import { isTaskInWeek } from './semesterUtils'
 
+export const FREE_BOARD_ID = '__free__'
+
+export function boardIdForTask(task) {
+  return task?.semesterId ?? FREE_BOARD_ID
+}
+
+export function taskToCard(task) {
+  return {
+    ...task,
+    columnId: task.kanban?.columnId ?? null,
+    order: Number.isFinite(task.kanban?.order) ? task.kanban.order : 0,
+    checklist: task.kanban?.checklist ?? [],
+    checklistPreview: task.kanban?.checklistPreview === true,
+  }
+}
+
 export function getTasksForWeek(tasks, week) {
   return tasks.filter(t => isTaskInWeek(t, week))
 }
@@ -20,6 +36,6 @@ export function groupTasksByClass(tasks, classes) {
 }
 
 export function completionRatio(tasks) {
-  if (tasks.length === 0) return 0
+  if (tasks.length === 0) return 1
   return tasks.filter(t => t.done).length / tasks.length
 }

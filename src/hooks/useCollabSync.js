@@ -1,11 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { getOrCreateCollabUserId } from '@/lib/collab/identity'
-import { deleteTeam, fetchTeam } from '@/lib/collab/firebase'
+import { deleteTeam, subscribeTeam } from '@/lib/collab/firebase'
 import { isTeamExpired } from '@/lib/collab/schema'
 import { markCollabRulesEnabled } from '@/lib/firebase'
-
-const COLLAB_SYNC_INTERVAL_MS = 5 * 60 * 1000
 
 export function useCollabSync() {
   const collab = useStore(s => s.collab)
@@ -17,6 +15,11 @@ export function useCollabSync() {
   const removeCollabMembership = useStore(s => s.removeCollabMembership)
 
   const userId = useMemo(() => collab?.userId ?? null, [collab?.userId])
+
+  const membershipsKey = useMemo(
+    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}`).join('|'),
+    [memberships],
+  )
 
   useEffect(() => {
     if (!enabled) return
@@ -37,48 +40,32 @@ export function useCollabSync() {
     }
 
     const disposers = memberships.map(membership => {
-      let cancelled = false
       const config = { apiKey: membership.apiKey, projectId: membership.projectId }
+      const teamId = membership.teamId
 
-      const syncTeam = async () => {
-        try {
-          const team = await fetchTeam({ config, teamId: membership.teamId })
-          if (cancelled) return
-
-          if (!team) {
-            clearCollabRuntimeTeam(membership.teamId)
-            removeCollabMembership(membership.teamId)
-            return
-          }
-
-          if (isTeamExpired(team)) {
-            clearCollabRuntimeTeam(membership.teamId)
-            if (team.hostUserId === userId) {
-              try {
-                await deleteTeam({ config, teamId: membership.teamId })
-              } catch {
-              }
-            }
-            removeCollabMembership(membership.teamId)
-            return
-          }
-
-          setCollabRuntimeTeam(membership.teamId, {
-            ...team,
-            config,
-          })
-        } catch {
-          if (!cancelled) clearCollabRuntimeTeam(membership.teamId)
+      const onData = async team => {
+        if (team === null) {
+          clearCollabRuntimeTeam(teamId)
+          removeCollabMembership(teamId)
+          return
         }
+        if (isTeamExpired(team)) {
+          clearCollabRuntimeTeam(teamId)
+          if (team.hostUserId === userId) {
+            try { await deleteTeam({ config, teamId }) } catch {}
+          }
+          removeCollabMembership(teamId)
+          return
+        }
+        setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'live', syncedAt: Date.now() })
       }
 
-      syncTeam()
-      const intervalId = setInterval(syncTeam, COLLAB_SYNC_INTERVAL_MS)
-
-      return () => {
-        cancelled = true
-        clearInterval(intervalId)
+      const onError = () => {
+        const prev = useStore.getState().collabRuntime?.teams?.[teamId]
+        setCollabRuntimeTeam(teamId, { ...(prev ?? {}), config, syncStatus: 'error' })
       }
+
+      return subscribeTeam({ config, teamId, onData, onError })
     })
 
     return () => {
@@ -86,5 +73,6 @@ export function useCollabSync() {
         if (typeof dispose === 'function') dispose()
       })
     }
-  }, [enabled, memberships, userId, setCollabRuntimeTeam, clearCollabRuntimeTeam, removeCollabMembership])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, membershipsKey, userId, setCollabRuntimeTeam, clearCollabRuntimeTeam, removeCollabMembership])
 }
