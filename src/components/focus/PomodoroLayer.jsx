@@ -1,23 +1,41 @@
-import { useMemo, useState } from 'react'
-import { useStore } from '@/store/useStore'
-import { useStrings } from '@/lib/strings'
-import { PomodoroStatsModal } from './pomodoro/PomodoroStatsModal'
-import { PomodoroPeriodBadge } from './pomodoro/PomodoroPeriodBadge'
-import { TomatoCircle } from './pomodoro/TomatoCircle'
-import { getPeriodPomodoros, TOMATO_RADIUS } from './pomodoro/utils'
-import { usePomodoroBodies } from './pomodoro/usePomodoroBodies'
+import { useMemo, useState } from "react";
+import { useStore } from "@/store/useStore";
+import { useStrings } from "@/lib/strings";
+import { PomodoroStatsModal } from "./pomodoro/PomodoroStatsModal";
+import { PomodoroPeriodBadge } from "./pomodoro/PomodoroPeriodBadge";
+import { TomatoCircle } from "./pomodoro/TomatoCircle";
+import { getPeriodPomodoros, TOMATO_RADIUS } from "./pomodoro/utils";
+import { usePomodoroBodies } from "./pomodoro/usePomodoroBodies";
 
-export function PomodoroLayer({ containerRef, focusRunning, phase, cycleElapsed, resetSignal }) {
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
-  const pomodoros = useStore(s => s.pomodoros ?? [])
-  const addPomodoro = useStore(s => s.addPomodoro)
-  const pomodoroSettings = useStore(s => s.settings?.pomodoro ?? {})
-  const { enabled = false, resetPeriod = 'week', trackStats = false, showAbandoned = true, showPeriodStats = true } = pomodoroSettings
+export function PomodoroLayer({
+  containerRef,
+  focusRunning,
+  phase,
+  cycleElapsed,
+  resetSignal,
+}) {
+  const lang = useStore((s) => s.lang ?? "en");
+  const t = useStrings(lang);
+  const pomodoros = useStore((s) => s.pomodoros ?? []);
+  const addPomodoro = useStore((s) => s.addPomodoro);
+  const pomodoroSettings = useStore((s) => s.settings?.pomodoro ?? {});
+  const {
+    enabled = false,
+    resetPeriod = "week",
+    trackStats = false,
+    showAbandoned = true,
+    showPeriodStats = true,
+  } = pomodoroSettings;
 
-  const [showStats, setShowStats] = useState(false)
-  const periodPomodoros = getPeriodPomodoros(pomodoros, resetPeriod)
-  const periodIds = useMemo(() => new Set(periodPomodoros.map(p => String(p.id))), [periodPomodoros])
+  const [showStats, setShowStats] = useState(false);
+  const periodPomodoros = useMemo(
+    () => getPeriodPomodoros(pomodoros, resetPeriod),
+    [pomodoros, resetPeriod],
+  );
+  const periodIds = useMemo(
+    () => new Set(periodPomodoros.map((p) => String(p.id))),
+    [periodPomodoros],
+  );
 
   const { bodies, handlePointerStart } = usePomodoroBodies({
     containerRef,
@@ -30,9 +48,11 @@ export function PomodoroLayer({ containerRef, focusRunning, phase, cycleElapsed,
     resetSignal,
     periodIds,
     showPeriodStats,
-  })
+  });
 
-  const renderedBodies = showAbandoned ? bodies : bodies.filter(b => !b.abandoned)
+  const renderedBodies = showAbandoned
+    ? bodies
+    : bodies.filter((b) => !b.abandoned);
 
   return (
     <>
@@ -49,28 +69,48 @@ export function PomodoroLayer({ containerRef, focusRunning, phase, cycleElapsed,
 
       {enabled && showPeriodStats && (
         <div className="flex justify-center pt-1">
-          <PomodoroPeriodBadge pomodoros={pomodoros} period={resetPeriod} lang={lang} t={t} onClick={() => setShowStats(true)} />
+          <PomodoroPeriodBadge
+            pomodoros={pomodoros}
+            period={resetPeriod}
+            lang={lang}
+            t={t}
+            onClick={() => setShowStats(true)}
+          />
         </div>
       )}
 
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-        {renderedBodies.map(b => (
-          <div key={b.id}
-            onPointerDown={e => handlePointerStart(b.id, e)}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
+          zIndex: 0,
+        }}
+      >
+        {renderedBodies.map((b) => (
+          <div
+            key={b.id}
+            onPointerDown={(e) => handlePointerStart(b.id, e)}
             style={{
-              position: 'absolute',
+              position: "absolute",
               left: b.x - (b.radius ?? TOMATO_RADIUS),
               top: b.y - (b.radius ?? TOMATO_RADIUS),
-              pointerEvents: 'auto',
-              cursor: 'grab',
-              touchAction: 'none',
+              pointerEvents: "auto",
+              cursor: "grab",
+              touchAction: "none",
               opacity: b.abandoned ? 0.55 : 1,
               transform: `rotate(${b.rotation ?? 0}deg)`,
-            }}>
-            <TomatoCircle pct={b.colorPct ?? (b.abandoned ? b.pct : 1)} faceIdx={b.face} size={b.size ?? TOMATO_RADIUS * 2} />
+            }}
+          >
+            <TomatoCircle
+              pct={b.colorPct ?? (b.abandoned ? b.pct : 1)}
+              faceIdx={b.face}
+              size={b.size ?? TOMATO_RADIUS * 2}
+            />
           </div>
         ))}
       </div>
     </>
-  )
+  );
 }
