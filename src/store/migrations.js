@@ -172,8 +172,16 @@ function normalizeStandby(standby) {
   const s = standby && typeof standby === 'object' ? standby : {}
   const remap = v => (v === 'kanban-simplified' ? 'kanban' : v)
   const pane = (val, fallback) => STANDBY_PANES.includes(remap(val)) ? remap(val) : fallback
+  const paneEntry = (p, fallback) => {
+    if (Array.isArray(p)) {
+      const valid = p.map(x => remap(x)).filter(x => STANDBY_PANES.includes(x)).slice(0, 2)
+      if (valid.length >= 2) return valid
+      return valid[0] ?? fallback
+    }
+    return pane(p, fallback)
+  }
   let panes = Array.isArray(s.panes)
-    ? s.panes.map(p => pane(p, 'wheel-time'))
+    ? s.panes.map(p => paneEntry(p, 'wheel-time'))
     : [pane(s.left, 'wheel-time'), pane(s.center, 'calendar'), pane(s.right, 'tasks-by-category')]
   while (panes.length < 3) panes.push('wheel-time')
   panes = panes.slice(0, 3)

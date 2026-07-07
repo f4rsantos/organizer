@@ -221,7 +221,14 @@ export const useStore = create((set, get) => ({
     delete prev[key]
     return persist({ ...s, taskAlertStates: prev })
   }),
-  deleteTask: id => set(s => persist({ ...s, tasks: s.tasks.filter(t => t.id !== id) })),
+  deleteTask: id => set(s => persist({
+    ...s,
+    tasks: s.tasks.reduce((acc, t) => {
+      if (t.id !== id) { acc.push(t); return acc }
+      if (t.views?.kanban) acc.push({ ...t, views: { ...t.views, list: false } })
+      return acc
+    }, []),
+  })),
 
   // --- Events ---
   addEvent: data => set(s => persist({
