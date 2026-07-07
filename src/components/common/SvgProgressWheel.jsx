@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 
-export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label, sublabel, celebrate = false }) {
+export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label, sublabel, celebrate = false, center }) {
   const gradId = useId()
   const r = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * r
@@ -50,7 +50,8 @@ export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label,
             style={{ transition: 'stroke-dashoffset 600ms cubic-bezier(0.4,0,0.2,1), stroke 400ms ease' }}
           />
         </svg>
-        {done && (
+        {center && <div className="absolute inset-0 flex items-center justify-center">{center}</div>}
+        {done && !center && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Check className="text-emerald-500" style={{ width: size * 0.35, height: size * 0.35 }}
               strokeWidth={2.5} />

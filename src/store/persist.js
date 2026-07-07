@@ -1,132 +1,15 @@
 import { getPomodoroTimestamp, isPomodoroAggregate } from '../components/focus/pomodoro/utils'
+import { migrateState, normalizeState } from './migrations'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const LEGACY_FULL_PCT_UNITS = 2.5
 const POMODORO_UNITS_MAX = 120
 const LOCAL_CACHE_LIMIT_BYTES = Math.floor(4.8 * 1024 * 1024)
 
-function getDefaultFocusSettings() {
-  return {
-    useInterval: true,
-    intervalMins: 25,
-    intervalBreakMins: 5,
-    useScheduled: false,
-    scheduledBreakMins: 5,
-    scheduledTimes: [],
-    focusLabel: '',
-    breakLabel: '',
-  }
-}
+let loadWarnings = []
 
-function getDefaultPomodoroSettings() {
-  return {
-    enabled: false,
-    resetPeriod: 'week',
-    trackStats: false,
-    showAbandoned: true,
-    showPeriodStats: true,
-  }
-}
-
-function getDefaultFocusSync() {
-  return {
-    status: 'paused',
-    phase: 'focus',
-    startedAt: null,
-    totalElapsedBase: 0,
-    cycleElapsedBase: 0,
-    breakSecsLeftBase: 0,
-    activeBreakSource: null,
-    updatedAt: 0,
-  }
-}
-
-function normalizeState(state) {
-  if (!state || typeof state !== 'object') return null
-
-  if (!Number.isFinite(state.version)) state.version = 1
-  if (typeof state.theme !== 'string') state.theme = 'system'
-  if (typeof state.lang !== 'string') state.lang = 'pt'
-  if (typeof state.onboardingDone !== 'boolean') state.onboardingDone = false
-  if (typeof state.activeSemesterId !== 'string' && state.activeSemesterId !== null) state.activeSemesterId = null
-
-  if (!Array.isArray(state.semesters)) state.semesters = []
-  if (!Array.isArray(state.classes)) state.classes = []
-  if (!Array.isArray(state.tasks)) state.tasks = []
-  if (!state.kanban || typeof state.kanban !== 'object') state.kanban = {}
-  if (!state.grades || typeof state.grades !== 'object') state.grades = {}
-
-  if (!state.settings || typeof state.settings !== 'object') state.settings = {}
-  if (!state.settings.focus || typeof state.settings.focus !== 'object') {
-    state.settings.focus = getDefaultFocusSettings()
-  } else {
-    state.settings.focus = { ...getDefaultFocusSettings(), ...state.settings.focus }
-  }
-  if (!state.settings.pomodoro || typeof state.settings.pomodoro !== 'object') {
-    state.settings.pomodoro = getDefaultPomodoroSettings()
-  } else {
-    state.settings.pomodoro = { ...getDefaultPomodoroSettings(), ...state.settings.pomodoro }
-  }
-  if (typeof state.settings.kanbanChecklistPreviewMode !== 'string') {
-    state.settings.kanbanChecklistPreviewMode = state.settings.kanbanShowChecklistInline ? 'all' : 'none'
-  }
-  if (!['none', 'all', 'card'].includes(state.settings.kanbanChecklistPreviewMode)) {
-    state.settings.kanbanChecklistPreviewMode = 'none'
-  }
-  if (typeof state.settings.focusAlertMode !== 'string') {
-    state.settings.focusAlertMode = state.settings.vibrateOnPageFocus ? 'vibration' : 'none'
-  }
-  if (typeof state.settings.taskAlertMode !== 'string') {
-    state.settings.taskAlertMode = state.settings.taskAlertsEnabled ? 'in-app' : 'none'
-  }
-  if (typeof state.settings.collabEnabled !== 'boolean') {
-    state.settings.collabEnabled = false
-  }
-
-  if (!state.collab || typeof state.collab !== 'object') {
-    state.collab = { userId: null, memberships: [] }
-  }
-  if (!Array.isArray(state.collab.memberships)) state.collab.memberships = []
-  if (typeof state.collab.userId !== 'string' && state.collab.userId !== null) state.collab.userId = null
-
-  if (!state.collabRuntime || typeof state.collabRuntime !== 'object') {
-    state.collabRuntime = { teams: {} }
-  }
-
-  if (!state.focusSync || typeof state.focusSync !== 'object') {
-    state.focusSync = getDefaultFocusSync()
-  } else {
-    state.focusSync = { ...getDefaultFocusSync(), ...state.focusSync }
-  }
-  if (state.focusSync.status !== 'started' && state.focusSync.status !== 'paused') {
-    state.focusSync.status = 'paused'
-  }
-  if (state.focusSync.phase !== 'break' && state.focusSync.phase !== 'focus') {
-    state.focusSync.phase = 'focus'
-  }
-  if (!Number.isFinite(state.focusSync.totalElapsedBase)) state.focusSync.totalElapsedBase = 0
-  if (!Number.isFinite(state.focusSync.cycleElapsedBase)) state.focusSync.cycleElapsedBase = 0
-  if (!Number.isFinite(state.focusSync.breakSecsLeftBase)) state.focusSync.breakSecsLeftBase = 0
-  if (!Number.isFinite(state.focusSync.startedAt)) state.focusSync.startedAt = null
-  if (state.focusSync.activeBreakSource !== 'interval' && state.focusSync.activeBreakSource !== 'scheduled') {
-    state.focusSync.activeBreakSource = null
-  }
-
-  if (!Array.isArray(state.pomodoros)) state.pomodoros = []
-  if (!state.taskAlertStates || typeof state.taskAlertStates !== 'object') state.taskAlertStates = {}
-  if (!state.courseAvg || typeof state.courseAvg !== 'object') {
-    state.courseAvg = { previousAvg: null, numSemesters: 0 }
-  }
-  if (!Number.isFinite(state.courseAvg.numSemesters)) state.courseAvg.numSemesters = 0
-  if (!Array.isArray(state.holidays)) state.holidays = []
-  if (!state.dismissedNextSemester || typeof state.dismissedNextSemester !== 'object') {
-    state.dismissedNextSemester = {}
-  }
-  if (!state.presetUpdatedAt || typeof state.presetUpdatedAt !== 'object') {
-    state.presetUpdatedAt = {}
-  }
-
-  return state
+export function getLoadWarnings() {
+  return loadWarnings
 }
 
 function buildLightweightSnapshot(state) {
@@ -138,6 +21,8 @@ function buildLightweightSnapshot(state) {
     activeSemesterId: typeof state?.activeSemesterId === 'string' ? state.activeSemesterId : null,
     semesters: Array.isArray(state?.semesters) ? state.semesters : [],
     classes: Array.isArray(state?.classes) ? state.classes : [],
+    events: Array.isArray(state?.events) ? state.events : [],
+    notes: (Array.isArray(state?.notes) ? state.notes : []).filter(n => n?.kind !== 'canvas'),
     tasks: [],
     kanban: {},
     grades: {},
@@ -243,7 +128,9 @@ export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    const state = JSON.parse(raw)
+    const { state, status } = migrateState(JSON.parse(raw))
+    if (status === 'invalid') return null
+    if (status === 'newer') loadWarnings = ['newer-version']
     return normalizeState(state)
   } catch {
     return null
@@ -302,8 +189,10 @@ export function importState(file) {
     reader.onload = e => {
       try {
         const data = JSON.parse(e.target.result)
-        if (!data.version) throw new Error('Invalid backup file')
-        resolve(data)
+        const { state, status } = migrateState(data)
+        if (status === 'invalid') throw new Error('Invalid backup file')
+        if (status === 'newer') throw new Error('Backup was created by a newer app version')
+        resolve(normalizeState(state))
       } catch (err) {
         reject(err)
       }

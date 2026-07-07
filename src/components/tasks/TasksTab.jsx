@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import confetti from "canvas-confetti";
+import { fireConfetti } from "@/lib/confetti";
 import { useStore } from "@/store/useStore";
 import { useStrings } from "@/lib/strings";
-import { useCurrentSemester } from "@/hooks/useCurrentSemester";
+import { useWeekContext } from "@/hooks/useWeekContext";
 import { useTaskProgress } from "@/hooks/useTaskProgress";
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { SvgProgressWheel } from "@/components/common/SvgProgressWheel";
@@ -10,15 +10,6 @@ import { WeekSelector } from "./WeekSelector";
 import { ClassSection } from "./ClassSection";
 import { AddTaskButton } from "./AddTaskButton";
 import { TaskAlertsPanel } from './TaskAlertsPanel'
-
-function fireConfetti() {
-  confetti({
-    particleCount: 90,
-    spread: 70,
-    origin: { y: 0.4 },
-    colors: ["#6366f1", "#22c55e", "#f97316", "#ec4899"],
-  });
-}
 
 function ClassRing({ groups, byClass }) {
   const withTasks = groups.filter((g) => g.tasks.length > 0);
@@ -94,10 +85,14 @@ function DesktopLayout({ overall, allDone, groups, byClass, t, children }) {
 }
 
 export function TasksTab() {
-  const { semester, currentWeek, weekCount } = useCurrentSemester();
-  const activeSemesterId = useStore((s) => s.activeSemesterId);
+  const { mode, semester, currentWeek, weekCount, weekDateRange, dateToWeek } = useWeekContext();
+  const noneMode = mode === "none";
+  const storeActiveSemesterId = useStore((s) => s.activeSemesterId);
+  const activeSemesterId = noneMode ? null : storeActiveSemesterId;
   const allClasses = useStore((s) => s.classes);
   const classes = allClasses.filter((c) => c.semesterId === activeSemesterId);
+  const weeklyView = Boolean(semester) || noneMode;
+  const weekStartDate = semester?.startDate ?? null;
   const semesterTasks = useMergedTasks(activeSemesterId)
   const classNameById = classes.reduce((acc, cls) => {
     acc[cls.id] = cls.name
@@ -132,7 +127,7 @@ export function TasksTab() {
     prevOverall.current = overall;
   }, [overall, groups]);
 
-  if (!semester) {
+  if (!weeklyView) {
     const otherGroup = groups.find(g => g.cls.id === 'other')
     return (
       <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen p-4 pt-8 gap-4">
@@ -154,7 +149,8 @@ export function TasksTab() {
     <WeekSelector
       week={week}
       weekCount={weekCount}
-      startDate={semester.startDate}
+      startDate={weekStartDate}
+      rangeFor={weekDateRange}
       semesterHolidays={semesterHolidays}
       onChange={(fn) => setDisplayWeek((w) => fn(w ?? week))}
     />
@@ -187,7 +183,9 @@ export function TasksTab() {
               classes={classes}
               weekCount={weekCount}
               currentWeek={week}
-              startDate={semester.startDate}
+              startDate={weekStartDate}
+              rangeFor={weekDateRange}
+              dateToWeekFn={dateToWeek}
               className="h-12 w-12 rounded-full shadow-md"
             />
           </div>
@@ -223,7 +221,9 @@ export function TasksTab() {
           classes={classes}
           weekCount={weekCount}
           currentWeek={week}
-          startDate={semester.startDate}
+          startDate={weekStartDate}
+          rangeFor={weekDateRange}
+          dateToWeekFn={dateToWeek}
           className="h-12 w-12 rounded-full"
         />
       </div>

@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { nanoid } from '@/lib/ids'
 import { loadState, saveState } from './persist'
+import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
+import { FREE_BOARD_ID, boardIdForTask } from '@/lib/taskUtils'
+import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -8,18 +11,34 @@ const DEFAULT_COLUMNS = [
   { id: 'col_done', title: 'Done', order: 2 },
 ]
 
+function sortedColumns(state, boardId) {
+  const cols = state.kanban?.[boardId]?.columns ?? DEFAULT_COLUMNS
+  return [...cols].sort((a, b) => a.order - b.order)
+}
+function doneColumnIdFor(state, boardId) {
+  const cols = sortedColumns(state, boardId)
+  return cols[cols.length - 1]?.id ?? null
+}
+function firstColumnIdFor(state, boardId) {
+  return sortedColumns(state, boardId)[0]?.id ?? null
+}
+
 function buildInitialState() {
   const saved = loadState()
   if (saved) return saved
   return {
-    version: 1,
+    version: CURRENT_VERSION,
     theme: 'system',
     lang: 'pt',
     onboardingDone: false,
+    activeTab: null,
     activeSemesterId: null,
     semesters: [],
     classes: [],
     tasks: [],
+    events: [],
+    notes: [],
+    noteFolders: [],
     kanban: {},
     grades: {},
     settings: {
@@ -46,6 +65,10 @@ function buildInitialState() {
       },
       collabEnabled: false,
       workMode: false,
+      semesterMode: 'semesters',
+      navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', addAction: 'task' },
+      standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
+      apps: { collab: false, notes: false },
     },
     collab: {
       userId: null,
@@ -84,6 +107,17 @@ export const useStore = create((set, get) => ({
   // --- Language ---
   setLang: lang => set(s => persist({ ...s, lang })),
 
+  setActiveTab: tab => set(s => ({ ...s, activeTab: tab })),
+
+  wipeAppData: wipeFn => set(s => persist(wipeFn(s))),
+  wipeCollabData: () => set(s => persist({
+    ...s,
+    settings: { ...s.settings, collabEnabled: false, apps: { ...s.settings.apps, collab: false } },
+    collab: { userId: null, memberships: [] },
+    collabRuntime: { teams: {} },
+    tasks: (s.tasks ?? []).map(t => (t.sharedRef || t.sharedMeta) ? { ...t, sharedRef: null, sharedMeta: null } : t),
+  })),
+
   // --- Onboarding ---
   completeOnboarding: () => set(s => persist({ ...s, onboardingDone: true })),
 
@@ -94,7 +128,7 @@ export const useStore = create((set, get) => ({
       ...s,
       activeSemesterId: s.activeSemesterId ?? id,
       semesters: [...s.semesters, { id, ...data }],
-      kanban: { ...s.kanban, [id]: { columns: DEFAULT_COLUMNS, cards: [] } },
+      kanban: { ...s.kanban, [id]: { columns: DEFAULT_COLUMNS } },
     }))
     return id
   },
@@ -108,6 +142,7 @@ export const useStore = create((set, get) => ({
     semesters: s.semesters.filter(x => x.id !== id),
     classes: s.classes.filter(c => c.semesterId !== id),
     tasks: s.tasks.filter(t => t.semesterId !== id),
+    events: (s.events ?? []).filter(e => e.semesterId !== id),
     holidays: (s.holidays ?? []).filter(h => h.semesterId !== id),
     kanban: Object.fromEntries(Object.entries(s.kanban).filter(([k]) => k !== id)),
     grades: Object.fromEntries(Object.entries(s.grades).filter(([k]) => k !== id)),
@@ -126,9 +161,26 @@ export const useStore = create((set, get) => ({
   })),
 
   // --- Tasks ---
-  addTask: data => set(s => persist({ ...s, tasks: [...s.tasks, { id: nanoid(), done: false, ...data }] })),
+  addTask: data => set(s => persist({
+    ...s,
+    tasks: [...s.tasks, {
+      id: nanoid(),
+      done: false,
+      views: { list: true, kanban: false, calendar: false },
+      kanban: null,
+      ...data,
+    }],
+  })),
   toggleTask: id => set(s => persist({
-    ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t),
+    ...s,
+    tasks: s.tasks.map(t => {
+      if (t.id !== id) return t
+      const done = !t.done
+      if (!t.kanban) return { ...t, done }
+      const boardId = boardIdForTask(t)
+      const targetCol = done ? doneColumnIdFor(s, boardId) : firstColumnIdFor(s, boardId)
+      return { ...t, done, kanban: { ...t.kanban, columnId: targetCol ?? t.kanban.columnId } }
+    }),
   })),
   updateTask: (id, data) => set(s => persist({
     ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, ...data } : t),
@@ -171,44 +223,165 @@ export const useStore = create((set, get) => ({
   }),
   deleteTask: id => set(s => persist({ ...s, tasks: s.tasks.filter(t => t.id !== id) })),
 
-  // --- Kanban ---
+  // --- Events ---
+  addEvent: data => set(s => persist({
+    ...s,
+    events: [...(s.events ?? []), { id: nanoid(), semesterId: null, allDay: true, color: null, note: '', ...data }],
+  })),
+  updateEvent: (id, data) => set(s => persist({
+    ...s, events: (s.events ?? []).map(e => e.id === id ? { ...e, ...data } : e),
+  })),
+  deleteEvent: id => set(s => persist({ ...s, events: (s.events ?? []).filter(e => e.id !== id) })),
+
+  // --- Notes ---
+  addNote: data => set(s => {
+    const now = Date.now()
+    const order = (s.notes ?? []).reduce((m, n) => Math.min(m, n.order ?? 0), 0) - 1
+    return persist({
+      ...s,
+      notes: [...(s.notes ?? []), { id: nanoid(), title: '', kind: 'text', body: '', strokes: [], favorite: false, folderId: null, order, createdAt: now, updatedAt: now, ...data }],
+    })
+  }),
+  updateNote: (id, data) => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, ...data, updatedAt: Date.now() } : n),
+  })),
+  deleteNote: id => set(s => persist({ ...s, notes: (s.notes ?? []).filter(n => n.id !== id) })),
+  toggleFavoriteNote: id => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, favorite: !n.favorite } : n),
+  })),
+  moveNoteToFolder: (id, folderId) => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, folderId, updatedAt: Date.now() } : n),
+  })),
+  reorderNotes: orderedIds => set(s => {
+    const rank = Object.fromEntries(orderedIds.map((id, i) => [id, i]))
+    return persist({
+      ...s,
+      notes: (s.notes ?? []).map(n => n.id in rank ? { ...n, order: rank[n.id] } : n),
+    })
+  }),
+  addNoteFolder: name => set(s => {
+    const order = (s.noteFolders ?? []).reduce((m, f) => Math.min(m, f.order ?? 0), 0) - 1
+    return persist({
+      ...s, noteFolders: [...(s.noteFolders ?? []), { id: nanoid(), name: name || 'Folder', parentId: null, order }],
+    })
+  }),
+  renameNoteFolder: (id, name) => set(s => persist({
+    ...s, noteFolders: (s.noteFolders ?? []).map(f => f.id === id ? { ...f, name } : f),
+  })),
+  moveNoteFolder: (id, parentId) => set(s => {
+    if (id === parentId) return s
+    return persist({ ...s, noteFolders: (s.noteFolders ?? []).map(f => f.id === id ? { ...f, parentId } : f) })
+  }),
+  reorderNoteFolders: orderedIds => set(s => {
+    const rank = Object.fromEntries(orderedIds.map((id, i) => [id, i]))
+    return persist({ ...s, noteFolders: (s.noteFolders ?? []).map(f => f.id in rank ? { ...f, order: rank[f.id] } : f) })
+  }),
+  deleteNoteFolder: id => set(s => {
+    const parentId = (s.noteFolders ?? []).find(f => f.id === id)?.parentId ?? null
+    return persist({
+      ...s,
+      noteFolders: (s.noteFolders ?? []).filter(f => f.id !== id).map(f => f.parentId === id ? { ...f, parentId } : f),
+      notes: (s.notes ?? []).map(n => n.folderId === id ? { ...n, folderId: parentId } : n),
+    })
+  }),
+
+  // --- Kanban (backed by unified tasks) ---
   addKanbanCard: (semId, card) => set(s => {
-    const board = s.kanban[semId] ?? { columns: DEFAULT_COLUMNS, cards: [] }
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: [...board.cards, { id: nanoid(), checklist: [], ...card }] } } })
+    const board = s.kanban[semId] ?? { columns: DEFAULT_COLUMNS }
+    const semesterId = semId === FREE_BOARD_ID ? null : semId
+    const { columnId, order, checklist, sourceTaskId, ...rest } = card
+    if (sourceTaskId) {
+      return persist({
+        ...s,
+        tasks: s.tasks.map(t => t.id === sourceTaskId
+          ? { ...t, views: { ...t.views, kanban: true }, kanban: { columnId, order, checklist: checklist ?? [] } }
+          : t),
+        kanban: { ...s.kanban, [semId]: board },
+      })
+    }
+    const newTask = {
+      id: nanoid(),
+      semesterId,
+      done: false,
+      priority: null,
+      dueDate: null,
+      classId: null,
+      weekStart: 1,
+      weekEnd: 1,
+      ...rest,
+      views: { list: false, kanban: true, calendar: false },
+      kanban: { columnId, order, checklist: checklist ?? [] },
+    }
+    return persist({ ...s, tasks: [...s.tasks, newTask], kanban: { ...s.kanban, [semId]: board } })
   }),
   updateKanbanCard: (semId, cardId, data) => set(s => {
-    const board = s.kanban[semId]
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: board.cards.map(c => c.id === cardId ? { ...c, ...data } : c) } } })
+    const { columnId, order, checklist, checklistPreview, ...taskFields } = data
+    const kanbanPatch = {}
+    if (columnId !== undefined) kanbanPatch.columnId = columnId
+    if (order !== undefined) kanbanPatch.order = order
+    if (checklist !== undefined) kanbanPatch.checklist = checklist
+    if (checklistPreview !== undefined) kanbanPatch.checklistPreview = checklistPreview
+    return persist({
+      ...s,
+      tasks: s.tasks.map(t => t.id === cardId
+        ? { ...t, ...taskFields, kanban: { ...t.kanban, ...kanbanPatch } }
+        : t),
+    })
   }),
   moveKanbanCard: (semId, cardId, targetColId) => set(s => {
-    const board = s.kanban[semId]
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: board.cards.map(c => c.id === cardId ? { ...c, columnId: targetColId } : c) } } })
+    const doneCol = doneColumnIdFor(s, semId)
+    return persist({
+      ...s,
+      tasks: s.tasks.map(t => {
+        if (t.id !== cardId) return t
+        const done = doneCol == null ? t.done : targetColId === doneCol
+        return { ...t, done, kanban: { ...t.kanban, columnId: targetColId } }
+      }),
+    })
   }),
-  deleteKanbanCard: (semId, cardId) => set(s => {
-    const board = s.kanban[semId]
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: board.cards.filter(c => c.id !== cardId) } } })
-  }),
-  clearKanbanCardSharedRef: (sharedCardId) => set(s => {
-    const kanban = Object.fromEntries(
-      Object.entries(s.kanban ?? {}).map(([boardId, board]) => [
-        boardId,
-        { ...board, cards: (board.cards ?? []).map(c => c?.sharedRef?.sharedCardId === sharedCardId ? { ...c, sharedRef: null } : c) },
-      ])
-    )
-    return persist({ ...s, kanban })
-  }),
+  deleteKanbanCard: (semId, cardId) => set(s => persist({
+    ...s,
+    tasks: s.tasks.reduce((acc, t) => {
+      if (t.id !== cardId) { acc.push(t); return acc }
+      if (t.views?.list) acc.push({ ...t, views: { ...t.views, kanban: false } })
+      return acc
+    }, []),
+  })),
+  clearKanbanCardSharedRef: (sharedCardId) => set(s => persist({
+    ...s,
+    tasks: s.tasks.map(t => t?.sharedRef?.sharedCardId === sharedCardId ? { ...t, sharedRef: null } : t),
+  })),
   clearKanbanDone: semId => set(s => {
     const board = s.kanban[semId]
-    const sorted = [...board.columns].sort((a, b) => a.order - b.order)
+    const sorted = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
     const doneColId = sorted[sorted.length - 1]?.id
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: board.cards.filter(c => c.columnId !== doneColId) } } })
+    return persist({
+      ...s,
+      tasks: s.tasks.reduce((acc, t) => {
+        const onBoard = boardIdForTask(t) === semId && t.views?.kanban && t.kanban?.columnId === doneColId
+        if (!onBoard) { acc.push(t); return acc }
+        if (t.views?.list) acc.push({ ...t, views: { ...t.views, kanban: false } })
+        return acc
+      }, []),
+    })
   }),
-  wipeKanban: semId => set(s => {
-    const board = s.kanban[semId]
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, cards: [] } } })
+  wipeKanban: semId => set(s => ({
+    ...persist({
+      ...s,
+      tasks: s.tasks.reduce((acc, t) => {
+        const onBoard = boardIdForTask(t) === semId && t.views?.kanban
+        if (!onBoard) { acc.push(t); return acc }
+        if (t.views?.list) acc.push({ ...t, views: { ...t.views, kanban: false } })
+        return acc
+      }, []),
+    }),
+  })),
+  ensureKanbanBoard: semId => set(s => {
+    if (s.kanban[semId]?.columns?.length) return s
+    return persist({ ...s, kanban: { ...s.kanban, [semId]: { columns: DEFAULT_COLUMNS } } })
   }),
   addKanbanColumn: (semId, title) => set(s => {
-    const board = s.kanban[semId] ?? { columns: DEFAULT_COLUMNS, cards: [] }
+    const board = s.kanban[semId] ?? { columns: DEFAULT_COLUMNS }
     const order = board.columns.length
     return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, columns: [...board.columns, { id: nanoid(), title, order }] } } })
   }),
@@ -216,9 +389,24 @@ export const useStore = create((set, get) => ({
     const board = s.kanban[semId]
     return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, columns: board.columns.map(c => c.id === colId ? { ...c, title } : c) } } })
   }),
+  reorderKanbanColumns: (semId, orderedIds) => set(s => {
+    const board = s.kanban[semId]
+    if (!board) return s
+    const rank = Object.fromEntries(orderedIds.map((id, i) => [id, i]))
+    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, columns: board.columns.map(c => ({ ...c, order: rank[c.id] ?? c.order })) } } })
+  }),
   deleteKanbanColumn: (semId, colId) => set(s => {
     const board = s.kanban[semId]
-    return persist({ ...s, kanban: { ...s.kanban, [semId]: { ...board, columns: board.columns.filter(c => c.id !== colId), cards: board.cards.filter(c => c.columnId !== colId) } } })
+    return persist({
+      ...s,
+      kanban: { ...s.kanban, [semId]: { ...board, columns: board.columns.filter(c => c.id !== colId) } },
+      tasks: s.tasks.reduce((acc, t) => {
+        const inColumn = boardIdForTask(t) === semId && t.views?.kanban && t.kanban?.columnId === colId
+        if (!inColumn) { acc.push(t); return acc }
+        if (t.views?.list) acc.push({ ...t, views: { ...t.views, kanban: false } })
+        return acc
+      }, []),
+    })
   }),
 
   // --- Grades ---
@@ -239,6 +427,19 @@ export const useStore = create((set, get) => ({
 
   // --- Settings ---
   updateSettings: data => set(s => persist({ ...s, settings: { ...s.settings, ...data } })),
+  setSemesterMode: modeArg => set(s => {
+    const mode = modeArg === 'none' ? 'none' : 'semesters'
+    if ((s.settings?.semesterMode ?? 'semesters') === mode) return s
+    const semester = mode === 'none'
+      ? null
+      : (s.semesters.find(x => x.id === s.activeSemesterId) ?? null)
+    const ctx = getWeekContext({ mode, semester })
+    return persist({
+      ...s,
+      settings: { ...s.settings, semesterMode: mode },
+      tasks: remapTaskWeeks(s.tasks, ctx),
+    })
+  }),
   updateFocusSettings: data => set(s => persist({
     ...s, settings: { ...s.settings, focus: { ...s.settings.focus, ...data } }
   })),
@@ -286,6 +487,17 @@ export const useStore = create((set, get) => ({
       },
     },
   })),
+  setCollabError: (teamId, message) => set(s => ({
+    ...s,
+    collabRuntime: {
+      ...(s.collabRuntime ?? { teams: {} }),
+      lastError: message ? { teamId, message, at: Date.now() } : null,
+    },
+  })),
+  clearCollabError: () => set(s => ({
+    ...s,
+    collabRuntime: { ...(s.collabRuntime ?? { teams: {} }), lastError: null },
+  })),
   clearCollabRuntimeTeam: teamId => set(s => {
     const teams = { ...(s.collabRuntime?.teams ?? {}) }
     delete teams[teamId]
@@ -303,30 +515,10 @@ export const useStore = create((set, get) => ({
       ? { ...task, sharedRef: null }
       : task),
   })),
-  deleteLocalSharedTasksByTeam: teamId => set(s => {
-    const removedTaskIds = new Set(
-      s.tasks
-        .filter(task => task?.sharedRef?.teamId === teamId)
-        .map(task => task.id)
-    )
-
-    const tasks = s.tasks.filter(task => task?.sharedRef?.teamId !== teamId)
-    const kanban = Object.fromEntries(
-      Object.entries(s.kanban ?? {}).map(([boardId, board]) => [
-        boardId,
-        {
-          ...board,
-          cards: (board?.cards ?? []).filter(card => !removedTaskIds.has(card?.sourceTaskId)),
-        },
-      ])
-    )
-
-    return persist({
-      ...s,
-      tasks,
-      kanban,
-    })
-  }),
+  deleteLocalSharedTasksByTeam: teamId => set(s => persist({
+    ...s,
+    tasks: s.tasks.filter(task => task?.sharedRef?.teamId !== teamId),
+  })),
   setFocusSync: data => set(s => persist({
     ...s,
     focusSync: {
@@ -361,7 +553,11 @@ export const useStore = create((set, get) => ({
   })),
 
   // --- Import / Export ---
-  importData: data => set(() => persist({ ...data })),
+  importData: data => set(s => {
+    const { state, status } = migrateState(data)
+    if (status === 'invalid' || status === 'newer') return s
+    return persist(normalizeState({ ...state }))
+  }),
 
   // --- Previous Semesters ---
   setSemesterFinalGrade: (semId, grade) => set(s => {

@@ -8,6 +8,7 @@ import {
   growthFromSecs,
   isPomodoroAggregate,
   MIN_VX,
+  POMODORO_UNITS_MAX,
   sizeFromPct,
   TOMATO_RADIUS,
 } from './utils'
@@ -93,6 +94,7 @@ function createSpawnBody({ id, pct, abandoned, colorPct, width }) {
 }
 
 function createSpawnRecord({ body, abandoned, pct, colorPct, focusSecs, trackStats }) {
+  const clampedFocusSecs = Math.max(0, Math.min(POMODORO_UNITS_MAX * 600, focusSecs ?? 0))
   return {
     id: body.id,
     face: body.face,
@@ -101,7 +103,7 @@ function createSpawnRecord({ body, abandoned, pct, colorPct, focusSecs, trackSta
     colorPct,
     rotation: body.rotation,
     createdAt: Date.now(),
-    ...(trackStats ? { focusSecs } : {}),
+    ...(trackStats ? { focusSecs: clampedFocusSecs } : {}),
   }
 }
 

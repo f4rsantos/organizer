@@ -21,6 +21,8 @@ export function TaskForm({
   weekCount,
   defaultWeek,
   startDate,
+  rangeFor = null,
+  dateToWeekFn = null,
   onDone,
   initialData = null,
   onSubmitTask,
@@ -36,22 +38,30 @@ export function TaskForm({
     dueDate: initialData?.dueDate ?? '',
     weekStart: initialData?.weekStart ?? (defaultWeek ?? 1),
     weekEnd: initialData?.weekEnd ?? (defaultWeek ?? 1),
-    showOnCalendar: initialData?.showOnCalendar ?? taskDefaultToCalendar,
+    views: {
+      list: initialData?.views?.list ?? true,
+      kanban: initialData?.views?.kanban ?? false,
+      calendar: initialData?.views?.calendar ?? taskDefaultToCalendar,
+    },
   })
   const [weeksManuallySet, setWeeksManuallySet] = useState(false)
   const addTask = useStore(s => s.addTask)
+
+  const resolveWeek = dueDate => (dateToWeekFn ? dateToWeekFn(dueDate) : dateToWeek(dueDate, startDate))
 
   const handleDueDateChange = e => {
     const dueDate = e.target.value
     setForm(f => {
       if (!weeksManuallySet && dueDate) {
-        const w = dateToWeek(dueDate, startDate)
+        const w = resolveWeek(dueDate)
         if (w != null && w >= 1 && w <= weekCount)
           return { ...f, dueDate, weekStart: w, weekEnd: w }
       }
       return { ...f, dueDate }
     })
   }
+
+  const rangeLabel = w => (rangeFor ? rangeFor(w) : (startDate ? weekDateRange(startDate, w) : null))
 
   const handleWeekStart = v => {
     setWeeksManuallySet(true)
@@ -110,12 +120,12 @@ export function TaskForm({
         <Input placeholder={t.whatNeedsDone} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus />
       </div>
 
-      <button type="button" onClick={() => setForm(f => ({ ...f, showOnCalendar: !f.showOnCalendar }))}
+      <button type="button" onClick={() => setForm(f => ({ ...f, views: { ...f.views, calendar: !f.views.calendar } }))}
         className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">
-        <span className="flex items-center justify-between gap-3">
+        <span className="flex items-center justify-between gap-2">
           <span className="text-sm text-foreground">{t.showOnCalendar}</span>
           <span className="text-muted-foreground">
-            {form.showOnCalendar
+            {form.views.calendar
               ? <CircleCheck className="h-4 w-4 text-primary" />
               : <Circle className="h-4 w-4" />}
           </span>
@@ -132,7 +142,7 @@ export function TaskForm({
           <Select value={String(form.weekStart)} onValueChange={handleWeekStart}>
             <SelectTrigger><span>W{form.weekStart}</span></SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>{weeks.map(w => {
-              const r = startDate ? weekDateRange(startDate, w) : null
+              const r = rangeLabel(w)
               return <SelectItem key={w} value={String(w)}>{r ? `W${w} · ${r.start}–${r.end}` : `W${w}`}</SelectItem>
             })}</SelectContent>
           </Select>
@@ -142,7 +152,7 @@ export function TaskForm({
           <Select value={String(form.weekEnd)} onValueChange={handleWeekEnd}>
             <SelectTrigger><span>W{form.weekEnd}</span></SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>{weeks.filter(w => w >= form.weekStart).map(w => {
-              const r = startDate ? weekDateRange(startDate, w) : null
+              const r = rangeLabel(w)
               return <SelectItem key={w} value={String(w)}>{r ? `W${w} · ${r.start}–${r.end}` : `W${w}`}</SelectItem>
             })}</SelectContent>
           </Select>

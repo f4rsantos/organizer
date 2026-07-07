@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 
+const AWAY_GRACE_SECS = 60
+
 function nowSecs() { return Math.floor(Date.now() / 1000) }
+
+function clampedFocusElapsed({ raw, cycleElapsedBase, intervalSecs, useInterval }) {
+  if (!useInterval) return raw
+  return Math.min(raw, Math.max(0, intervalSecs - cycleElapsedBase))
+}
 
 function nextScheduledBreak(times) {
   if (!times.length) return null
@@ -62,23 +69,27 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
       ? focusSync.activeBreakSource
       : null
 
-  const elapsedSinceStart = useMemo(() => {
+  const rawElapsedSinceStart = useMemo(() => {
     if (!running || startedAt == null) return 0
     return Math.max(0, nowSecs() - startedAt)
   }, [running, startedAt, tick])
 
+  const focusElapsedSinceStart = phase === 'focus'
+    ? clampedFocusElapsed({ raw: rawElapsedSinceStart, cycleElapsedBase, intervalSecs, useInterval })
+    : rawElapsedSinceStart
+
   const breakDuration = activeBreakSource === 'interval' ? intervalBreakMins * 60 : scheduledBreakMins * 60
 
   const cycleElapsed = phase === 'focus'
-    ? cycleElapsedBase + elapsedSinceStart
+    ? cycleElapsedBase + focusElapsedSinceStart
     : 0
 
   const totalElapsed = phase === 'focus'
-    ? totalElapsedBase + elapsedSinceStart
+    ? totalElapsedBase + focusElapsedSinceStart
     : totalElapsedBase
 
   const breakSecsLeft = phase === 'break'
-    ? (running ? Math.max(0, breakSecsLeftBase - elapsedSinceStart) : breakSecsLeftBase)
+    ? (running ? Math.max(0, breakSecsLeftBase - rawElapsedSinceStart) : breakSecsLeftBase)
     : 0
 
   const secsToNextBreak = useMemo(() => {
@@ -101,9 +112,59 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     setFocusSync(data)
   }, [setFocusSync])
 
+  const didReconcileRef = useRef(false)
+
   const nextTotalBaseAfterBreak = useCallback((savedTotalElapsedBase) => {
     return intervalResetMode === 'continue' ? savedTotalElapsedBase : 0
   }, [intervalResetMode])
+
+  const reconcileAwayGap = useCallback(() => {
+    if (!running || startedAt == null) return
+    const gap = Math.max(0, nowSecs() - startedAt)
+
+    if (phase === 'focus') {
+      if (!useInterval) return
+      const remainingToInterval = Math.max(0, intervalSecs - cycleElapsedBase)
+      if (gap <= remainingToInterval + breakDuration + AWAY_GRACE_SECS) return
+      commit({
+        status: 'paused',
+        phase: 'focus',
+        startedAt: null,
+        cycleElapsedBase: 0,
+        totalElapsedBase: nextTotalBaseAfterBreak(totalElapsedBase + remainingToInterval),
+        breakSecsLeftBase: 0,
+        activeBreakSource: null,
+      })
+      return
+    }
+
+    if (gap <= breakSecsLeftBase + AWAY_GRACE_SECS) return
+    commit({
+      status: 'paused',
+      phase: 'focus',
+      startedAt: null,
+      cycleElapsedBase: 0,
+      totalElapsedBase: nextTotalBaseAfterBreak(totalElapsedBase),
+      breakSecsLeftBase: 0,
+      activeBreakSource: null,
+    })
+  }, [running, startedAt, phase, useInterval, intervalSecs, cycleElapsedBase, breakDuration, breakSecsLeftBase, totalElapsedBase, nextTotalBaseAfterBreak, commit])
+
+  useEffect(() => {
+    if (didReconcileRef.current) return
+    didReconcileRef.current = true
+    reconcileAwayGap()
+  }, [reconcileAwayGap])
+
+  useEffect(() => {
+    const onWake = () => { if (document.visibilityState === 'visible') reconcileAwayGap() }
+    document.addEventListener('visibilitychange', onWake)
+    window.addEventListener('focus', onWake)
+    return () => {
+      document.removeEventListener('visibilitychange', onWake)
+      window.removeEventListener('focus', onWake)
+    }
+  }, [reconcileAwayGap])
 
   useEffect(() => {
     if (!running || phase !== 'break') return
