@@ -10,6 +10,8 @@ import { useStrings } from '@/lib/strings'
 import { computeWeekCount } from '@/lib/semesterUtils'
 import { TaskForm } from './TaskForm'
 import { useCollabActions } from '@/hooks/useCollabActions'
+import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
+import { useWeekContext } from '@/hooks/useWeekContext'
 
 const PRIORITY_COLORS = { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-emerald-500' }
 const FREE_BOARD_ID = '__free__'
@@ -40,10 +42,13 @@ export function TaskItem({ task }) {
   } = useCollabActions()
   const boardId = task.semesterId ?? FREE_BOARD_ID
   const board = allBoards[boardId]
+  const mergedBoard = useMergedKanbanBoard(task.semesterId)
   const classes = useMemo(
     () => allClasses.filter(c => c.semesterId === task.semesterId),
     [allClasses, task.semesterId],
   )
+  const weekCtx = useWeekContext()
+  const noneMode = weekCtx.mode === 'none'
   const semester = useMemo(
     () => semesters.find(s => s.id === task.semesterId) ?? null,
     [semesters, task.semesterId],
@@ -53,8 +58,10 @@ export function TaskItem({ task }) {
     [classes, task.classId],
   )
   const weekCount = useMemo(
-    () => (semester?.startDate && semester?.endDate ? computeWeekCount(semester.startDate, semester.endDate) : 1),
-    [semester],
+    () => (noneMode
+      ? weekCtx.weekCount
+      : (semester?.startDate && semester?.endDate ? computeWeekCount(semester.startDate, semester.endDate) : 1)),
+    [semester, noneMode, weekCtx.weekCount],
   )
   const isSharedRemote = !!task?.sharedMeta?.remote
   const sharedTeamId = task?.sharedMeta?.teamId
@@ -79,17 +86,17 @@ export function TaskItem({ task }) {
   const todoColumnId = useMemo(() => resolveKanbanTargetColumnId(), [board])
 
   const todoOrder = useMemo(
-    () => (board?.cards ?? []).filter(c => c.columnId === todoColumnId).length,
-    [board, todoColumnId],
+    () => (mergedBoard?.cards ?? []).filter(c => c.columnId === todoColumnId).length,
+    [mergedBoard, todoColumnId],
   )
   const alreadyInKanban = useMemo(
     () => {
       if (isSharedRemote) {
-        return optimisticSharedInKanban || (board?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
+        return optimisticSharedInKanban || (mergedBoard?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
       }
-      return (board?.cards ?? []).some(c => c.sourceTaskId === task.id)
+      return Boolean(task.views?.kanban)
     },
-    [board, isSharedRemote, optimisticSharedInKanban, sharedTaskId, task.id],
+    [mergedBoard, isSharedRemote, optimisticSharedInKanban, sharedTaskId, task.views?.kanban],
   )
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -99,9 +106,9 @@ export function TaskItem({ task }) {
       setOptimisticSharedInKanban(false)
       return
     }
-    const hasSharedCard = (board?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
+    const hasSharedCard = (mergedBoard?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
     if (hasSharedCard) setOptimisticSharedInKanban(false)
-  }, [isSharedRemote, board, sharedTaskId])
+  }, [isSharedRemote, mergedBoard, sharedTaskId])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -133,11 +140,6 @@ export function TaskItem({ task }) {
     addKanbanCard(boardId, {
       columnId: todoColumnId,
       sourceTaskId: task.id,
-      title: task.title,
-      priority: task.priority ?? null,
-      dueDate: task.dueDate ?? null,
-      classId: task.classId ?? null,
-      className: taskClassName,
       order: todoOrder,
       checklist: [],
     })
@@ -291,7 +293,9 @@ export function TaskItem({ task }) {
               classes={classes}
               weekCount={weekCount}
               defaultWeek={task.weekStart ?? 1}
-              startDate={semester?.startDate ?? null}
+              startDate={noneMode ? null : (semester?.startDate ?? null)}
+              rangeFor={noneMode ? weekCtx.weekDateRange : null}
+              dateToWeekFn={noneMode ? weekCtx.dateToWeek : null}
               initialData={task}
               submitLabel={t.save}
               onSubmitTask={handleEditSubmit}

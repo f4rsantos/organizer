@@ -97,7 +97,7 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
 
             <div className="space-y-1 pt-1">
               <p className="text-xs text-muted-foreground">{t.collabTaskCompletionMode}</p>
-              <Select value={completionMode} onValueChange={setCompletionMode}>
+              <Select value={completionMode} onValueChange={setCompletionMode} items={[{ value: 'personal', label: t.collabTaskCompletionPersonal }, { value: 'for-all', label: t.collabTaskCompletionForAll }]}>
                 <SelectTrigger className="h-8 w-full md:w-80">
                   <SelectValue />
                 </SelectTrigger>
@@ -110,7 +110,7 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
 
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">{t.collabTaskPermissions}</p>
-              <Select value={membersCanEditShared ? 'everyone' : 'host-only'} onValueChange={v => setMembersCanEditShared(v === 'everyone')}>
+              <Select value={membersCanEditShared ? 'everyone' : 'host-only'} onValueChange={v => setMembersCanEditShared(v === 'everyone')} items={[{ value: 'everyone', label: t.collabTaskPermissionsEveryone }, { value: 'host-only', label: t.collabTaskPermissionsHostOnly }]}>
                 <SelectTrigger className="h-8 w-full md:w-80">
                   <SelectValue />
                 </SelectTrigger>

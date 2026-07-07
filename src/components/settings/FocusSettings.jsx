@@ -37,7 +37,7 @@ export function FocusSettings() {
       <div className="space-y-1.5">
         <Label>{t.focusAlertModeLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.focusAlertModeDesc}</p>
-        <Select value={focusAlertMode} onValueChange={handleFocusAlertModeChange}>
+        <Select value={focusAlertMode} onValueChange={handleFocusAlertModeChange} items={focusAlertOptions}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -54,6 +54,7 @@ export function FocusSettings() {
         <Select
           value={focus.intervalResetMode ?? 'reset'}
           onValueChange={value => updateFocusSettings({ intervalResetMode: value })}
+          items={[{ value: 'reset', label: t.focusAfterBreakReset }, { value: 'continue', label: t.focusAfterBreakContinue }]}
         >
           <SelectTrigger className="w-full">
             <SelectValue />
