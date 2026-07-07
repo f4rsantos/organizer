@@ -1,5 +1,5 @@
 import { useStore } from '@/store/useStore'
-import { StandbyPane } from './StandbyPanes'
+import { StandbyPane, StandbyPanePager } from './StandbyPanes'
 
 export function StandbyOverlay() {
   const standby = useStore(s => s.settings?.standby)
@@ -8,9 +8,11 @@ export function StandbyOverlay() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex">
-      {panes.map((pane, i) => (
+      {panes.map((entry, i) => (
         <div key={i} className="flex-1 flex items-center justify-center border-r border-border/40 last:border-r-0 p-4 overflow-hidden">
-          <StandbyPane pane={pane} />
+          {Array.isArray(entry)
+            ? <StandbyPanePager panes={entry} />
+            : <StandbyPane pane={entry} />}
         </div>
       ))}
     </div>

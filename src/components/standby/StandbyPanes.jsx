@@ -7,9 +7,8 @@ import { useWeekContext } from '@/hooks/useWeekContext'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
 import { completionRatio, groupTasksByClass, getTasksForWeek } from '@/lib/taskUtils'
-import { useFocusClock } from '@/components/focus/useFocusClock'
-import { fmtTimer } from '@/components/focus/focusTab/formatters'
-import { PomodoroLayer } from '@/components/focus/PomodoroLayer'
+import { FocusTab } from '@/components/focus/FocusTab'
+import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 
 function useScope() {
   const noneMode = useStore(s => s.settings?.semesterMode === 'none')
@@ -36,68 +35,17 @@ function WheelPane({ withTime }) {
 }
 
 function FocusPane() {
-  const focus = useStore(s => s.settings?.focus ?? {})
-  const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
-  const containerRef = useRef(null)
-  const [resetSignal, setResetSignal] = useState(null)
-  const clock = useFocusClock({
-    useInterval: focus.useInterval ?? true,
-    intervalMins: focus.intervalMins ?? 25,
-    intervalBreakMins: focus.intervalBreakMins ?? 5,
-    useScheduled: focus.useScheduled ?? false,
-    scheduledBreakMins: focus.scheduledBreakMins ?? 5,
-    scheduledTimes: focus.scheduledTimes ?? [],
-    intervalResetMode: focus.intervalResetMode ?? 'reset',
-  })
-  const onBreak = clock.phase === 'break'
-  const intervalSecs = (focus.intervalMins ?? 25) * 60
-  const pct = onBreak
-    ? (clock.breakSecsLeft / Math.max(1, (clock.activeBreakSource === 'interval' ? (focus.intervalBreakMins ?? 5) : (focus.scheduledBreakMins ?? 5)) * 60))
-    : (focus.useInterval ? Math.min(1, clock.cycleElapsed / intervalSecs) : 0)
-  const time = onBreak ? fmtTimer(clock.breakSecsLeft) : fmtTimer(clock.totalElapsed)
-
-  const handleReset = () => {
-    setResetSignal({ ts: Date.now(), phase: clock.phase, cycleElapsed: clock.cycleElapsed })
-    clock.reset()
-  }
-
   return (
-    <div ref={containerRef} className="relative flex h-full w-full flex-1 self-stretch flex-col items-center justify-center gap-4 overflow-hidden">
-      {pomodoroEnabled && (
-        <PomodoroLayer containerRef={containerRef} focusRunning={clock.running}
-          phase={clock.phase} cycleElapsed={clock.cycleElapsed} resetSignal={resetSignal} />
-      )}
-      <div className="relative z-10 flex flex-col items-center gap-4">
-        <SvgProgressWheel pct={pct} size={160} label={time} />
-        <div className="text-sm text-muted-foreground">
-          {onBreak ? (focus.breakLabel || 'Break') : (focus.focusLabel || 'Focus')}
-          {!clock.running && ' · paused'}
-        </div>
-        <div className="flex items-center gap-2">
-          {onBreak
-            ? <StandbyBtn onClick={clock.skipBreak}>⏭</StandbyBtn>
-            : clock.running
-              ? <StandbyBtn onClick={clock.pause}>⏸</StandbyBtn>
-              : <StandbyBtn onClick={clock.totalElapsed > 0 ? clock.resume : clock.start}>▶</StandbyBtn>}
-          <StandbyBtn onClick={handleReset}>⟲</StandbyBtn>
-        </div>
-      </div>
+    <div className="h-full w-full flex-1 self-stretch overflow-hidden">
+      <FocusTab />
     </div>
-  )
-}
-
-function StandbyBtn({ onClick, children }) {
-  return (
-    <button onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-lg hover:bg-secondary transition-colors">
-      {children}
-    </button>
   )
 }
 
 function TasksByCategoryPane() {
   const scopeId = useScope()
   const classes = useStore(s => s.classes).filter(c => c.semesterId === scopeId)
+  const toggleTask = useStore(s => s.toggleTask)
   const weekTasks = useScopedWeekTasks()
   const groups = groupTasksByClass(weekTasks, classes)
   return (
@@ -111,7 +59,12 @@ function TasksByCategoryPane() {
           </div>
           <ul className="space-y-0.5 pl-4">
             {tasks.slice(0, 5).map(t => (
-              <li key={t.id} className={`text-xs truncate ${t.done ? 'line-through text-muted-foreground' : ''}`}>{t.title}</li>
+              <li key={t.id}>
+                <button onClick={() => toggleTask(t.id)}
+                  className={`w-full text-left text-xs truncate cursor-pointer hover:text-foreground transition-colors ${t.done ? 'line-through text-muted-foreground' : ''}`}>
+                  {t.title}
+                </button>
+              </li>
             ))}
           </ul>
         </div>
@@ -124,25 +77,9 @@ function TasksByCategoryPane() {
 function KanbanPane() {
   const scopeId = useScope()
   const board = useMergedKanbanBoard(scopeId)
-  const columns = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
   return (
-    <div className="flex flex-col gap-2 w-full h-full overflow-y-auto px-2">
-      {columns.map(col => {
-        const cards = (board.cards ?? []).filter(c => c.columnId === col.id)
-        return (
-          <div key={col.id} className="rounded-lg bg-secondary/40 p-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold truncate">{col.title}</span>
-              <span className="text-xs text-muted-foreground">{cards.length}</span>
-            </div>
-            <ul className="space-y-1">
-              {cards.slice(0, 6).map(c => (
-                <li key={c.id} className="text-[11px] rounded bg-background px-1.5 py-1 truncate">{c.title}</li>
-              ))}
-            </ul>
-          </div>
-        )
-      })}
+    <div className="w-full h-full overflow-auto px-1">
+      <KanbanBoard semId={scopeId} board={board} localBoard={board} vertical />
     </div>
   )
 }
@@ -229,4 +166,61 @@ export function StandbyPane({ pane }) {
     case 'tasks-by-category': return <TasksByCategoryPane />
     default: return null
   }
+}
+
+export function StandbyPanePager({ panes }) {
+  const [index, setIndex] = useState(0)
+  const [dragX, setDragX] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const startX = useRef(null)
+  const widthRef = useRef(1)
+  const count = panes.length
+
+  const onPointerDown = e => {
+    startX.current = e.clientX
+    widthRef.current = e.currentTarget.offsetWidth || 1
+    setDragging(true)
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  const onPointerMove = e => {
+    if (startX.current === null) return
+    setDragX(e.clientX - startX.current)
+  }
+  const onPointerUp = () => {
+    if (startX.current === null) return
+    const threshold = widthRef.current * 0.2
+    if (dragX < -threshold && index < count - 1) setIndex(index + 1)
+    else if (dragX > threshold && index > 0) setIndex(index - 1)
+    startX.current = null
+    setDragX(0)
+    setDragging(false)
+  }
+
+  return (
+    <div className="relative flex h-full w-full flex-col overflow-hidden">
+      <div className="relative flex-1 touch-pan-y overflow-hidden"
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <div className="flex h-full transition-transform"
+          style={{
+            width: `${count * 100}%`,
+            transform: `translateX(calc(${-index * (100 / count)}% + ${dragX}px))`,
+            transitionDuration: dragging ? '0ms' : '250ms',
+          }}>
+          {panes.map((pane, i) => (
+            <div key={i} className="flex h-full items-center justify-center overflow-hidden px-1"
+              style={{ width: `${100 / count}%` }}>
+              <StandbyPane pane={pane} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center justify-center gap-1.5 py-1.5">
+        {panes.map((_, i) => (
+          <button key={i} onClick={() => setIndex(i)}
+            className={`h-1.5 rounded-full transition-all ${i === index ? 'w-4 bg-primary' : 'w-1.5 bg-border'}`} />
+        ))}
+      </div>
+    </div>
+  )
 }

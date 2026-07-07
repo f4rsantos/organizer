@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { GraduationCap, Briefcase, CalendarRange, CheckCircle2, Upload, Cloud } from 'lucide-react'
+import { Briefcase, CalendarRange, CheckCircle2, Upload, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useStore } from '@/store/useStore'
@@ -107,7 +107,12 @@ export function Onboarding({ onDone }) {
 
         {current === 'welcome' && (
           <div className="flex flex-col items-center gap-6 py-4">
-            <GraduationCap className="h-16 w-16 text-primary" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+              <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#22c55e"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
             <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-2">
               <LangToggle />
               <span className="h-4 w-px bg-border" />

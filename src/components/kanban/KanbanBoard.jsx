@@ -6,7 +6,7 @@ import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { useCollabActions } from '@/hooks/useCollabActions'
 
-export function KanbanBoard({ semId, board, localBoard }) {
+export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
   const [activeCard, setActiveCard] = useState(null)
   const moveCard = useStore(s => s.moveKanbanCard)
   const { moveSharedCard } = useCollabActions()
@@ -47,7 +47,9 @@ export function KanbanBoard({ semId, board, localBoard }) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex flex-col md:flex-row gap-4 md:h-full md:items-start w-full pb-2">
+      <div className={vertical
+        ? "flex flex-col gap-4 w-full pb-2"
+        : "flex flex-col md:flex-row gap-4 md:h-full md:items-start w-full pb-2"}>
         {columns.map((col, index) => (
           <KanbanColumn key={col.id} col={col} semId={semId}
             localBoard={localBoard}
