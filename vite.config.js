@@ -26,7 +26,13 @@ export default defineConfig({
         start_url: BASE_PATH,
         scope: BASE_PATH,
         icons: [
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
+        shortcuts: [
+          { name: 'Tasks', short_name: 'Tasks', url: `${BASE_PATH}?tab=tasks`, icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }] },
+          { name: 'Kanban', short_name: 'Kanban', url: `${BASE_PATH}?tab=kanban`, icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }] },
+          { name: 'Calendar', short_name: 'Calendar', url: `${BASE_PATH}?tab=calendar`, icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }] },
+          { name: 'Focus', short_name: 'Focus', url: `${BASE_PATH}?tab=focus`, icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }] },
         ],
       },
       workbox: {
