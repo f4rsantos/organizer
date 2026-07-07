@@ -45,6 +45,9 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
           <span className="text-xs text-destructive">{t.firebaseError}</span>
         )}
       </div>
+      {syncStatus === 'remote-newer' && (
+        <p className="text-xs text-destructive leading-relaxed">{t.firebaseRemoteNewer}</p>
+      )}
       <p className="text-xs text-muted-foreground font-mono">{config.projectId}</p>
       <button onClick={onDisconnect}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">

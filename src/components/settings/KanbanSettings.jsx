@@ -24,7 +24,7 @@ export function KanbanSettings({ semesterId, columns }) {
       <div className="space-y-1.5">
         <Label>{t.kanbanChecklistInlineLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.kanbanChecklistInlineDesc}</p>
-        <Select value={kanbanChecklistPreviewMode} onValueChange={v => updateSettings({ kanbanChecklistPreviewMode: v })}>
+        <Select value={kanbanChecklistPreviewMode} onValueChange={v => updateSettings({ kanbanChecklistPreviewMode: v })} items={kanbanChecklistPreviewOptions}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

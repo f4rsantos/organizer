@@ -86,6 +86,20 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
             </Select>
           </div>
 
+          {!local?.sharedMeta?.remote && (
+            <button type="button" onClick={() => setLocal(c => ({ ...c, views: { ...(c.views ?? { list: true, kanban: true, calendar: false }), list: !(c.views?.list ?? true) } }))}
+              className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-sm text-foreground">{t.showOnTasks}</span>
+                <span className="text-muted-foreground">
+                  {(local.views?.list ?? true)
+                    ? <CircleCheck className="h-4 w-4 text-primary" />
+                    : <Circle className="h-4 w-4" />}
+                </span>
+              </span>
+            </button>
+          )}
+
           {checklistPreviewMode === 'card' && (
             <button type="button" onClick={() => setLocal(c => ({ ...c, checklistPreview: !c.checklistPreview }))}
               className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">

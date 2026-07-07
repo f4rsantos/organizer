@@ -39,6 +39,7 @@ export function useCollabActions() {
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
+  const setCollabError = useStore(s => s.setCollabError)
   const updateTask = useStore(s => s.updateTask)
   const updateKanbanCard = useStore(s => s.updateKanbanCard)
   const clearKanbanCardSharedRef = useStore(s => s.clearKanbanCardSharedRef)
@@ -82,6 +83,18 @@ export function useCollabActions() {
     return { membership, team }
   }
 
+  const writeShared = async (teamId, membership, applyOptimistic, updater, onRollback) => {
+    const snapshot = useStore.getState().collabRuntime?.teams?.[teamId]
+    optimistic(teamId, applyOptimistic)
+    try {
+      await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater })
+    } catch (err) {
+      if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
+      if (typeof onRollback === 'function') onRollback()
+      setCollabError(teamId, err?.message ?? 'Sync failed')
+    }
+  }
+
   const shareTaskToTeam = async ({ task, teamId, localBoard }) => {
     const ctx = guard(teamId)
     if (!ctx) return
@@ -107,15 +120,12 @@ export function useCollabActions() {
     }
 
     const targetColumnId = resolveTargetColumn(localBoard)
+    const addTaskState = state => ({ ...state, tasks: [...(state?.tasks ?? []), remoteTask] })
 
-    optimistic(teamId, state => ({ ...state, tasks: [...(state?.tasks ?? []), remoteTask] }))
     updateTask(task.id, { sharedRef: { teamId, sharedTaskId }, sharedInKanbanColumnId: targetColumnId })
 
-    await updateTeamState({
-      config: firebaseConfig(membership),
-      teamId,
-      userId,
-      updater: state => ({ ...state, tasks: [...(state?.tasks ?? []), remoteTask] }),
+    await writeShared(teamId, membership, addTaskState, addTaskState, () => {
+      updateTask(task.id, { sharedRef: null, sharedInKanbanColumnId: null })
     })
   }
 
@@ -133,23 +143,21 @@ export function useCollabActions() {
       }),
     })
 
-    optimistic(teamId, applyPatch)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyPatch })
+    await writeShared(teamId, membership, applyPatch, applyPatch)
   }
 
   const toggleSharedTask = async ({ teamId, sharedTaskId }) => {
-    const membership = getMembership(teamId)
     const team = getTeam(teamId)
-    if (!membership || !team || !userId) return
-
     const mode = getSharedTaskMode(team)
+    const ctx = guard(teamId, mode === 'for-all')
+    if (!ctx) return
+    const { membership } = ctx
 
     const applyToggle = state => ({
       ...state,
       tasks: (state?.tasks ?? []).map(task => {
         if (task.id !== sharedTaskId) return task
         if (mode === 'for-all') {
-          if (!ensureCanEdit(team)) return task
           return { ...task, doneForAll: !task.doneForAll, updatedAt: Date.now() }
         }
         const doneBy = { ...(task.doneBy ?? {}), [userId]: !task.doneBy?.[userId] }
@@ -157,8 +165,7 @@ export function useCollabActions() {
       }),
     })
 
-    optimistic(teamId, applyToggle)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyToggle })
+    await writeShared(teamId, membership, applyToggle, applyToggle)
   }
 
   const deleteSharedTask = async ({ teamId, sharedTaskId }) => {
@@ -175,8 +182,7 @@ export function useCollabActions() {
       },
     })
 
-    optimistic(teamId, applyDelete)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyDelete })
+    await writeShared(teamId, membership, applyDelete, applyDelete)
   }
 
   const moveSharedCard = async ({ teamId, sharedCardId, targetColumnId }) => {
@@ -194,8 +200,7 @@ export function useCollabActions() {
       },
     })
 
-    optimistic(teamId, applyMove)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyMove })
+    await writeShared(teamId, membership, applyMove, applyMove)
   }
 
   const updateSharedCard = async ({ teamId, sharedCardId, patch }) => {
@@ -213,8 +218,7 @@ export function useCollabActions() {
       },
     })
 
-    optimistic(teamId, applyUpdate)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyUpdate })
+    await writeShared(teamId, membership, applyUpdate, applyUpdate)
   }
 
   const deleteSharedCard = async ({ teamId, sharedCardId }) => {
@@ -230,9 +234,8 @@ export function useCollabActions() {
       },
     })
 
-    optimistic(teamId, applyDelete)
     clearKanbanCardSharedRef(sharedCardId)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyDelete })
+    await writeShared(teamId, membership, applyDelete, applyDelete)
   }
 
   const shareKanbanCardToTeam = async ({ card, teamId, semId, localBoard }) => {
@@ -251,26 +254,18 @@ export function useCollabActions() {
       updatedAt: Date.now(),
     }
 
-    optimistic(teamId, state => ({
+    const addCardState = state => ({
       ...state,
       kanban: {
         ...(state?.kanban ?? { columns: [], cards: [] }),
         cards: [...(state?.kanban?.cards ?? []), remoteCard],
       },
-    }))
+    })
+
     updateKanbanCard(semId, card.id, { sharedRef: { teamId, sharedCardId } })
 
-    await updateTeamState({
-      config: firebaseConfig(membership),
-      teamId,
-      userId,
-      updater: state => ({
-        ...state,
-        kanban: {
-          ...(state?.kanban ?? { columns: [], cards: [] }),
-          cards: [...(state?.kanban?.cards ?? []), remoteCard],
-        },
-      }),
+    await writeShared(teamId, membership, addCardState, addCardState, () => {
+      updateKanbanCard(semId, card.id, { sharedRef: null })
     })
   }
 
@@ -309,8 +304,7 @@ export function useCollabActions() {
       }
     }
 
-    optimistic(teamId, applyAdd)
-    await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater: applyAdd })
+    await writeShared(teamId, membership, applyAdd, applyAdd)
   }
 
   return {

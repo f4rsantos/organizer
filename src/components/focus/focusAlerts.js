@@ -43,8 +43,8 @@ function showBrowserNotification({ phase, lang }) {
   try {
     new Notification(title, {
       body,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: `${import.meta.env.BASE_URL}favicon.svg`,
+      badge: `${import.meta.env.BASE_URL}favicon.svg`,
       tag: 'organiser-focus-alert',
       renotify: true,
     })
@@ -81,8 +81,8 @@ export function triggerTaskDueNotification({ lang, title, body }) {
     const isPt = lang === 'pt'
     new Notification(isPt ? 'Organizador Tarefas' : 'Organiser Tasks', {
       body: body ? `${title} - ${body}` : title,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: `${import.meta.env.BASE_URL}favicon.svg`,
+      badge: `${import.meta.env.BASE_URL}favicon.svg`,
       tag: `organiser-task-due-${title}`,
       renotify: false,
     })

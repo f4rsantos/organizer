@@ -29,7 +29,7 @@ export function GradesTab() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{t.grades}</h1>
         {semesters.length > 1 && (
-          <Select value={activeSemesterId} onValueChange={setActiveSemester}>
+          <Select value={activeSemesterId} onValueChange={setActiveSemester} items={semesters.map(s => ({ value: s.id, label: s.name }))}>
             <SelectTrigger className="h-8 text-sm w-auto gap-1"><SelectValue /></SelectTrigger>
             <SelectContent>
               {semesters.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
