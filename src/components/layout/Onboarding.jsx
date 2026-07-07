@@ -107,7 +107,7 @@ export function Onboarding({ onDone }) {
 
         {current === 'welcome' && (
           <div className="flex flex-col items-center gap-6 py-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-card border border-border shadow-sm">
               <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#22c55e"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
