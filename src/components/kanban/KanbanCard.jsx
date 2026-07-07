@@ -98,8 +98,20 @@ export function KanbanCard({
     ? checklist.filter((i) => i.done).length / checklist.length
     : null;
   const showChecklistInline =
+    card?.checklistPreview === true ||
     checklistPreviewMode === "all" ||
     (checklistPreviewMode === "card" && card?.checklistPreview === true);
+
+  const toggleChecklistPreview = (e) => {
+    e.stopPropagation();
+    if (checklist.length === 0) return;
+    const patch = { checklistPreview: !card.checklistPreview };
+    if (isSharedRemote) {
+      updateSharedCard({ teamId: sharedTeamId, sharedCardId, patch });
+      return;
+    }
+    updateCard(semId, card.id, patch);
+  };
   const classBadgeText = useMemo(() => {
     const fallback =
       typeof card?.className === "string" ? card.className.trim() : "";
@@ -209,6 +221,7 @@ export function KanbanCard({
         style={style}
         {...attributes}
         {...listeners}
+        onDoubleClick={toggleChecklistPreview}
         className={cn(
           "rounded-lg border border-border bg-card p-3 space-y-2 cursor-grab active:cursor-grabbing select-none touch-none",
           "transition-shadow hover:shadow-md",

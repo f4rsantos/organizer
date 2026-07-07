@@ -16,12 +16,17 @@ const PANE_KEYS = {
 
 const DEFAULT_STANDBY = { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] }
 
-function PaneSelect({ label, value, onChange, t }) {
-  const items = Object.entries(PANE_KEYS).map(([id, key]) => ({ value: id, label: t[key] }))
+const NONE_VALUE = '__none__'
+
+function PaneSelect({ label, value, onChange, t, allowNone }) {
+  const paneItems = Object.entries(PANE_KEYS).map(([id, key]) => ({ value: id, label: t[key] }))
+  const items = allowNone ? [{ value: NONE_VALUE, label: t.standbyPaneNone }, ...paneItems] : paneItems
+  const selected = allowNone && !value ? NONE_VALUE : value
+  const handle = v => onChange(v === NONE_VALUE ? '' : v)
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{label}</Label>
-      <Select value={value} onValueChange={onChange} items={items}>
+      <Select value={selected} onValueChange={handle} items={items}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent position="popper">
           {items.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -48,9 +53,20 @@ export function StandbySettings() {
   }
   const disable = () => wipeAppData(standbyApp.wipe)
 
-  const setPane = (i, v) => {
+  const firstOf = entry => (Array.isArray(entry) ? entry[0] : entry) ?? 'wheel-time'
+  const secondOf = entry => (Array.isArray(entry) ? (entry[1] ?? '') : '')
+
+  const setFirstPane = (i, v) => {
     const next = [...panes]
-    next[i] = v
+    const second = secondOf(next[i])
+    next[i] = second ? [v, second] : v
+    save({ panes: next })
+  }
+
+  const setSecondPane = (i, v) => {
+    const next = [...panes]
+    const first = firstOf(next[i])
+    next[i] = v ? [first, v] : first
     save({ panes: next })
   }
 
@@ -79,7 +95,10 @@ export function StandbySettings() {
             </Select>
           </div>
           {Array.from({ length: panelCount }, (_, i) => (
-            <PaneSelect key={i} label={t.standbyPane(i + 1)} value={panes[i] ?? 'wheel-time'} onChange={v => setPane(i, v)} t={t} />
+            <div key={i} className="space-y-2 rounded-lg border border-border/50 p-2">
+              <PaneSelect label={t.standbyPane(i + 1)} value={firstOf(panes[i])} onChange={v => setFirstPane(i, v)} t={t} />
+              <PaneSelect label={t.standbyPaneSecond} value={secondOf(panes[i])} onChange={v => setSecondPane(i, v)} t={t} allowNone />
+            </div>
           ))}
         </div>
       )}
