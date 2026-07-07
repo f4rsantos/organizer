@@ -17,6 +17,8 @@ export function AddTaskButton({
   weekCount,
   currentWeek,
   startDate,
+  rangeFor = null,
+  dateToWeekFn = null,
   className,
 }) {
   const [open, setOpen] = useState(false);
@@ -40,6 +42,8 @@ export function AddTaskButton({
               weekCount={weekCount}
               defaultWeek={currentWeek}
               startDate={startDate}
+              rangeFor={rangeFor}
+              dateToWeekFn={dateToWeekFn}
               onDone={() => setOpen(false)}
             />
           )}

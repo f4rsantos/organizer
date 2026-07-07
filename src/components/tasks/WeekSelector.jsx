@@ -4,10 +4,10 @@ import { weekDateRange, getHolidaysForWeek } from '@/lib/semesterUtils'
 import { useStrings } from '@/lib/strings'
 import { useStore } from '@/store/useStore'
 
-export function WeekSelector({ week, weekCount, startDate, onChange, semesterHolidays = [] }) {
+export function WeekSelector({ week, weekCount, startDate, onChange, semesterHolidays = [], rangeFor = null }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const range = startDate ? weekDateRange(startDate, week) : null
+  const range = rangeFor ? rangeFor(week) : (startDate ? weekDateRange(startDate, week) : null)
   const weekHolidays = startDate ? getHolidaysForWeek(startDate, week, semesterHolidays) : []
 
   return (

@@ -42,7 +42,7 @@ export function PomodoroSettings() {
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label>{t.pomodoroResetPeriod}</Label>
-        <Select value={pom.resetPeriod ?? 'week'} onValueChange={v => updatePomodoroSettings({ resetPeriod: v })}>
+        <Select value={pom.resetPeriod ?? 'week'} onValueChange={v => updatePomodoroSettings({ resetPeriod: v })} items={periodOptions}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

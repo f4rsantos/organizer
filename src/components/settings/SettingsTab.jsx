@@ -15,9 +15,9 @@ import { GradeConfigForm } from './GradeConfigForm'
 import { FirebaseSyncButton } from './FirebaseSyncPanel'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
 import { DangerZone } from './DangerZone'
-import { CollabPanel } from './CollabPanel'
-import { CollabConnectButton } from './CollabConnectPanel'
 import { GeneralSettings } from './GeneralSettings'
+import { NavbarSettings } from './NavbarSettings'
+import { AppsGrid } from './AppsGrid'
 import { KanbanSettings } from './KanbanSettings'
 import { FocusSettings } from './FocusSettings'
 import { HolidaysForm } from './HolidaysForm'
@@ -39,8 +39,6 @@ function DataPanel({ syncStatus }) {
   const [copied, setCopied] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [showQr, setShowQr] = useState(false)
-  const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
-  const firebaseConnected = !!loadFirebaseConfig()
 
   const handleExport = () => exportState(state)
 
@@ -95,7 +93,6 @@ function DataPanel({ syncStatus }) {
           <QrCode className="h-4 w-4" /> {t.qrCode}
         </Button>
         <FirebaseSyncButton syncStatus={syncStatus} />
-        <CollabConnectButton firebaseConnected={firebaseConnected} collabEnabled={collabEnabled} />
       </div>
       {importError && <p className="text-xs text-destructive">{importError}</p>}
       {showQr && (
@@ -122,12 +119,14 @@ export function SettingsTab({ syncStatus }) {
   const dismissed = useStore(s => s.dismissedNextSemester ?? {})
   const importData = useStore(s => s.importData)
 
+  const noneMode = useStore(s => s.settings?.semesterMode === 'none')
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const scopeId = noneMode ? null : activeSemesterId
   const semester = semesters.find(s => s.id === activeSemesterId) ?? null
-  const classes = allClasses.filter(c => c.semesterId === activeSemesterId)
-  const hasValidDates = !!semester?.startDate && !!semester?.endDate
-  const hasClasses = classes.length > 0
+  const classes = allClasses.filter(c => c.semesterId === scopeId)
+  const hasValidDates = noneMode || (!!semester?.startDate && !!semester?.endDate)
+  const hasClasses = noneMode || classes.length > 0
 
   const addClass           = useStore(s => s.addClass)
   const deleteClass        = useStore(s => s.deleteClass)
@@ -163,7 +162,7 @@ export function SettingsTab({ syncStatus }) {
   const semesterEnded = semester?.endDate && new Date(semester.endDate) < new Date()
   const showNextSemesterHint = semesterEnded && semester?.presetKey && !dismissed[activeSemesterId]
 
-  if (!semesters.length) {
+  if (!semesters.length && !noneMode) {
     return (
       <div className="h-full overflow-y-auto">
         <div className="space-y-5 p-4 pt-6 max-w-2xl mx-auto">
@@ -220,7 +219,7 @@ export function SettingsTab({ syncStatus }) {
         </div>
 
         {semesters.length > 1 && (
-          <Select value={activeSemesterId} onValueChange={setActiveSemester}>
+          <Select value={activeSemesterId} onValueChange={setActiveSemester} items={semesters.map(s => ({ value: s.id, label: s.name }))}>
             <SelectTrigger>
               <SelectValue placeholder="Select semester" />
             </SelectTrigger>
@@ -317,6 +316,13 @@ export function SettingsTab({ syncStatus }) {
                 </AccordionContent>
               </AccordionItem>
 
+              <AccordionItem value="navbar" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.navbar}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <NavbarSettings />
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="data" className="rounded-xl border border-border bg-card px-4">
                 <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
                 <AccordionContent className="pb-4">
@@ -324,14 +330,12 @@ export function SettingsTab({ syncStatus }) {
                 </AccordionContent>
               </AccordionItem>
 
-              {firebaseConnected && collabEnabled && (
-                <AccordionItem value="collab" className="rounded-xl border border-border bg-card px-4">
-                  <AccordionTrigger className="text-sm font-semibold py-3">Organizer Collab</AccordionTrigger>
-                  <AccordionContent className="pb-4">
-                    <CollabPanel />
-                  </AccordionContent>
-                </AccordionItem>
-              )}
+              <AccordionItem value="apps" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.apps}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <AppsGrid />
+                </AccordionContent>
+              </AccordionItem>
             </>
           )}
         </Accordion>

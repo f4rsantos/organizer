@@ -9,7 +9,9 @@ import { requestBrowserNotificationPermission } from '@/components/focus/focusAl
 export function GeneralSettings() {
   const settings = useStore(s => s.settings)
   const updateSettings = useStore(s => s.updateSettings)
+  const setSemesterMode = useStore(s => s.setSemesterMode)
   const workMode = useStore(s => s.settings?.workMode ?? false)
+  const noneMode = (settings?.semesterMode ?? 'semesters') === 'none'
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const taskAlertMode = settings.taskAlertMode ?? 'none'
@@ -44,7 +46,7 @@ export function GeneralSettings() {
       <div className="space-y-1.5">
         <Label>{t.taskSpanLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.taskSpanDesc}</p>
-        <Select value={settings.taskSpanMode ?? 'single'} onValueChange={v => updateSettings({ taskSpanMode: v })}>
+        <Select value={settings.taskSpanMode ?? 'single'} onValueChange={v => updateSettings({ taskSpanMode: v })} items={spanOptions}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -69,6 +71,18 @@ export function GeneralSettings() {
       </div>
 
       <div className="space-y-1.5">
+        <Label>{t.semesterModeLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.semesterModeDesc}</p>
+        <button type="button" onClick={() => setSemesterMode(noneMode ? 'semesters' : 'none')}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {noneMode
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {noneMode ? t.semesterModeNone : t.semesterModeSemesters}
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
         <Label>{t.workModeLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.workModeDesc}</p>
         <button type="button" onClick={() => updateSettings({ workMode: !workMode })}
@@ -83,7 +97,7 @@ export function GeneralSettings() {
       <div className="space-y-1.5">
         <Label>{t.taskAlertModeLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.taskAlertModeDesc}</p>
-        <Select value={taskAlertMode} onValueChange={handleTaskAlertModeChange}>
+        <Select value={taskAlertMode} onValueChange={handleTaskAlertModeChange} items={taskAlertOptions}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

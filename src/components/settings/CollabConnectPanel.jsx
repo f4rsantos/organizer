@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { loadFirebaseConfig, markCollabRulesEnabled } from '@/lib/firebase'
 import { deleteTeam, leaveTeam } from '@/lib/collab/firebase'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 const RULES_SNIPPET = `rules_version = '2';
 service cloud.firestore {
@@ -61,7 +62,9 @@ export function CollabConnectButton({ firebaseConnected }) {
   const removeCollabMembership = useStore(s => s.removeCollabMembership)
   const clearTaskSharedRefByTeam = useStore(s => s.clearTaskSharedRefByTeam)
   const clearCollabRuntimeTeam = useStore(s => s.clearCollabRuntimeTeam)
+  const wipeCollabData = useStore(s => s.wipeCollabData)
   const [openGuide, setOpenGuide] = useState(false)
+  const [confirmOff, setConfirmOff] = useState(false)
 
   const disabled = !firebaseConnected && !collabEnabled
 
@@ -91,12 +94,12 @@ export function CollabConnectButton({ firebaseConnected }) {
       removeCollabMembership(membership.teamId)
     }
 
-    updateSettings({ collabEnabled: false })
+    wipeCollabData()
   }
 
   const handleClick = async () => {
     if (collabEnabled) {
-      await handleDisconnect()
+      setConfirmOff(true)
       return
     }
     setOpenGuide(true)
@@ -128,6 +131,8 @@ export function CollabConnectButton({ firebaseConnected }) {
       )}
 
       <CollabGuideModal open={openGuide} onOpenChange={setOpenGuide} onEnable={handleEnable} />
+      <ConfirmDialog open={confirmOff} onOpenChange={setConfirmOff}
+        title={t.appDisableTitle} description={t.collabDisableDesc} onConfirm={handleDisconnect} />
     </>
   )
 }
