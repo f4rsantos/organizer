@@ -260,4 +260,11 @@ export const es = {
     collabErrorJoin: 'No se pudo unir al equipo.',
     collabErrorInvalidLink: 'Enlace de invitación inválido.',
     collabErrorDeleteTeam: 'No se pudo eliminar el equipo.',
+    collabGuideChecklistTitle: '¿Sigue sin sincronizar?',
+    collabGuideChecklistBody: 'Los dos pasos que Organizer no puede hacer por ti: activar la autenticación anónima y publicar las reglas de Firestore de arriba. Si las tareas compartidas nunca aparecen, falta uno de estos en el proyecto del anfitrión.',
+    collabSyncErrorHint: 'No se puede acceder a este equipo. Verifica que el Firebase del anfitrión tenga la autenticación anónima activada y reglas abiertas.',
+    collabErrorPermission: 'Bloqueado por las reglas de Firebase. El anfitrión debe activar la autenticación anónima y abrir las reglas de Firestore.',
+    collabErrorNotFound: 'Equipo no encontrado. Puede que se haya eliminado.',
+    collabErrorInviteExpired: 'Esta invitación ha caducado. Pide un nuevo enlace al anfitrión.',
+    collabErrorInviteInvalid: 'Este enlace de invitación no es válido para ese equipo.',
 }

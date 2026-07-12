@@ -37,6 +37,7 @@ export function useMergedKanbanBoard(semId) {
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const memberships = useStore(s => s.collab?.memberships ?? EMPTY_MEMBERSHIPS)
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? EMPTY_TEAMS)
+  const activeSemesterId = useStore(s => s.activeSemesterId)
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
@@ -46,17 +47,16 @@ export function useMergedKanbanBoard(semId) {
       .filter(task => !isSharedLocalHidden(task, activeTeamIds, runtimeTeams))
       .map(taskToCard)
 
-    const remoteCards = (collabEnabled ? memberships : []).flatMap(membership => {
+    const showRemote = collabEnabled && boardId === activeSemesterId
+    const remoteCards = (showRemote ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
       const cards = team?.state?.kanban?.cards ?? []
-      return cards
-        .filter(card => card?.semesterId === semId)
-        .map(card => mapRemoteCard(card, membership.teamId, localBoard))
+      return cards.map(card => mapRemoteCard(card, membership.teamId, localBoard))
     })
 
     return {
       columns: localBoard.columns ?? [],
       cards: [...localCards, ...remoteCards],
     }
-  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, semId, boardId])
+  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, boardId, activeSemesterId])
 }

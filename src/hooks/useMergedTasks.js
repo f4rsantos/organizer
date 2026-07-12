@@ -9,7 +9,6 @@ function toLocalWeek(date, semesterStart) {
 
 function mapRemoteTask(task, teamId, userId, semesterId, semester) {
   const hasSemesterDates = Boolean(semester?.startDate && semester?.endDate)
-  let includeInSemester = false
   let resolvedWeekStart = Number.isFinite(task?.weekStart) ? task.weekStart : null
   let resolvedWeekEnd = Number.isFinite(task?.weekEnd) ? task.weekEnd : null
 
@@ -25,34 +24,21 @@ function mapRemoteTask(task, teamId, userId, semesterId, semester) {
 
     if (hasValidDates && isWithinInterval(due, { start: semStart, end: semEnd })) {
       const localWeek = toLocalWeek(due, semStart)
-      includeInSemester = true
       resolvedWeekStart = localWeek
       resolvedWeekEnd = localWeek
     }
-  }
-
-  if (!includeInSemester && hasValidSemesterRange && task?.sharedWeekStartDate && task?.sharedWeekEndDate) {
+  } else if (hasValidSemesterRange && task?.sharedWeekStartDate && task?.sharedWeekEndDate) {
     const sharedStart = parseISO(task.sharedWeekStartDate)
     const sharedEnd = parseISO(task.sharedWeekEndDate)
     const hasValidSharedRange = !Number.isNaN(sharedStart.getTime()) && !Number.isNaN(sharedEnd.getTime())
 
     if (hasValidSharedRange) {
-      const overlapsSemester = sharedStart <= semEnd && sharedEnd >= semStart
-      if (overlapsSemester) {
-        includeInSemester = true
-        const localStart = Math.max(1, toLocalWeek(sharedStart, semStart))
-        const localEnd = Math.max(localStart, toLocalWeek(sharedEnd, semStart))
-        resolvedWeekStart = localStart
-        resolvedWeekEnd = localEnd
-      }
+      const localStart = Math.max(1, toLocalWeek(sharedStart, semStart))
+      const localEnd = Math.max(localStart, toLocalWeek(sharedEnd, semStart))
+      resolvedWeekStart = localStart
+      resolvedWeekEnd = localEnd
     }
   }
-
-  if (!includeInSemester && task?.semesterId === semesterId) {
-    includeInSemester = true
-  }
-
-  if (!includeInSemester) return null
 
   const weekStart = Number.isFinite(resolvedWeekStart) ? resolvedWeekStart : 1
   const weekEnd = Number.isFinite(resolvedWeekEnd) ? Math.max(weekStart, resolvedWeekEnd) : weekStart
@@ -80,6 +66,7 @@ export function useMergedTasks(semesterId) {
   const userId = useStore(s => s.collab?.userId)
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const activeSemesterId = useStore(s => s.activeSemesterId)
   const semester = useMemo(
     () => semesters.find(candidate => candidate.id === semesterId) ?? null,
     [semesters, semesterId],
@@ -93,7 +80,8 @@ export function useMergedTasks(semesterId) {
       return !isSharedLocalHidden(task, activeTeamIds, runtimeTeams)
     })
 
-    const remote = (collabEnabled ? memberships : []).flatMap(membership => {
+    const showRemote = collabEnabled && semesterId === activeSemesterId
+    const remote = (showRemote ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
       const tasks = team?.state?.tasks ?? []
       return tasks
@@ -102,5 +90,5 @@ export function useMergedTasks(semesterId) {
     })
 
     return [...local, ...remote]
-  }, [localTasks, collabEnabled, memberships, runtimeTeams, semesterId, semester, userId])
+  }, [localTasks, collabEnabled, memberships, runtimeTeams, semesterId, activeSemesterId, semester, userId])
 }
