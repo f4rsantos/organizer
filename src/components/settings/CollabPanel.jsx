@@ -16,6 +16,7 @@ import {
   leaveTeam,
   updateTeamMeta,
 } from '@/lib/collab/firebase'
+import { collabErrorText } from '@/lib/collab/errors'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -214,6 +215,9 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
               }
             </div>
             {copiedInvite && <p className="text-[11px] text-muted-foreground">{t.linkCopied}</p>}
+            {team.syncStatus === 'error' && (
+              <p className="text-[11px] text-destructive pt-1">{t.collabSyncErrorHint}</p>
+            )}
           </>
         )
       }
@@ -253,6 +257,7 @@ export function CollabPanel() {
         expiresAt: runtime?.expiresAt ?? m.expiresAt,
         sharedTaskCompletionMode: runtime?.sharedTaskCompletionMode ?? 'for-all',
         membersCanEditShared: runtime?.membersCanEditShared ?? true,
+        syncStatus: runtime?.syncStatus ?? null,
       }
     })
   }, [collab.memberships, runtimeTeams])
@@ -289,8 +294,8 @@ export function CollabPanel() {
       setName('')
       setDurationInput('365')
       setCreating(false)
-    } catch {
-      setError(t.collabErrorCreate)
+    } catch (err) {
+      setError(collabErrorText(err, t, t.collabErrorCreate))
     }
   }
 
@@ -310,8 +315,8 @@ export function CollabPanel() {
         token,
       })
       await navigator.clipboard.writeText(link)
-    } catch {
-      setError(t.collabErrorInvite)
+    } catch (err) {
+      setError(collabErrorText(err, t, t.collabErrorInvite))
     }
   }
 
@@ -338,8 +343,8 @@ export function CollabPanel() {
         projectId: parsed.projectId,
       })
       setJoinLink('')
-    } catch {
-      setError(t.collabErrorJoin)
+    } catch (err) {
+      setError(collabErrorText(err, t, t.collabErrorJoin))
     }
   }
 
