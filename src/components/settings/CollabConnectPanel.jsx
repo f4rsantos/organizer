@@ -47,6 +47,10 @@ function CollabGuideModal({ open, onOpenChange, onEnable }) {
             <p className="text-xs font-medium mb-2">{t.collabGuideRulesLabel}</p>
             <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
           </div>
+          <div className="rounded-lg border border-border bg-secondary/40 p-3">
+            <p className="text-xs font-medium mb-1">{t.collabGuideChecklistTitle}</p>
+            <p className="text-xs text-muted-foreground">{t.collabGuideChecklistBody}</p>
+          </div>
           <Button className="w-full" onClick={onEnable}>{t.collabEnableNow}</Button>
         </div>
       </DialogContent>
