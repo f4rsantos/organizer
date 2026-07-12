@@ -260,4 +260,11 @@ export const fr = {
     collabErrorJoin: 'Impossible de rejoindre l\'équipe.',
     collabErrorInvalidLink: 'Lien d\'invitation invalide.',
     collabErrorDeleteTeam: 'Impossible de supprimer l\'équipe.',
+    collabGuideChecklistTitle: 'Toujours pas de synchronisation ?',
+    collabGuideChecklistBody: 'Les deux étapes qu\'Organizer ne peut pas faire à votre place : activer l\'authentification anonyme et publier les règles Firestore ci-dessus. Si les tâches partagées n\'apparaissent jamais, l\'une d\'elles manque sur le projet de l\'hôte.',
+    collabSyncErrorHint: 'Impossible de joindre cette équipe. Vérifiez que le Firebase de l\'hôte a l\'authentification anonyme activée et des règles ouvertes.',
+    collabErrorPermission: 'Bloqué par les règles Firebase. L\'hôte doit activer l\'authentification anonyme et ouvrir les règles Firestore.',
+    collabErrorNotFound: 'Équipe introuvable. Elle a peut-être été supprimée.',
+    collabErrorInviteExpired: 'Cette invitation a expiré. Demandez un nouveau lien à l\'hôte.',
+    collabErrorInviteInvalid: 'Ce lien d\'invitation n\'est pas valide pour cette équipe.',
 }

@@ -260,4 +260,11 @@ export const de = {
     collabErrorJoin: 'Beitritt zum Team nicht möglich.',
     collabErrorInvalidLink: 'Ungültiger Einladungslink.',
     collabErrorDeleteTeam: 'Team konnte nicht gelöscht werden.',
+    collabGuideChecklistTitle: 'Synchronisiert immer noch nicht?',
+    collabGuideChecklistBody: 'Die zwei Schritte, die Organizer nicht für dich erledigen kann: anonyme Anmeldung aktivieren und die obigen Firestore-Regeln veröffentlichen. Wenn geteilte Aufgaben nie erscheinen, fehlt einer davon im Host-Projekt.',
+    collabSyncErrorHint: 'Dieses Team ist nicht erreichbar. Prüfe, ob im Firebase des Hosts die anonyme Anmeldung aktiviert und die Regeln offen sind.',
+    collabErrorPermission: 'Durch Firebase-Regeln blockiert. Der Host muss die anonyme Anmeldung aktivieren und die Firestore-Regeln öffnen.',
+    collabErrorNotFound: 'Team nicht gefunden. Es wurde möglicherweise gelöscht.',
+    collabErrorInviteExpired: 'Diese Einladung ist abgelaufen. Bitte den Host um einen neuen Link.',
+    collabErrorInviteInvalid: 'Dieser Einladungslink ist für dieses Team nicht gültig.',
 }

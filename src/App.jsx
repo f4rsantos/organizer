@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
 import { useStrings } from '@/lib/strings'
+import { collabErrorTextForCode } from '@/lib/collab/errors'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
 
@@ -60,7 +61,7 @@ function CollabErrorToast() {
   return (
     <div className="fixed bottom-24 md:bottom-6 inset-x-0 z-50 flex justify-center px-4">
       <div className="flex items-center gap-3 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-xs shadow-lg max-w-sm">
-        <span className="flex-1">{t.collabSyncFailed}</span>
+        <span className="flex-1">{lastError.message}</span>
         <button className="shrink-0 font-medium" onClick={clearCollabError}>×</button>
       </div>
     </div>

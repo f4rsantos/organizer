@@ -3,6 +3,7 @@ import { addWeeks, format, parseISO, startOfWeek } from 'date-fns'
 import { nanoid } from '@/lib/ids'
 import { useStore } from '@/store/useStore'
 import { updateTeamState } from '@/lib/collab/firebase'
+import { classifyCollabError } from '@/lib/collab/errors'
 
 function resolveTargetColumn(localBoard, desiredColumnId = null) {
   const columns = [...(localBoard?.columns ?? [])].sort((a, b) => a.order - b.order)
@@ -91,7 +92,9 @@ export function useCollabActions() {
     } catch (err) {
       if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
       if (typeof onRollback === 'function') onRollback()
-      setCollabError(teamId, err?.message ?? 'Sync failed')
+      const dbgTeam = useStore.getState().collabRuntime?.teams?.[teamId]
+      const dbg = `me=${userId} members=[${Object.keys(dbgTeam?.members ?? {}).join(',')}]`
+      setCollabError(teamId, `${err?.message ?? 'Sync failed'} | ${dbg}`, classifyCollabError(err))
     }
   }
 
@@ -248,7 +251,7 @@ export function useCollabActions() {
     const remoteCard = {
       ...card,
       id: sharedCardId,
-      semesterId: semId,
+      semesterId: null,
       columnId: cardColumnId,
       sharedByUserId: userId,
       updatedAt: Date.now(),
@@ -269,19 +272,19 @@ export function useCollabActions() {
     })
   }
 
-  const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, semId, columnId, classId = null, className = null }) => {
+  const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, columnId, classId = null, className = null }) => {
     const ctx = guard(teamId)
     if (!ctx) return
     const { membership } = ctx
 
     const buildCard = state => {
       const cards = state?.kanban?.cards ?? []
-      if (cards.some(card => card.sharedTaskId === sharedTaskId && card.semesterId === semId)) return null
+      if (cards.some(card => card.sharedTaskId === sharedTaskId)) return null
       const sharedTask = (state?.tasks ?? []).find(task => task.id === sharedTaskId)
       return {
         id: nanoid(),
         title: sharedTask?.title ?? 'Task',
-        semesterId: semId,
+        semesterId: null,
         columnId,
         checklist: [],
         classId: classId ?? sharedTask?.classId ?? null,

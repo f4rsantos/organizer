@@ -494,11 +494,11 @@ export const useStore = create((set, get) => ({
       },
     },
   })),
-  setCollabError: (teamId, message) => set(s => ({
+  setCollabError: (teamId, message, code = 'generic') => set(s => ({
     ...s,
     collabRuntime: {
       ...(s.collabRuntime ?? { teams: {} }),
-      lastError: message ? { teamId, message, at: Date.now() } : null,
+      lastError: message ? { teamId, message, code, at: Date.now() } : null,
     },
   })),
   clearCollabError: () => set(s => ({
