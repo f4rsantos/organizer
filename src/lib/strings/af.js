@@ -1,6 +1,9 @@
 export const af = {
-    tasks: 'Take', kanban: 'Kanban', grades: 'Punte', calendar: 'Kalender', focus: 'Fokus', settings: 'Verstellings',
-    noSemester: 'Geen semester opgestel nie', goToSettings: 'Gaan na Verstellings om te begin.',
+    months: ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie', 'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'],
+    weekdaysShort: ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Sa', 'So'],
+    weekdays: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrydag', 'Saterdag', 'Sondag'],
+    tasks: 'Take', kanban: 'Kanban', grades: 'Punte', calendar: 'Kalender', focus: 'Fokus', settings: 'Instellings',
+    noSemester: 'Geen semester opgestel nie', goToSettings: 'Gaan na Instellings om te begin.',
     weekLabel: w => `Week ${w}`, done: 'klaar', timeToRelax: 'Tyd om te ontspan!',
     addTask: 'Nuwe taak', task: 'Taak', class: 'Klas', priority: 'Prioriteit',
     editTask: 'Wysig taak', moveLeft: 'Skuif links', moveRight: 'Skuif regs', markDone: 'Merk klaar',

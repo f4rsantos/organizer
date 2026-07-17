@@ -155,9 +155,7 @@ export function CalendarTab() {
   )) })
   while (days.length < 42) days.push(new Date(days[days.length - 1].getTime() + 86400000))
 
-  const DOW = lang === 'pt'
-    ? ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
-    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const DOW = t.weekdaysShort
 
   const detail = dayDetail ? itemsForDay(dayDetail, tasks, holidays, events) : null
 
@@ -171,7 +169,7 @@ export function CalendarTab() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} disabled={!canPrev}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <p className="flex-1 text-center font-semibold text-sm capitalize">{format(month, 'MMMM yyyy')}</p>
+        <p className="flex-1 text-center font-semibold text-sm capitalize">{t.months[month.getMonth()]} {month.getFullYear()}</p>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext} disabled={!canNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
