@@ -13,7 +13,7 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="capitalize">{t.weekdays[(day.getDay() + 6) % 7]}, {day.getDate()} {t.months[day.getMonth()]} {day.getFullYear()}
+          <DialogTitle className="capitalize">{t.weekdays[(day.getDay() + 6) % 7]}, {day.getDate()} {t.months[day.getMonth()]} {day.getFullYear()}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
           {holidays.map(h => (
