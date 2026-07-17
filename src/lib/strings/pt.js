@@ -1,4 +1,7 @@
 export const pt = {
+    months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+    weekdaysShort: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+    weekdays: ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'],
     tasks: 'Tarefas', kanban: 'Kanban', grades: 'Avaliações', calendar: 'Calendário', focus: 'Foco', settings: 'Definições',
     noSemester: 'Nenhum semestre configurado', goToSettings: 'Vai a Definições para começar.',
     weekLabel: w => `Semana ${w}`, done: 'concluídas', timeToRelax: 'Hora de descansar!',

@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -14,7 +13,7 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="capitalize">{format(day, 'EEEE, d MMMM yyyy')}</DialogTitle>
+          <DialogTitle className="capitalize">{t.weekdays[(day.getDay() + 6) % 7]}, {day.getDate()} {t.months[day.getMonth()]} {day.getFullYear()}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
           {holidays.map(h => (

@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.graphify-out*
+graphify-out/
 
 # Editor directories and files
 .vscode/*
