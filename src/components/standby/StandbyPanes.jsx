@@ -3,6 +3,7 @@ import { format, startOfMonth, startOfWeek, eachDayOfInterval, isSameMonth, isSa
 import { SvgProgressWheel } from '@/components/common/SvgProgressWheel'
 import { AnalogClock } from '@/components/common/AnalogClock'
 import { useStore } from '@/store/useStore'
+import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
@@ -86,6 +87,7 @@ function KanbanPane() {
 
 function CalendarPane() {
   const scopeId = useScope()
+  const t = useStrings(useStore(s => s.lang ?? 'en'))
   const events = useStore(s => s.events ?? []).filter(e => e.semesterId === scopeId || e.semesterId == null)
   const weekTasks = useScopedWeekTasks()
   const [now, setNow] = useState(new Date())
@@ -106,7 +108,7 @@ function CalendarPane() {
       return false
     })
   }
-  const dow = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+  const dow = t.weekdaysShort.map(d => d[0])
 
   const todayStr = format(now, 'yyyy-MM-dd')
   const upcomingEvents = events
@@ -117,7 +119,7 @@ function CalendarPane() {
   return (
     <div className="w-full flex flex-col items-center gap-3 px-2">
       <div className="text-2xl font-semibold tabular-nums">{format(now, 'HH:mm')}</div>
-      <div className="text-sm font-medium capitalize">{format(now, 'MMMM yyyy')}</div>
+      <div className="text-sm font-medium capitalize">{t.months[now.getMonth()]} {now.getFullYear()}</div>
       <div className="grid grid-cols-7 gap-0.5 text-center w-full max-w-xs">
         {dow.map((d, i) => <div key={i} className="text-[10px] text-muted-foreground py-0.5">{d}</div>)}
         {days.map(day => {
