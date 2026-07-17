@@ -1,4 +1,7 @@
 export const pirate = {
+  months: ['Janufaárr', 'Februfaárr', 'March', 'April', 'May', 'June', 'July', 'August', 'Septembarr', 'Octobarr', 'Novembarr', 'Decembarr'],
+  weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
   tasks: 'Chores', kanban: 'Plank Board', grades: 'Booty', calendar: 'Almanac', focus: 'Steady Aim', settings: "Ship's Orders",
   noSemester: 'No voyage charted', goToSettings: "Sail to Ship's Orders to begin.",
   weekLabel: w => `Fortnight ${w}`, done: 'plundered', timeToRelax: 'Time to swig some grog!',

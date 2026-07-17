@@ -1,4 +1,7 @@
 export const af = {
+    months: ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie', 'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'],
+    weekdaysShort: ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Sa', 'So'],
+    weekdays: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrydag', 'Saterdag', 'Sondag'],
     tasks: 'Take', kanban: 'Kanban', grades: 'Punte', calendar: 'Kalender', focus: 'Fokus', settings: 'Instellings',
     noSemester: 'Geen semester opgestel nie', goToSettings: 'Gaan na Instellings om te begin.',
     weekLabel: w => `Week ${w}`, done: 'klaar', timeToRelax: 'Tyd om te ontspan!',
