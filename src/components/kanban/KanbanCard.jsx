@@ -219,15 +219,19 @@ export function KanbanCard({
       <div
         ref={setNodeRef}
         style={style}
-        {...attributes}
-        {...listeners}
         onDoubleClick={toggleChecklistPreview}
         className={cn(
-          "rounded-lg border border-border bg-card p-3 space-y-2 cursor-grab active:cursor-grabbing select-none touch-none",
+          "relative rounded-lg border border-border bg-card p-3 space-y-2 select-none",
           "transition-shadow hover:shadow-md",
           isDragging && "opacity-40",
         )}
       >
+        <div
+          {...attributes}
+          {...listeners}
+          aria-hidden="true"
+          className="absolute left-1/4 top-1/4 h-1/2 w-1/2 cursor-grab touch-none active:cursor-grabbing"
+        />
         <div className="flex items-start gap-2">
           {card.priority && (
             <span
