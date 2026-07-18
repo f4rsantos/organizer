@@ -230,7 +230,7 @@ export function KanbanCard({
           {...attributes}
           {...listeners}
           aria-hidden="true"
-          className="absolute left-1/4 top-1/4 h-1/2 w-1/2 cursor-grab touch-none active:cursor-grabbing"
+          className="absolute left-1/4 top-0 h-full w-1/2 cursor-grab touch-none active:cursor-grabbing"
         />
         <div className="flex items-start gap-2">
           {card.priority && (
