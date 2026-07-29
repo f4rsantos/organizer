@@ -51,4 +51,8 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') },
   },
   base: BASE_PATH,
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js'],
+  },
 })

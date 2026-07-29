@@ -1,12 +1,17 @@
-import { Howler } from 'howler'
-
 const NOTIFICATION_MODES = new Set(['notification', 'both'])
 const VIBRATION_MODES = new Set(['vibration', 'both'])
 const TASK_REMINDER_TITLE_EN = 'Task Reminder'
 const TASK_REMINDER_TITLE_PT = 'Lembrete de tarefa'
 const TASK_REMINDER_TAG_PREFIX = 'organiser-task-scheduled:'
 
-function playPingWithHowler() {
+async function playPingWithHowler() {
+  let Howler
+  try {
+    ({ Howler } = await import('howler'))
+  } catch {
+    return
+  }
+
   const ctx = Howler.ctx
   if (!ctx) return
 
@@ -67,7 +72,7 @@ export function triggerFocusAlert({ mode, phase, lang }) {
   }
 
   if (NOTIFICATION_MODES.has(mode)) {
-    playPingWithHowler()
+    void playPingWithHowler()
     showBrowserNotification({ phase, lang })
   }
 }
@@ -77,7 +82,7 @@ export function triggerTaskDueNotification({ lang, title, body }) {
   if (Notification.permission !== 'granted') return
 
   try {
-    playPingWithHowler()
+    void playPingWithHowler()
     const isPt = lang === 'pt'
     new Notification(isPt ? 'Organizador Tarefas' : 'Organiser Tasks', {
       body: body ? `${title} - ${body}` : title,

@@ -6,6 +6,9 @@ export function boardIdForTask(task) {
   return task?.semesterId ?? FREE_BOARD_ID
 }
 
+// Recurring tasks are represented on kanban by the template task itself (no per-occurrence
+// cards): kanban is a workflow tool tracking one current unit of work, not a calendar of
+// future dates, so a card here always reflects the template's own `done`/`kanban` state.
 export function taskToCard(task) {
   return {
     ...task,
@@ -38,4 +41,17 @@ export function groupTasksByClass(tasks, classes) {
 export function completionRatio(tasks) {
   if (tasks.length === 0) return 1
   return tasks.filter(t => t.done).length / tasks.length
+}
+
+export function resolveKanbanPlacement(task, prevTask, state, firstColumnIdFor) {
+  if (!task.views?.kanban || !task.weekStart || !task.weekEnd) return task.kanban ?? null
+  const autoAdd = state.settings?.kanbanAutoAddToFirstColumn ?? false
+  if (!task.kanban?.columnId) {
+    return autoAdd ? { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) } : (task.kanban ?? null)
+  }
+  const boardChanged = prevTask && boardIdForTask(prevTask) !== boardIdForTask(task)
+  if (boardChanged && autoAdd) {
+    return { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) }
+  }
+  return task.kanban
 }

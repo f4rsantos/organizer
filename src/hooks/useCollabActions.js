@@ -88,7 +88,9 @@ export function useCollabActions() {
     const snapshot = useStore.getState().collabRuntime?.teams?.[teamId]
     optimistic(teamId, applyOptimistic)
     try {
-      await updateTeamState({ config: firebaseConfig(membership), teamId, userId, updater })
+      await updateTeamState({
+        config: firebaseConfig(membership), teamId, userId, teamKey: membership.teamKey, updater,
+      })
     } catch (err) {
       if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
       if (typeof onRollback === 'function') onRollback()

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useFirebaseSync } from '@/hooks/useFirebaseSync'
 import { useCollabSync } from '@/hooks/useCollabSync'
+import { useGoogleCalendarSync } from '@/apps/googleCalendar/useGoogleCalendarSync'
 import { AppShell } from '@/components/layout/AppShell'
 import { TabBar, SideBar } from '@/components/layout/TabBar'
 import { Onboarding } from '@/components/layout/Onboarding'
@@ -13,12 +14,15 @@ import { GradesTab } from '@/components/grades/GradesTab'
 import { CalendarTab } from '@/components/calendar/CalendarTab'
 import { FocusTab } from '@/components/focus/FocusTab'
 import { SettingsTab } from '@/components/settings/SettingsTab'
-import { getAppTabs } from '@/apps/registry'
+import { getAppTabs, getAppById } from '@/apps/registry'
 import { StorageWarningModal } from '@/components/common/StorageWarningModal'
 import { useTheme } from '@/hooks/useTheme'
 import { useStandby } from '@/hooks/useStandby'
 import { useAppBadge } from '@/hooks/useAppBadge'
+import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
+import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
+import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
 import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -27,7 +31,14 @@ import { collabErrorTextForCode } from '@/lib/collab/errors'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
 
-const TABS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'notes', 'settings']
+const CORE_TABS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'notes', 'settings']
+
+function enabledPluginTabIds(state) {
+  return getAppTabs()
+    .filter(pt => !CORE_TABS.includes(pt.id))
+    .filter(pt => getAppById(pt.id)?.isEnabled(state))
+    .map(pt => pt.id)
+}
 
 function hasNewerVersionWarning() {
   return getLoadWarnings().includes('newer-version')
@@ -81,28 +92,89 @@ function TabPanel({ id, activeTab, children }) {
 }
 
 export default function App() {
+  const hydrated = useHydrateState()
   useTheme()
   useCollabSync()
+  useGoogleCalendarSync()
   useAppBadge()
   const standbyActive = useStandby()
   const onboardingDone = useStore(s => s.onboardingDone)
   const completeOnboarding = useStore(s => s.completeOnboarding)
+  const pluginTabsKey = useStore(s => enabledPluginTabIds(s).join(','))
+  const tabs = [...CORE_TABS, ...(pluginTabsKey ? pluginTabsKey.split(',') : [])]
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get('tab')
-    return TABS.includes(tab) ? tab : 'tasks'
+    return [...CORE_TABS, ...enabledPluginTabIds(useStore.getState())].includes(tab) ? tab : 'tasks'
   })
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
   const requestedTab = useStore(s => s.activeTab)
   const clearRequestedTab = useStore(s => s.setActiveTab)
   useEffect(() => {
-    if (requestedTab && TABS.includes(requestedTab)) {
+    if (requestedTab && tabs.includes(requestedTab)) {
       setActiveTab(requestedTab)
       clearRequestedTab(null)
     }
-  }, [requestedTab, clearRequestedTab])
+  }, [requestedTab, clearRequestedTab, tabs])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showStorageWarning, setShowStorageWarning] = useState(false)
   const { status: syncStatus, pullNow } = useFirebaseSync()
+
+  const quickActionAppEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
+  const quickActionShortcutRaw = useStore(s => s.settings?.apps?.quickActionShortcut)
+  const quickActionShortcut = quickActionShortcutRaw === undefined ? { key: 'k', ctrl: true, meta: false, shift: false, alt: false } : quickActionShortcutRaw
+  const [spotlightOpen, setSpotlightOpen] = useState(false)
+
+  useEffect(() => {
+    if (!quickActionAppEnabled) return
+    const handleKeyDown = e => {
+      if (quickActionShortcut) {
+        const match = e.key.toLowerCase() === quickActionShortcut.key.toLowerCase() &&
+          e.ctrlKey === !!quickActionShortcut.ctrl &&
+          e.metaKey === !!quickActionShortcut.meta &&
+          e.shiftKey === !!quickActionShortcut.shift &&
+          e.altKey === !!quickActionShortcut.alt
+
+        if (match) {
+          e.preventDefault()
+          setSpotlightOpen(v => !v)
+          return
+        }
+      }
+      if (e.key === 'Escape') {
+        setSpotlightOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [quickActionAppEnabled, quickActionShortcut])
+
+  const quickActionTripleTap = useStore(s => s.settings?.apps?.quickActionTripleTap ?? false)
+
+  useEffect(() => {
+    if (!quickActionAppEnabled || !quickActionTripleTap) return
+    let clickCount = 0
+    let timeoutId = null
+    const handleTouchStart = (e) => {
+      const tag = e.target.tagName.toLowerCase()
+      if (['button', 'input', 'textarea', 'a', 'select'].includes(tag)) return
+      clickCount++
+      if (clickCount === 3) {
+        setSpotlightOpen(v => !v)
+        clickCount = 0
+        clearTimeout(timeoutId)
+      } else {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => { clickCount = 0 }, 500)
+      }
+    }
+    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('mousedown', handleTouchStart)
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('mousedown', handleTouchStart)
+      clearTimeout(timeoutId)
+    }
+  }, [quickActionAppEnabled, quickActionTripleTap])
 
   useEffect(() => {
     pullNow()
@@ -119,6 +191,8 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
+  if (!hydrated) return <AppShell><div className="min-h-screen" /></AppShell>
+
   if (!onboardingDone) return <AppShell><Onboarding onDone={completeOnboarding} /></AppShell>
 
   if (standbyActive) return <AppShell><StandbyOverlay /></AppShell>
@@ -129,7 +203,7 @@ export default function App() {
       <div className="flex h-screen overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
         <div className={cn('relative flex-1 overflow-hidden md:pb-0', mobileSide ? 'pb-0' : 'pb-20')}>
-          {TABS.map(tab => {
+          {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component
             return (
@@ -147,11 +221,13 @@ export default function App() {
         </div>
       </div>
       {!mobileSide && <TabBar activeTab={activeTab} onTabChange={setActiveTab} />}
+      <GlobalTomatoLayer activeTab={activeTab} />
       <CollabErrorToast />
       <NewerVersionBanner />
       <NextSemesterDialog />
       <PresetUpdateDialog />
       {showStorageWarning && <StorageWarningModal onDismiss={() => setShowStorageWarning(false)} />}
+      <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
     </AppShell>
   )
 }

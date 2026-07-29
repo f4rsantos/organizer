@@ -1,13 +1,24 @@
 import { useRef } from 'react'
 
-const PRESET_COLORS = [
+export const PRESET_COLORS = [
   '#6366f1', '#8b5cf6', '#a855f7', '#ec4899',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#06b6d4', '#3b82f6', '#64748b', '#78716c',
 ]
 
-export function ClassColorDot({ color, onChange }) {
+export function ClassColorDot({ color, onChange, compact = false }) {
   const pickerRef = useRef()
+
+  if (compact) {
+    return (
+      <button type="button" onClick={() => pickerRef.current?.click()}
+        className="h-6 w-6 rounded-full border border-border hover:scale-110 transition-transform shrink-0 overflow-hidden relative"
+        title="Colour" style={{ backgroundColor: color }}>
+        <input ref={pickerRef} type="color" value={color} onChange={e => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+      </button>
+    )
+  }
 
   return (
     <div className="flex gap-1.5 flex-wrap items-center">

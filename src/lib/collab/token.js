@@ -1,14 +1,10 @@
-function bytesToHex(bytes) {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-}
+import { bytesToHex, randomBytes } from '../crypto'
 
 export function createInviteToken() {
-  const raw = crypto.getRandomValues(new Uint8Array(8))
-  return bytesToHex(raw)
+  return bytesToHex(randomBytes(8))
 }
 
 export async function hashToken(token) {
   const data = new TextEncoder().encode(token)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return bytesToHex(new Uint8Array(digest))
+  return bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', data)))
 }

@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { Download, Upload, Link, QrCode } from 'lucide-react'
-import QRCode from 'qrcode'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import {
@@ -23,8 +22,9 @@ import { FocusSettings } from './FocusSettings'
 import { HolidaysForm } from './HolidaysForm'
 import { PresetOverlay } from '@/components/presets/PresetOverlay'
 import { exportState, importState } from '@/store/persist'
-import { encodeStateToUrl } from '@/lib/shareUtils'
+import { encodeStateToUrl, exportEncryptedState, exportPlaintextState } from '@/lib/shareUtils'
 import { loadFirebaseConfig } from '@/lib/firebase'
+import { isEncryptionEnabled, loadKeyString } from '@/lib/crypto'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -39,14 +39,39 @@ function DataPanel({ syncStatus }) {
   const [copied, setCopied] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [showQr, setShowQr] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const encryptionOn = isEncryptionEnabled()
 
-  const handleExport = () => exportState(state)
+  const handleExportPlain = () => {
+    setShowExportMenu(false)
+    exportState(state)
+  }
+
+  const handleExportEncrypted = async () => {
+    setShowExportMenu(false)
+    const keyString = loadKeyString()
+    if (!keyString) return
+    await exportEncryptedState(state, keyString)
+  }
+
+  const handleExportDecryptedReadable = async () => {
+    setShowExportMenu(false)
+    exportPlaintextState(state)
+  }
+
+  const handleExport = () => {
+    if (!encryptionOn) { handleExportPlain(); return }
+    setShowExportMenu(v => !v)
+  }
 
   const handleImport = async e => {
     const file = e.target.files?.[0]
     if (!file) return
     try { setImportError(null); importData(await importState(file)) }
-    catch { setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.') }
+    catch (err) {
+      if (err?.message === 'encryption-key-required') setImportError(t.firebaseKeyRequiredForImport)
+      else setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.')
+    }
     e.target.value = ''
   }
 
@@ -73,16 +98,35 @@ function DataPanel({ syncStatus }) {
   const handleQr = async () => {
     if (showQr) { setShowQr(false); return }
     const url = getShareUrl()
-    setQrDataUrl(url.length > 4000 ? 'toolarge' : await QRCode.toDataURL(url, { width: 200, margin: 1 }))
+    if (url.length > 4000) {
+      setQrDataUrl('toolarge')
+    } else {
+      const { default: QRCode } = await import('qrcode')
+      setQrDataUrl(await QRCode.toDataURL(url, { width: 200, margin: 1 }))
+    }
     setShowQr(true)
   }
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" className="gap-2" onClick={handleExport}>
-          <Download className="h-4 w-4" /> {t.exportJson}
-        </Button>
+        <div className="relative">
+          <Button variant="outline" className="gap-2 w-full" onClick={handleExport}>
+            <Download className="h-4 w-4" /> {t.exportJson}
+          </Button>
+          {showExportMenu && (
+            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-md overflow-hidden">
+              <button onClick={handleExportEncrypted}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-secondary/60 transition-colors">
+                {t.exportEncrypted}
+              </button>
+              <button onClick={handleExportDecryptedReadable}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-secondary/60 transition-colors">
+                {t.exportPlaintext}
+              </button>
+            </div>
+          )}
+        </div>
         <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
           <Upload className="h-4 w-4" /> {t.importJson}
         </Button>

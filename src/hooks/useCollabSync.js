@@ -17,7 +17,7 @@ export function useCollabSync() {
   const userId = useMemo(() => collab?.userId ?? null, [collab?.userId])
 
   const membershipsKey = useMemo(
-    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}`).join('|'),
+    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}:${m.teamKey ?? ''}`).join('|'),
     [memberships],
   )
 
@@ -57,6 +57,10 @@ export function useCollabSync() {
           removeCollabMembership(teamId)
           return
         }
+        if (team.locked) {
+          setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'key-required' })
+          return
+        }
         setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'live', syncedAt: Date.now() })
       }
 
@@ -65,7 +69,7 @@ export function useCollabSync() {
         setCollabRuntimeTeam(teamId, { ...(prev ?? {}), config, syncStatus: 'error' })
       }
 
-      return subscribeTeam({ config, teamId, onData, onError })
+      return subscribeTeam({ config, teamId, teamKey: membership.teamKey, onData, onError })
     })
 
     return () => {

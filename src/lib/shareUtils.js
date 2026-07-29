@@ -1,25 +1,17 @@
-function getSecureBaseUrl() {
-  const url = new URL(window.location.href)
-  url.hash = ''
-  url.search = ''
-  const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
-  if (!isLocal) url.protocol = 'https:'
-  return `${url.origin}${url.pathname}`
-}
+import { encryptForSlot, aadForExport, WHOLE_STATE, isEnvelope } from './crypto'
+import { getSecureBaseUrl } from './urlBase'
 
 export function encodeStateToUrl(state) {
   const json = JSON.stringify(state)
   const b64 = btoa(unescape(encodeURIComponent(json)))
-  const url = `${getSecureBaseUrl()}#data=${b64}`
-  return url
+  return `${getSecureBaseUrl()}#data=${b64}`
 }
 
 export function decodeStateFromUrl() {
   const hash = location.hash
   if (!hash.startsWith('#data=')) return null
   try {
-    const b64 = hash.slice(6)
-    const json = decodeURIComponent(escape(atob(b64)))
+    const json = decodeURIComponent(escape(atob(hash.slice(6))))
     const data = JSON.parse(json)
     if (!data.version) throw new Error('Invalid')
     return data
@@ -31,3 +23,24 @@ export function decodeStateFromUrl() {
 export function clearUrlHash() {
   history.replaceState(null, '', location.pathname)
 }
+
+function downloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function exportEncryptedState(state, keyString) {
+  const envelope = await encryptForSlot(state, keyString, aadForExport(WHOLE_STATE))
+  downloadJson(envelope, 'organizer-backup.encrypted.json')
+}
+
+export function exportPlaintextState(state) {
+  downloadJson(state, 'organizer-backup.json')
+}
+
+export { isEnvelope }

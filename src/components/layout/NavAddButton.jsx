@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
+import { QuickActionBar } from '@/components/tasks/QuickActionBar'
 import { EventForm } from '@/components/calendar/EventForm'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -13,6 +14,7 @@ const ACTION_META = {
   kanban: { icon: Kanban, key: 'addCard' },
   event: { icon: CalendarDays, key: 'addEvent' },
   note: { icon: StickyNote, key: 'notesNew' },
+  quickaction: { icon: Sparkles, key: 'quickAction' },
 }
 
 export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
@@ -22,6 +24,9 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   const t = useStrings(lang)
   const allClasses = useStore(s => s.classes)
   const notesEnabled = useStore(s => s.settings?.apps?.notes === true)
+  const quickActionApps = useStore(s => s.settings?.apps) ?? {}
+  const quickActionAppEnabled = quickActionApps.quickAction !== false
+  const navbarVisible = useStore(s => s.settings?.navbar?.showAddButton) === true
   const configured = useStore(s => s.settings?.navbar?.addAction) ?? 'task'
   const addKanbanCard = useStore(s => s.addKanbanCard)
   const addNote = useStore(s => s.addNote)
@@ -49,6 +54,10 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       setTab?.('kanban')
       return
     }
+    if (action === 'quickaction' && !quickActionAppEnabled) {
+      setDialog('task')
+      return
+    }
     setDialog(action)
   }
 
@@ -57,7 +66,8 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
     else runAction(configured)
   }
 
-  const label = configured === 'picker' ? t.add : t[ACTION_META[configured]?.key ?? 'addTask']
+  const customLabel = useStore(s => s.settings?.navbar?.addButtonLabel)
+  const label = customLabel || (configured === 'picker' ? t.add : t[ACTION_META[configured]?.key ?? 'addTask'])
   const showIcon = labelMode !== 'names'
   const showLabel = labelMode !== 'icons'
   const trigger =
@@ -84,10 +94,32 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       </button>
     )
 
-  const pickerActions = ['task', 'kanban', 'event', ...(notesEnabled ? ['note'] : [])]
+  const pickerActions = ['task', 'kanban', 'event', ...(notesEnabled ? ['note'] : []), ...(quickActionAppEnabled ? ['quickaction'] : [])]
   const menuAnchor = variant === 'sidebar' || variant === 'sidebar-collapsed'
     ? 'left-0 bottom-full mb-2'
     : 'right-0 bottom-full mb-2'
+
+  const navbarShortcut = quickActionApps.quickActionNavbarShortcut
+
+  useEffect(() => {
+    if (!quickActionAppEnabled || !navbarShortcut) return
+    const handleKeyDown = e => {
+      const match = e.key.toLowerCase() === navbarShortcut.key.toLowerCase() &&
+        e.ctrlKey === !!navbarShortcut.ctrl &&
+        e.metaKey === !!navbarShortcut.meta &&
+        e.shiftKey === !!navbarShortcut.shift &&
+        e.altKey === !!navbarShortcut.alt
+
+      if (match) {
+        e.preventDefault()
+        runAction(configured)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [quickActionAppEnabled, navbarShortcut, configured])
+
+  if (!navbarVisible) return null
 
   return (
     <div className={cn('relative', (variant === 'bottom') && 'min-w-0 flex-1 flex')}>
@@ -132,6 +164,15 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
         <EventForm open onOpenChange={v => !v && setDialog(null)}
           event={null} semesterId={scopeId} defaultDate={null} />
       )}
+
+      <Dialog open={dialog === 'quickaction'} onOpenChange={v => !v && setDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{t.quickAction}</DialogTitle></DialogHeader>
+          {dialog === 'quickaction' && (
+            <QuickActionBar semesterId={scopeId} classes={classes} onDone={() => setDialog(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

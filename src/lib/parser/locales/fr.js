@@ -1,0 +1,121 @@
+export const fr = {
+  numbers: {
+    zero: 0, un: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10,
+    onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, dixsept: 17, dixhuit: 18, dixneuf: 19,
+    vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60,
+    'soixante dix': 70, 'soixante-dix': 70, septante: 70,
+    'quatre vingts': 80, 'quatre-vingts': 80, 'quatre vingt': 80, 'quatre-vingt': 80, huitante: 80, octante: 80,
+    'quatre vingt dix': 90, 'quatre-vingt-dix': 90, nonante: 90,
+  },
+  ordinals: {
+    premier: 1, premiere: 1, première: 1, deuxième: 2, deuxieme: 2, second: 2, seconde: 2,
+    troisième: 3, troisieme: 3, quatrième: 4, quatrieme: 4, cinquième: 5, cinquieme: 5,
+    sixième: 6, sixieme: 6, septième: 7, septieme: 7, huitième: 8, huitieme: 8,
+    neuvième: 9, neuvieme: 9, dixième: 10, dixieme: 10,
+    '1er': 1, '1re': 1, '2e': 2, '3e': 3, '4e': 4, '5e': 5, '6e': 6, '7e': 7, '8e': 8, '9e': 9, '10e': 10
+  },
+  modifiers: {
+    prochain: 'next', prochaine: 'next',
+    ce: 'this', cette: 'this',
+    dernier: 'last', dernière: 'last', derniere: 'last',
+  },
+  weekdays: {
+    dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6
+  },
+  months: {
+    janvier: 0, fevrier: 1, février: 1, mars: 2, avril: 3, mai: 4, juin: 5,
+    juillet: 6, aout: 7, août: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11, décembre: 11
+  },
+  atWords: ['à', 'a', 'vers'],
+  timeConnectors: ['et', 'heure', 'heures'],
+  weekWords: ['semaine'],
+  weekOfWords: ['semaine du'],
+  focusWords: {
+    start: ['demarrer', 'démarrer', 'commencer', 'reprendre'],
+    resume: ['reprendre'],
+    stop: ['arreter', 'arrêter', 'pause', 'terminer'],
+    reset: ['reinitialiser', 'réinitialiser', 'recommencer'],
+    skip: ['sauter', 'passer'],
+    break: ['pause', 'repos'],
+    focus: ['focus', 'minuteur', 'etude', 'étude', 'pomodoro'],
+    minuteUnits: ['m', 'min', 'mins', 'minute', 'minutes'],
+    hourUnits: ['h', 'heure', 'heures'],
+  },
+  relativeDates: {
+    aujourdhui: 0, "aujourd'hui": 0,
+    demain: 1,
+    'apres demain': 2, 'après demain': 2,
+    hier: -1
+  },
+  navVerbs: ['ouvrir', 'aller à', 'montrer', 'voir', 'naviguer vers'],
+  durations: {
+    heure: 'hour', heures: 'hour', h: 'hour',
+    minute: 'minute', minutes: 'minute', min: 'minute', m: 'minute'
+  },
+  recurrences: {
+    chaque: 'every', tous: 'every', toutes: 'every',
+    quotidien: { freq: 'daily', interval: 1 },
+    quotidiennement: { freq: 'daily', interval: 1 },
+    hebdomadaire: { freq: 'weekly', interval: 1 },
+    mensuel: { freq: 'monthly', interval: 1 },
+    annuel: { freq: 'yearly', interval: 1 },
+    jour: { freq: 'daily' }, jours: { freq: 'daily' },
+    semaine: { freq: 'weekly' }, semaines: { freq: 'weekly' },
+    mois: { freq: 'monthly' },
+    an: { freq: 'yearly' }, ans: { freq: 'yearly' }, annee: { freq: 'yearly' }, année: { freq: 'yearly' },
+  },
+  time: {
+    am: 'am',
+    pm: 'pm',
+    demie: 30,
+    'et demie': 30,
+    quart: 15,
+    'et quart': 15,
+    'moins le quart': -15,
+    'du matin': 'am',
+    'de laprès-midi': 'pm',
+    'du soir': 'pm'
+  },
+  priorityWords: {
+    1: ['priorité haute', 'priorite haute', 'haute priorité', 'haute priorite'],
+    2: ['priorité moyenne', 'priorite moyenne', 'moyenne priorité', 'moyenne priorite'],
+    3: ['priorité basse', 'priorite basse', 'basse priorité', 'basse priorite'],
+  },
+  mutationVerbs: {
+    'marquer comme fait': { type: 'mut', action: 'complete' },
+    terminer: { type: 'mut', action: 'complete' },
+    termine: { type: 'mut', action: 'complete' },
+    achever: { type: 'mut', action: 'complete' },
+    supprimer: { type: 'mut', action: 'delete' },
+    supprime: { type: 'mut', action: 'delete' },
+    effacer: { type: 'mut', action: 'delete' },
+    efface: { type: 'mut', action: 'delete' },
+    retirer: { type: 'mut', action: 'delete' },
+    deplacer: { type: 'mut', action: 'move' },
+    déplacer: { type: 'mut', action: 'move' },
+    deplace: { type: 'mut', action: 'move' },
+    déplace: { type: 'mut', action: 'move' },
+    partager: { type: 'mut', action: 'share' },
+    partage: { type: 'mut', action: 'share' },
+  },
+  prepositions: {
+    with: ['avec'],
+    for: ['pour'],
+    on: ['sur'],
+    in: ['dans', 'en'],
+    to: ['à', 'a', 'vers'],
+  },
+  sharedWords: ['partagé', 'partage'],
+  teamWords: ['équipe', 'equipe'],
+  gradeWords: {
+    grade: ['note', 'notes', 'evaluation', 'évaluation', 'mettre', 'met'],
+    addComponent: ['ajouter composant', 'ajoute composant', 'nouveau composant', 'nouvelle composante', 'creer composant', 'créer composant'],
+    weight: ['poids', 'coefficient', 'coef', 'vaut'],
+    forWords: ['pour', 'de', 'du', 'dans', 'en', 'a', 'à', 'sur'],
+  },
+  noteWords: {
+    note: ['note', 'notes'],
+    folder: ['dossier', 'dossiers', 'repertoire', 'répertoire'],
+    addWords: ['ajouter', 'ajoute', 'creer', 'créer', 'cree', 'crée', 'nouveau', 'nouvelle'],
+  },
+}

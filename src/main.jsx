@@ -4,7 +4,7 @@ import './index.css'
 import { decodeStateFromUrl, clearUrlHash } from './lib/shareUtils'
 import { saveState, forceSaveState } from './store/persist'
 import { migrateState } from './store/migrations'
-import { loadFirebaseConfig, pullFromFirebase } from './lib/firebase'
+import { loadFirebaseConfig } from './lib/firebaseConfig'
 import { registerPwa } from './pwa/registerPwa'
 
 const urlData = decodeStateFromUrl()
@@ -19,6 +19,7 @@ async function hydrateLocalFromFirebaseBeforeRender() {
   if (!config) return
 
   try {
+    const { pullFromFirebase } = await import('./lib/firebase')
     const remote = await Promise.race([
       pullFromFirebase(config),
       new Promise(resolve => setTimeout(() => resolve(null), 6000)),

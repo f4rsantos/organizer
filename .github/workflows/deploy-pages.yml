@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
       - name: Build
         env:
           VITE_PRESETS_FIREBASE_API_KEY: ${{ secrets.VITE_PRESETS_FIREBASE_API_KEY }}

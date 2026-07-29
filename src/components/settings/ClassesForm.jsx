@@ -57,7 +57,9 @@ export function ClassesForm({ semesterId, classes, workMode = false }) {
           {!workMode && (
             <div className="space-y-1.5 w-24">
               <Label>{t.ects}</Label>
-              <Input type="number" min={0} max={30} value={form.ects} onChange={e => setForm(f => ({ ...f, ects: Number(e.target.value) }))} />
+              <Input type="number" min={0} max={30} value={form.ects} 
+                onChange={e => setForm(f => ({ ...f, ects: e.target.value }))}
+                onBlur={() => setForm(f => ({ ...f, ects: Math.max(0, Number(f.ects) || 0) }))} />
             </div>
           )}
           <div className="space-y-1.5 flex-1">
@@ -79,7 +81,8 @@ export function ClassesForm({ semesterId, classes, workMode = false }) {
                 {!workMode && (
                   <Input type="number" min={0} max={30} className="h-8 w-20"
                     value={editForm.ects}
-                    onChange={e => setEditForm(f => ({ ...f, ects: Number(e.target.value) }))} />
+                    onChange={e => setEditForm(f => ({ ...f, ects: e.target.value }))}
+                    onBlur={() => setEditForm(f => ({ ...f, ects: Math.max(0, Number(f.ects) || 0) }))} />
                 )}
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   onClick={saveEdit}>
