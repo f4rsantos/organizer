@@ -4,11 +4,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Mic } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
+import { parseTaskText } from '@/lib/parser/nlpParse'
+import { useSpeechInput } from '@/hooks/useSpeechInput'
+import { pushEventDeletion } from '@/apps/googleCalendar/useGoogleCalendarSync'
+import { loadGoogleClientId } from '@/apps/googleCalendar/googleAuth'
+import { format } from 'date-fns'
 
-const EMPTY = { title: '', date: '', startDate: '', endDate: '', multiDay: false, color: '#6366f1', note: '' }
+const EMPTY = { title: '', date: '', startDate: '', endDate: '', multiDay: false, color: '#6366f1', note: '', startTime: '', endTime: '', syncToGoogle: false }
 
 function formFromEvent(event) {
   if (!event) return EMPTY
@@ -21,42 +27,154 @@ function formFromEvent(event) {
     multiDay,
     color: event.color ?? '#6366f1',
     note: event.note ?? '',
+    startTime: event.startTime ?? '',
+    endTime: event.endTime ?? '',
+    syncToGoogle: Boolean(event.syncToGoogle),
   }
 }
 
-export function EventForm({ open, onOpenChange, event, semesterId, defaultDate }) {
+export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, defaultStartTime, defaultEndTime, defaultEndDate }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const addEvent = useStore(s => s.addEvent)
   const updateEvent = useStore(s => s.updateEvent)
   const deleteEvent = useStore(s => s.deleteEvent)
+  const googleCalendarEnabled = useStore(s => s.settings?.apps?.googleCalendar === true) && Boolean(loadGoogleClientId())
   const [form, setForm] = useState(EMPTY)
+  const [touched, setTouched] = useState({ date: false, startTime: false, endTime: false })
+
+  const [rawTitle, setRawTitle] = useState('')
 
   useEffect(() => {
     if (!open) return
-    if (event) setForm(formFromEvent(event))
-    else setForm({ ...EMPTY, date: defaultDate ?? '' })
-  }, [open, event, defaultDate])
+    if (event) {
+      const next = formFromEvent(event)
+      setForm(next)
+      setTouched({ date: true, startTime: Boolean(event.startTime), endTime: Boolean(event.endTime) })
+      setRawTitle(next.title)
+    } else {
+      const spansDays = Boolean(defaultEndDate)
+      setForm({
+        ...EMPTY,
+        date: defaultDate ?? '',
+        multiDay: spansDays,
+        startDate: spansDays ? defaultDate ?? '' : '',
+        endDate: spansDays ? defaultEndDate : '',
+        startTime: defaultStartTime ?? '',
+        endTime: defaultEndTime ?? '',
+      })
+      setTouched({ date: Boolean(defaultDate), startTime: Boolean(defaultStartTime), endTime: Boolean(defaultEndTime) })
+      setRawTitle('')
+    }
+  }, [open, event, defaultDate, defaultStartTime, defaultEndTime, defaultEndDate])
 
   const set = patch => setForm(f => ({ ...f, ...patch }))
 
-  const buildPayload = () => {
-    const base = { title: form.title.trim(), color: form.color, note: form.note.trim(), allDay: true, semesterId: semesterId ?? null }
-    if (form.multiDay) return { ...base, date: null, startDate: form.startDate, endDate: form.endDate || form.startDate }
-    return { ...base, date: form.date, startDate: null, endDate: null }
+  const handleTitleChange = e => {
+    const title = e.target.value
+    setRawTitle(title)
+    set({ title })
   }
 
-  const valid = form.title.trim() && (form.multiDay ? form.startDate : form.date)
+  const parseTitle = rawValue => {
+    if (!rawValue) return form
+    const parsed = parseTaskText(rawValue, { now: new Date(), t, lang })
+    const touchedNow = touched
+    const next = { ...form, title: parsed.title || rawValue }
+    if (!touchedNow.date && parsed.date) next.date = parsed.date
+    if (!touchedNow.startTime && parsed.startTime) next.startTime = parsed.startTime
+    if (!touchedNow.endTime && parsed.endTime) next.endTime = parsed.endTime
+
+    if (!touchedNow.endTime && parsed.startTime && !parsed.endTime) {
+      const baseDate = next.date || format(new Date(), 'yyyy-MM-dd')
+      const d = new Date(`${baseDate}T${parsed.startTime}`)
+      if (!isNaN(d.getTime())) {
+        if (parsed.duration) {
+          d.setMinutes(d.getMinutes() + parsed.duration)
+        } else {
+          d.setHours(d.getHours() + 1)
+        }
+        next.endTime = format(d, 'HH:mm')
+      }
+    }
+    setForm(next)
+    setRawTitle(next.title)
+    return next
+  }
+
+  const handleTitleBlur = () => parseTitle(rawTitle)
+
+  const applyTitle = title => {
+    setRawTitle(title)
+    set({ title })
+    parseTitle(title)
+  }
+
+  const { isSupported: speechSupported, isListening, start: startListening, stop: stopListening } = useSpeechInput({
+    lang,
+    onResult: applyTitle,
+  })
+
+  const handleDateChange = e => {
+    setTouched(x => ({ ...x, date: true }))
+    set({ date: e.target.value })
+  }
+
+  const handleStartTimeChange = e => {
+    setTouched(x => ({ ...x, startTime: true }))
+    set({ startTime: e.target.value })
+  }
+
+  const handleEndTimeChange = e => {
+    setTouched(x => ({ ...x, endTime: true }))
+    set({ endTime: e.target.value })
+  }
+
+  const buildPayload = f => {
+    const base = {
+      title: f.title.trim(), color: f.color, note: f.note.trim(), allDay: true, semesterId: semesterId ?? null,
+      syncToGoogle: googleCalendarEnabled && f.syncToGoogle,
+    }
+    if (f.multiDay) {
+      const spanHasTime = Boolean(f.startTime)
+      return {
+        ...base,
+        date: null,
+        startDate: f.startDate,
+        endDate: f.endDate || f.startDate,
+        allDay: !spanHasTime,
+        startTime: spanHasTime ? f.startTime : null,
+        endTime: spanHasTime && f.endTime ? f.endTime : null,
+      }
+    }
+    const hasTime = Boolean(f.startTime)
+    return {
+      ...base,
+      date: f.date,
+      startDate: null,
+      endDate: null,
+      allDay: !hasTime,
+      startTime: hasTime ? f.startTime : null,
+      endTime: hasTime && f.endTime ? f.endTime : null,
+    }
+  }
+
+  const valid = rawTitle.trim() && (form.multiDay ? form.startDate : form.date)
 
   const submit = () => {
     if (!valid) return
-    if (event) updateEvent(event.id, buildPayload())
-    else addEvent(buildPayload())
+    const finalForm = rawTitle !== form.title ? parseTitle(rawTitle) : form
+    const payload = buildPayload(finalForm)
+    if (event) updateEvent(event.id, payload)
+    else addEvent(payload)
     onOpenChange(false)
   }
 
   const remove = () => {
-    if (event) deleteEvent(event.id)
+    if (event) {
+      if (event.googleEventId) void pushEventDeletion(event.googleEventId)
+      deleteEvent(event.id)
+    }
     onOpenChange(false)
   }
 
@@ -69,8 +187,20 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate }
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label>{t.eventTitle}</Label>
-            <Input autoFocus value={form.title} onChange={e => set({ title: e.target.value })}
-              onKeyDown={e => { if (e.key === 'Enter') submit() }} />
+            <div className="relative">
+              <Input autoFocus value={rawTitle} onChange={handleTitleChange}
+                onBlur={handleTitleBlur}
+                onKeyDown={e => { if (e.key === 'Enter') submit() }}
+                className={speechSupported ? 'pr-9' : undefined} />
+              {speechSupported && (
+                <Button type="button" variant="ghost" size="icon-sm"
+                  className={`absolute right-0.5 top-0.5 ${isListening ? 'text-primary' : 'text-muted-foreground'}`}
+                  aria-label={isListening ? t.voiceInputStopAria : t.voiceInputAria}
+                  onClick={() => (isListening ? stopListening() : startListening())}>
+                  <Mic className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <Label>{t.eventMultiDay}</Label>
@@ -90,9 +220,20 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate }
           ) : (
             <div className="flex flex-col gap-1.5">
               <Label>{t.eventDate}</Label>
-              <Input type="date" value={form.date} onChange={e => set({ date: e.target.value })} />
+              <Input type="date" value={form.date} onChange={handleDateChange} />
             </div>
           )}
+          <div className="flex gap-2">
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Label>{form.multiDay ? t.eventStartTimeFirstDay : t.eventStartTime}</Label>
+              <Input type="time" value={form.startTime} onChange={handleStartTimeChange} />
+            </div>
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Label>{form.multiDay ? t.eventEndTimeLastDay : t.eventEndTime}</Label>
+              <Input type="time" value={form.endTime} min={form.multiDay ? undefined : form.startTime}
+                onChange={handleEndTimeChange} />
+            </div>
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label>{t.eventColor}</Label>
             <ClassColorDot color={form.color} onChange={c => set({ color: c })} />
@@ -101,6 +242,15 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate }
             <Label>{t.eventNote}</Label>
             <Input value={form.note} placeholder={t.eventNotePlaceholder} onChange={e => set({ note: e.target.value })} />
           </div>
+          {googleCalendarEnabled && (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>{t.eventSyncToGoogle}</Label>
+                <p className="text-xs text-muted-foreground">{t.eventSyncToGoogleDesc}</p>
+              </div>
+              <Switch checked={form.syncToGoogle} onCheckedChange={v => set({ syncToGoogle: v })} />
+            </div>
+          )}
         </div>
         <DialogFooter>
           {event && (

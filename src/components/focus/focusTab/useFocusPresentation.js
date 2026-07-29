@@ -15,7 +15,8 @@ export function useFocusPresentation() {
   const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
   const focusAlertMode = useStore(s => s.settings?.focusAlertMode ?? 'none')
 
-  const [resetSignal, setResetSignal] = useState(null)
+  const resetSignal = useStore(s => s.resetSignal)
+  const setResetSignal = useStore(s => s.setResetSignal)
   const [smoothGrowth, setSmoothGrowth] = useState(0)
   const [growingFace, setGrowingFace] = useState(() => Math.floor(Math.random() * 5))
   const prevPhaseRef = useRef('focus')

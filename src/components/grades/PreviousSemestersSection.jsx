@@ -100,11 +100,17 @@ export function PreviousSemestersSection() {
                 type="number"
                 min="0"
                 max="10"
-                value={courseAvg.numSemesters ?? 0}
+                value={courseAvg.numSemesters}
                 onChange={(e) =>
                   setCourseAvg({
                     ...courseAvg,
-                    numSemesters: parseInt(e.target.value, 10) || 0,
+                    numSemesters: e.target.value,
+                  })
+                }
+                onBlur={() =>
+                  setCourseAvg({
+                    ...courseAvg,
+                    numSemesters: Math.max(0, parseInt(courseAvg.numSemesters, 10) || 0),
                   })
                 }
                 className="w-20 h-7 text-center text-sm"

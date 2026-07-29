@@ -1,31 +1,21 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAuth, signInAnonymously } from 'firebase/auth'
+import {
+  loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
+  aadForPersonalSlice, WHOLE_STATE,
+} from './crypto'
+import { CONFIG_KEY } from './firebaseConfig'
 
-const CONFIG_KEY = 'f4rsantos.github.io/organizer:firebase'
+export { loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig } from './firebaseConfig'
+
 const DOC_PATH = { collection: 'organizer', id: 'state' }
+const PERSONAL_AAD = aadForPersonalSlice(WHOLE_STATE)
 const COLLAB_RULES_TAG_KEY = `${CONFIG_KEY}:collab-rules-tag`
 const ANON_AUTH_FAIL_KEY = `${CONFIG_KEY}:anon-auth-fail`
 const ANON_AUTH_STATUS = new Map()
 const ANON_AUTH_PENDING = new Map()
 const ANON_AUTH_FAIL_COOLDOWN_MS = 10 * 60 * 1000
-
-export function loadFirebaseConfig() {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-export function saveFirebaseConfig(config) {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config))
-}
-
-export function clearFirebaseConfig() {
-  localStorage.removeItem(CONFIG_KEY)
-}
 
 export function loadCollabRulesTag() {
   try {
@@ -176,17 +166,31 @@ async function runSyncOperation(app, operation) {
   }
 }
 
-export async function pushToFirebase(config, state) {
+async function writeState(config, state, keyString) {
   const app = getApp(config)
   const db = getFirestore(app)
-  await runSyncOperation(app, () => setDoc(stateDoc(db), state))
+  const payload = keyString ? await encryptForSlot(state, keyString, PERSONAL_AAD) : state
+  await runSyncOperation(app, () => setDoc(stateDoc(db), payload))
+}
+
+export async function pushToFirebase(config, state) {
+  await writeState(config, state, assertKeyExpected())
+}
+
+export async function pushEncryptedToFirebase(config, state, keyString) {
+  await writeState(config, state, keyString)
 }
 
 export async function pullFromFirebase(config) {
   const app = getApp(config)
   const db = getFirestore(app)
   const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
-  return snap.exists() ? snap.data() : null
+  if (!snap.exists()) return null
+  const data = snap.data()
+  if (!isEnvelope(data)) return data
+  const keyString = loadKeyString()
+  if (!keyString) throw new Error('encryption-key-required')
+  return decryptForSlot(data, keyString, PERSONAL_AAD)
 }
 
 export async function validateFirebaseConfig(config) {

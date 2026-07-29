@@ -1,0 +1,356 @@
+@import './tour-extra.css';
+
+.tour-scene * {
+    animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-scene *,
+    .tour-scene *::before,
+    .tour-scene *::after {
+        animation: none !important;
+    }
+    .tour-cal-day,
+    .tour-focus-phase-run,
+    .tour-focus-btns-run,
+    .tour-set-pane-0,
+    .tour-task-tick,
+    .tour-share-file {
+        opacity: 1 !important;
+    }
+    .tour-cal-week,
+    .tour-cal-month,
+    .tour-cal-year,
+    .tour-focus-phase-ready,
+    .tour-focus-phase-break,
+    .tour-focus-btns-ready,
+    .tour-focus-btns-break,
+    .tour-set-pane-1,
+    .tour-set-pane-2 {
+        opacity: 0 !important;
+    }
+    .tour-focus-arc {
+        stroke: var(--primary);
+        stroke-dashoffset: 66;
+    }
+    .tour-share-bar {
+        transform: scaleX(1);
+    }
+    .tour-task-box {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+    .tour-task-count-0::after {
+        content: '2/2';
+    }
+    .tour-task-count-1::after {
+        content: '1/1';
+    }
+}
+
+/* --- Kanban: card glides across three columns --- */
+.tour-kanban-card {
+    animation: tour-kanban-slide 6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: transform;
+}
+@keyframes tour-kanban-slide {
+    0%,
+    14% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    22% {
+        transform: translate3d(0, -2px, 0) scale(1.04);
+    }
+    44% {
+        transform: translate3d(calc(100% + 0.5rem), -2px, 0) scale(1.04);
+    }
+    52%,
+    62% {
+        transform: translate3d(calc(100% + 0.5rem), 0, 0) scale(1);
+    }
+    70% {
+        transform: translate3d(calc(100% + 0.5rem), -2px, 0) scale(1.04);
+    }
+    88% {
+        transform: translate3d(calc(200% + 1rem), -2px, 0) scale(1.04);
+    }
+    94%,
+    100% {
+        transform: translate3d(calc(200% + 1rem), 0, 0) scale(1);
+    }
+}
+
+.tour-kanban-progress {
+    transform-origin: left center;
+    animation: tour-kanban-fill 6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+@keyframes tour-kanban-fill {
+    0%,
+    44% {
+        transform: scaleX(0.25);
+    }
+    62%,
+    88% {
+        transform: scaleX(0.6);
+    }
+    96%,
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+/* --- Calendar: four views cycle, indicator slides --- */
+.tour-cal-indicator {
+    animation: tour-cal-indicator 8s steps(1) infinite;
+    will-change: transform;
+}
+@keyframes tour-cal-indicator {
+    0%,
+    24% {
+        transform: translate3d(0, 0, 0);
+    }
+    25%,
+    49% {
+        transform: translate3d(100%, 0, 0);
+    }
+    50%,
+    74% {
+        transform: translate3d(200%, 0, 0);
+    }
+    75%,
+    100% {
+        transform: translate3d(300%, 0, 0);
+    }
+}
+
+.tour-cal-pane {
+    opacity: 0;
+    will-change: opacity;
+}
+.tour-cal-day {
+    animation: tour-cal-show-1 8s ease-in-out infinite;
+}
+.tour-cal-week {
+    animation: tour-cal-show-2 8s ease-in-out infinite;
+}
+.tour-cal-month {
+    animation: tour-cal-show-3 8s ease-in-out infinite;
+}
+.tour-cal-year {
+    animation: tour-cal-show-4 8s ease-in-out infinite;
+}
+@keyframes tour-cal-show-1 {
+    0%,
+    22% {
+        opacity: 1;
+    }
+    26%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-cal-show-2 {
+    0%,
+    23% {
+        opacity: 0;
+    }
+    27%,
+    47% {
+        opacity: 1;
+    }
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-cal-show-3 {
+    0%,
+    48% {
+        opacity: 0;
+    }
+    52%,
+    72% {
+        opacity: 1;
+    }
+    76%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-cal-show-4 {
+    0%,
+    73% {
+        opacity: 0;
+    }
+    77%,
+    97% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* --- Focus: ring fills blue, breaks amber, resets --- */
+.tour-focus-arc {
+    animation: tour-focus-arc 8s linear infinite;
+    will-change: stroke-dashoffset;
+}
+@keyframes tour-focus-arc {
+    0% {
+        stroke-dashoffset: 220;
+        stroke: var(--border);
+    }
+    8% {
+        stroke-dashoffset: 220;
+        stroke: var(--primary);
+    }
+    45% {
+        stroke-dashoffset: 24;
+        stroke: var(--primary);
+    }
+    52% {
+        stroke-dashoffset: 220;
+        stroke: #f59e0b;
+    }
+    88% {
+        stroke-dashoffset: 24;
+        stroke: #f59e0b;
+    }
+    92%,
+    100% {
+        stroke-dashoffset: 220;
+        stroke: var(--border);
+    }
+}
+
+.tour-focus-clock {
+    animation: tour-focus-clock 8s steps(1) infinite;
+}
+.tour-focus-clock::after {
+    content: '25:00';
+    animation: tour-focus-digits 8s steps(1) infinite;
+}
+@keyframes tour-focus-digits {
+    0%,
+    7% {
+        content: '25:00';
+    }
+    8%,
+    20% {
+        content: '22:14';
+    }
+    21%,
+    33% {
+        content: '14:02';
+    }
+    34%,
+    45% {
+        content: '00:04';
+    }
+    46%,
+    51% {
+        content: '05:00';
+    }
+    52%,
+    64% {
+        content: '03:40';
+    }
+    65%,
+    77% {
+        content: '01:55';
+    }
+    78%,
+    88% {
+        content: '00:03';
+    }
+    89%,
+    100% {
+        content: '25:00';
+    }
+}
+@keyframes tour-focus-clock {
+    0%,
+    8% {
+        color: var(--muted-foreground);
+    }
+    9%,
+    45% {
+        color: var(--foreground);
+    }
+    52%,
+    88% {
+        color: #f59e0b;
+    }
+    89%,
+    100% {
+        color: var(--muted-foreground);
+    }
+}
+
+.tour-focus-phase {
+    opacity: 0;
+    will-change: opacity;
+}
+.tour-focus-phase-ready {
+    animation: tour-focus-ready 8s steps(1) infinite;
+}
+.tour-focus-phase-run {
+    animation: tour-focus-run 8s steps(1) infinite;
+}
+.tour-focus-phase-break {
+    animation: tour-focus-break 8s steps(1) infinite;
+}
+@keyframes tour-focus-ready {
+    0%,
+    7% {
+        opacity: 1;
+    }
+    8%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-focus-run {
+    0%,
+    7% {
+        opacity: 0;
+    }
+    8%,
+    45% {
+        opacity: 1;
+    }
+    46%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-focus-break {
+    0%,
+    45% {
+        opacity: 0;
+    }
+    46%,
+    88% {
+        opacity: 1;
+    }
+    89%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.tour-focus-btns {
+    opacity: 0;
+    will-change: opacity;
+}
+.tour-focus-btns-ready {
+    animation: tour-focus-ready 8s steps(1) infinite;
+}
+.tour-focus-btns-run {
+    animation: tour-focus-run 8s steps(1) infinite;
+}
+.tour-focus-btns-break {
+    animation: tour-focus-break 8s steps(1) infinite;
+}

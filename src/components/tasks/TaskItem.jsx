@@ -24,6 +24,7 @@ export function TaskItem({ task }) {
   const [optimisticSharedInKanban, setOptimisticSharedInKanban] = useState(false)
   const menuRef = useRef(null)
   const toggleTask = useStore(s => s.toggleTask)
+  const toggleRecurringOccurrence = useStore(s => s.toggleRecurringOccurrence)
   const deleteTask = useStore(s => s.deleteTask)
   const updateTask = useStore(s => s.updateTask)
   const addKanbanCard = useStore(s => s.addKanbanCard)
@@ -150,6 +151,10 @@ export function TaskItem({ task }) {
       await toggleSharedTask({ teamId: sharedTeamId, sharedTaskId })
       return
     }
+    if (task.isRecurringOccurrence) {
+      toggleRecurringOccurrence(task.templateId, task.occurrenceDate)
+      return
+    }
     toggleTask(task.id)
   }
 
@@ -158,7 +163,7 @@ export function TaskItem({ task }) {
       await updateSharedTask({ teamId: sharedTeamId, sharedTaskId, patch: data })
       return
     }
-    updateTask(task.id, data)
+    updateTask(task.isRecurringOccurrence ? task.templateId : task.id, data)
   }
 
   const handleDelete = async () => {
@@ -166,7 +171,7 @@ export function TaskItem({ task }) {
       await deleteSharedTask({ teamId: sharedTeamId, sharedTaskId })
       return
     }
-    deleteTask(task.id)
+    deleteTask(task.isRecurringOccurrence ? task.templateId : task.id)
   }
 
   const handleShare = async () => {

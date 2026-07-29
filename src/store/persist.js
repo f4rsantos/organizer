@@ -1,5 +1,9 @@
 import { getPomodoroTimestamp, isPomodoroAggregate } from '../components/focus/pomodoro/utils'
 import { migrateState, normalizeState } from './migrations'
+import {
+  isEnvelope, decryptForSlot, encryptForSlot, aadForLocalSlice, WHOLE_STATE,
+  loadKeyString, wasEncryptionEverEnabled,
+} from '../lib/crypto'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const LEGACY_FULL_PCT_UNITS = 2.5
@@ -38,17 +42,25 @@ function buildLightweightSnapshot(state) {
   })
 }
 
-function saveStateWithLimit(state) {
+// Measured on plaintext: base64 inflates by ~33% and would trip the cap early.
+function selectSnapshot(state) {
   const fullJson = JSON.stringify(state)
-  const fullBytes = fullJson.length * 2
-
-  if (fullBytes <= LOCAL_CACHE_LIMIT_BYTES) {
-    localStorage.setItem(STORAGE_KEY, fullJson)
-    return
-  }
-
+  if (fullJson.length * 2 <= LOCAL_CACHE_LIMIT_BYTES) return { value: state, json: fullJson }
   const lightweight = buildLightweightSnapshot(state)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight))
+  return { value: lightweight, json: JSON.stringify(lightweight) }
+}
+
+function saveStateWithLimit(state) {
+  const { json } = selectSnapshot(state)
+  localStorage.setItem(STORAGE_KEY, json)
+}
+
+const LOCAL_AAD = aadForLocalSlice(WHOLE_STATE)
+
+async function saveStateEncrypted(state, keyString) {
+  const { value } = selectSnapshot(state)
+  const envelope = await encryptForSlot(value, keyString, LOCAL_AAD)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope))
 }
 
 function startOfWeekLocal(ts, weekStartsOn = 0) {
@@ -124,39 +136,84 @@ function compactPomodorosForStorage(state) {
   return active
 }
 
-export function loadState() {
+function addLoadWarning(warning) {
+  if (!loadWarnings.includes(warning)) loadWarnings = [...loadWarnings, warning]
+}
+
+function finalizeLoadedState(data) {
+  const { state, status } = migrateState(data)
+  if (status === 'invalid') return null
+  if (status === 'newer') addLoadWarning('newer-version')
+  return normalizeState(state)
+}
+
+function readStoredValue() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const { state, status } = migrateState(JSON.parse(raw))
-    if (status === 'invalid') return null
-    if (status === 'newer') loadWarnings = ['newer-version']
-    return normalizeState(state)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
+export function loadState() {
+  const parsed = readStoredValue()
+  if (!parsed || isEnvelope(parsed)) return null
+  try {
+    return finalizeLoadedState(parsed)
+  } catch {
+    return null
+  }
+}
+
+export async function loadStateAsync() {
+  const parsed = readStoredValue()
+  if (!parsed) return null
+  try {
+    if (!isEnvelope(parsed)) return finalizeLoadedState(parsed)
+    const keyString = loadKeyString()
+    if (!keyString) {
+      addLoadWarning('encryption-key-required')
+      return null
+    }
+    return finalizeLoadedState(await decryptForSlot(parsed, keyString, LOCAL_AAD))
+  } catch {
+    addLoadWarning('encryption-key-required')
+    return null
+  }
+}
+
+function compactForStorage(state) {
+  const { collabRuntime: _runtime, ...persistableState } = state
+  return {
+    ...persistableState,
+    pomodoros: compactPomodorosForStorage(persistableState),
+  }
+}
+
+// Writes stay fire-and-forget so store mutations never await the crypto layer.
+// A failed encryption must not fall back to a plaintext write.
+function persistSnapshot(state) {
+  const compacted = compactForStorage(state)
+  const keyString = loadKeyString()
+  if (!keyString) {
+    if (wasEncryptionEverEnabled()) return
+    saveStateWithLimit(compacted)
+    return
+  }
+  void saveStateEncrypted(compacted, keyString).catch(() => {})
+}
+
 export function saveState(state) {
   try {
-    const { collabRuntime: _runtime, ...persistableState } = state
-    const compacted = {
-      ...persistableState,
-      pomodoros: compactPomodorosForStorage(persistableState),
-    }
-    saveStateWithLimit(compacted)
+    persistSnapshot(state)
   } catch {
   }
 }
 
 export function forceSaveState(state) {
   try {
-    const { collabRuntime: _runtime, ...persistableState } = state
-    const compacted = {
-      ...persistableState,
-      pomodoros: compactPomodorosForStorage(persistableState),
-    }
-    saveStateWithLimit(compacted)
+    persistSnapshot(state)
   } catch {
   }
 }
@@ -183,12 +240,18 @@ export function exportState(state) {
   URL.revokeObjectURL(url)
 }
 
-export function importState(file) {
+export function importState(file, keyString) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = e => {
+    reader.onload = async e => {
       try {
-        const data = JSON.parse(e.target.result)
+        const parsed = JSON.parse(e.target.result)
+        let data = parsed
+        if (isEnvelope(parsed)) {
+          const key = keyString ?? loadKeyString()
+          if (!key) throw new Error('encryption-key-required')
+          data = await decryptForSlot(parsed, key, LOCAL_AAD)
+        }
         const { state, status } = migrateState(data)
         if (status === 'invalid') throw new Error('Invalid backup file')
         if (status === 'newer') throw new Error('Backup was created by a newer app version')

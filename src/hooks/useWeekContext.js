@@ -19,6 +19,7 @@ export function useWeekContext() {
     currentWeek: ctx.currentWeek,
     weekCount: ctx.weekCount,
     weekDateRange: ctx.weekDateRange,
+    weekDateBounds: ctx.weekDateBounds,
     dateToWeek: ctx.dateToWeek,
   }
 }

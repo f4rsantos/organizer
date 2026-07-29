@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import QRCode from 'qrcode'
 import { Button } from '@/components/ui/button'
 import { Link, QrCode } from 'lucide-react'
 import { useStore } from '@/store/useStore'
@@ -35,6 +34,7 @@ export function SharePanel() {
     if (url.length > 4000) {
       setQrDataUrl('toolarge')
     } else {
+      const { default: QRCode } = await import('qrcode')
       const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1 })
       setQrDataUrl(dataUrl)
     }

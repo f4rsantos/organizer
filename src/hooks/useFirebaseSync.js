@@ -16,6 +16,7 @@ export function useFirebaseSync() {
     pushTimeout: null,
     isPulling: false,
     remoteNewer: false,
+    lastLocalUpdateAt: 0,
   })
   const [status, setStatus] = useState('idle')
 
@@ -24,9 +25,18 @@ export function useFirebaseSync() {
     const config = loadFirebaseConfig()
     if (!config) return
     refs.current.isPulling = true
+    const pullStartTime = Date.now()
     try {
       setStatus('syncing')
       const remote = await pullFromFirebase(config)
+      
+      if (refs.current.lastLocalUpdateAt > pullStartTime) {
+        // Local state was modified while we were waiting for remote!
+        // Drop the pulled state to prevent overwriting local changes.
+        setStatus('ok')
+        return
+      }
+
       if (remote?.version) {
         const { state, status: migration } = migrateState(remote)
         if (migration === 'newer') {
@@ -38,8 +48,8 @@ export function useFirebaseSync() {
         if (migration !== 'invalid') importData(state)
       }
       setStatus('ok')
-    } catch {
-      setStatus('error')
+    } catch (err) {
+      setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
     } finally {
       refs.current.isPulling = false
     }
@@ -64,6 +74,7 @@ export function useFirebaseSync() {
 
   useEffect(() => {
     return useStore.subscribe(() => {
+      refs.current.lastLocalUpdateAt = Date.now()
       clearTimeout(refs.current.pushTimeout)
       refs.current.pushTimeout = setTimeout(push, 1000)
     })

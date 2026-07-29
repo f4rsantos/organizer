@@ -13,6 +13,8 @@ import { getAuth, signInAnonymously } from 'firebase/auth'
 import { nanoid } from '@/lib/ids'
 import { createInviteToken, hashToken } from './token'
 import { createTeamState, isMember } from './schema'
+import { encryptTeamState, decryptTeamState, decryptTeamDoc } from './teamCrypto'
+import { isEnvelope } from '../crypto'
 
 const appCache = new Map()
 
@@ -42,7 +44,7 @@ function teamRef(db, teamId) {
   return doc(db, 'teams', teamId)
 }
 
-export async function createTeam({ config, hostUserId, name, expiresAt }) {
+export async function createTeam({ config, hostUserId, name, expiresAt, teamKey }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
   const teamId = nanoid()
@@ -60,7 +62,8 @@ export async function createTeam({ config, hostUserId, name, expiresAt }) {
       },
     },
     invite: null,
-    state: createTeamState(),
+    state: await encryptTeamState(createTeamState(), teamKey, teamId),
+    encrypted: Boolean(teamKey),
     updatedAt: Date.now(),
     serverUpdatedAt: serverTimestamp(),
   })
@@ -152,22 +155,27 @@ export async function leaveTeam({ config, teamId, userId }) {
   })
 }
 
-export function subscribeTeam({ config, teamId, onData, onError }) {
+export function subscribeTeam({ config, teamId, teamKey, onData, onError }) {
   const { auth, db } = getOrCreateApp(config)
   ensureSignedIn(auth).catch(onError)
   return onSnapshot(teamRef(db, teamId), snap => {
-    onData(snap.exists() ? snap.data() : null)
+    if (!snap.exists()) {
+      onData(null)
+      return
+    }
+    decryptTeamDoc(snap.data(), teamKey).then(onData, onError)
   }, onError)
 }
 
-export async function fetchTeam({ config, teamId }) {
+export async function fetchTeam({ config, teamId, teamKey }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
   const snap = await getDoc(teamRef(db, teamId))
-  return snap.exists() ? snap.data() : null
+  if (!snap.exists()) return null
+  return decryptTeamDoc(snap.data(), teamKey)
 }
 
-export async function updateTeamState({ config, teamId, userId, updater }) {
+export async function updateTeamState({ config, teamId, userId, teamKey, updater }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
@@ -176,9 +184,21 @@ export async function updateTeamState({ config, teamId, userId, updater }) {
     if (!snap.exists()) throw new Error('Team not found')
     const team = snap.data()
     if (!isMember(team, userId)) throw new Error('Not a member')
-    const nextState = updater(team.state ?? createTeamState(), team)
+
+    const current = await decryptTeamState(team.state, teamKey, teamId)
+    // Writing on an unreadable payload would clobber the team with a fresh
+    // state, so a key mismatch has to abort the whole transaction.
+    if (current === null && team.state) throw new Error('team-key-required')
+
+    // The document decides its own format: encrypting a team that other members
+    // joined while it was plaintext would lock every one of them out.
+    const teamIsEncrypted = isEnvelope(team.state)
+    const writeKey = teamIsEncrypted ? teamKey : null
+
+    const nextState = updater(current ?? createTeamState(), team)
     tx.update(ref, {
-      state: nextState,
+      state: await encryptTeamState(nextState, writeKey, teamId),
+      encrypted: teamIsEncrypted,
       updatedAt: Date.now(),
       serverUpdatedAt: serverTimestamp(),
     })
