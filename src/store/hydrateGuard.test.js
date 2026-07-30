@@ -114,6 +114,17 @@ describe('edits made before hydration are never discarded', () => {
     expect(storage.getItem(STORAGE_KEY)).toBe(null)
   })
 
+  it('does not let a second hydration revert an edit made after the first', async () => {
+    const { useStore } = await import('./useStore.js')
+    const snapshot = () => ({ version: 7, tasks: [{ id: 'a', title: 'from disk' }], notes: [], settings: {} })
+
+    useStore.getState().hydrateState(snapshot())
+    useStore.getState().updateTask('a', { title: 'edited after hydrate' })
+    useStore.getState().hydrateState(snapshot())
+
+    expect(useStore.getState().tasks[0].title).toBe('edited after hydrate')
+  })
+
   it('flushes a pre-hydration edit to disk once hydration lands', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().addTask({ title: 'typed before hydrate' })
