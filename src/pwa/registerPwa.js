@@ -32,6 +32,7 @@ export function registerPwa() {
         registration.update().catch(() => {})
       }, 60 * 60 * 1000)
     } catch {
+      // app works without PWA features
     }
   }
 

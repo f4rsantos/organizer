@@ -54,6 +54,7 @@ function showBrowserNotification({ phase, lang }) {
       renotify: true,
     })
   } catch {
+    // permission can be revoked mid-flight
   }
 }
 
@@ -92,6 +93,7 @@ export function triggerTaskDueNotification({ lang, title, body }) {
       renotify: false,
     })
   } catch {
+    // permission can be revoked mid-flight
   }
 }
 
@@ -166,6 +168,7 @@ export async function clearScheduledTaskReminders(tags = null) {
       notification.close()
     })
   } catch {
+    // worker may not be ready
   }
 }
 
@@ -189,6 +192,7 @@ export async function reconcileScheduledTaskReminders({ lang, reminders, maxRemi
       if (!desiredTags.has(tag)) notification.close()
     })
   } catch {
+    // worker may not be ready
   }
 
   let scheduledAny = false

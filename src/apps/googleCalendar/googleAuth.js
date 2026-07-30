@@ -22,6 +22,7 @@ export function saveGoogleClientId(clientId) {
   try {
     localStorage.setItem(CLIENT_ID_KEY, clientId.trim())
   } catch {
+    // localStorage unavailable; id won't persist
   }
 }
 
@@ -29,6 +30,7 @@ export function clearGoogleClientId() {
   try {
     localStorage.removeItem(CLIENT_ID_KEY)
   } catch {
+    // localStorage unavailable; nothing to clean up
   }
   accessToken = null
   tokenExpiresAt = 0
@@ -109,6 +111,8 @@ export function disconnectGoogle() {
   clearAccessToken()
   clearGoogleClientId()
   if (token && window.google?.accounts?.oauth2) {
-    try { window.google.accounts.oauth2.revoke(token, () => {}) } catch {}
+    try { window.google.accounts.oauth2.revoke(token, () => {}) } catch {
+      // token is cleared locally either way
+    }
   }
 }

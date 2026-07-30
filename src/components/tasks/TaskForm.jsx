@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { differenceInCalendarWeeks, parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -117,9 +117,11 @@ export function TaskForm({
   }
 
   const [localInterval, setLocalInterval] = useState('')
-  useEffect(() => {
-    if (form.recurrence) setLocalInterval(String(form.recurrence.interval))
-  }, [form.recurrence?.interval])
+  const [prevInterval, setPrevInterval] = useState(form.recurrence?.interval)
+  if (form.recurrence && form.recurrence.interval !== prevInterval) {
+    setLocalInterval(String(form.recurrence.interval))
+    setPrevInterval(form.recurrence.interval)
+  }
 
   const handleIntervalBlur = () => {
     let val = Number(localInterval)

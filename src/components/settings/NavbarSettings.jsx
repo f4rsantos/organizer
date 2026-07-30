@@ -99,8 +99,6 @@ export function NavbarSettings() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const navbar = useStore(s => s.settings?.navbar) ?? { order: DEFAULT_ORDER, hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
-  const notesEnabled = useStore(s => s.settings?.apps?.notes === true)
-  const quickActionEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
   const state = useStore(s => s)
   const updateSettings = useStore(s => s.updateSettings)
 
@@ -159,15 +157,6 @@ export function NavbarSettings() {
     { value: 'bottom', label: t.navPosBottom },
     { value: 'side', label: t.navPosSide },
   ]
-  const addActionOptions = [
-    { value: 'task', label: t.addTask },
-    { value: 'kanban', label: t.addCard },
-    { value: 'event', label: t.addEvent },
-    ...(notesEnabled ? [{ value: 'note', label: t.notesNew }] : []),
-    ...(quickActionEnabled ? [{ value: 'quickaction', label: t.quickAction }] : []),
-    { value: 'picker', label: t.navAddPicker },
-  ]
-
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">

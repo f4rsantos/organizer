@@ -53,7 +53,9 @@ async function pushLocalEvent(event) {
 
 export async function pushEventDeletion(googleEventId) {
   if (!googleEventId) return
-  try { await deleteGoogleEvent(googleEventId) } catch {}
+  try { await deleteGoogleEvent(googleEventId) } catch {
+    // may already be deleted in Google Calendar
+  }
 }
 
 export function useGoogleCalendarSync() {

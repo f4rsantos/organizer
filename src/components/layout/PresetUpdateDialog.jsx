@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { useStrings } from '@/lib/strings'
 import { checkPresetUpdateAvailable } from '@/lib/presetsFirebase'
 import { fetchPreset, updatePreset } from '@/lib/presets'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,6 @@ export function PresetUpdateDialog() {
   const semesters = useStore(s => s.semesters)
   const presetUpdatedAt = useStore(s => s.presetUpdatedAt ?? {})
   const lang = useStore(s => s.lang ?? 'pt')
-  const t = useStrings(lang)
 
   const addClass = useStore(s => s.addClass)
   const addHoliday = useStore(s => s.addHoliday)
@@ -46,6 +44,7 @@ export function PresetUpdateDialog() {
       updatePreset(activeSemesterId, data, { addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, updateSemester, getClasses, getState })
       setAvailable(false)
     } catch {
+      // leave banner up so user can retry
     } finally {
       setUpdating(false)
     }

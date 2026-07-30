@@ -1,7 +1,7 @@
 const ALGO = 'AES-GCM'
 const KEY_BYTES = 32
 
-export const ALG_ARGON2ID = 'argon2id'
+const ALG_ARGON2ID ='argon2id'
 
 export const KDF_DEFAULT = Object.freeze({
   alg: ALG_ARGON2ID,

@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Copy, Flame } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
 import {
   fmtDuration,
   getMonthlyTrend,
@@ -71,63 +72,72 @@ function WeeklyFocusInsights({ history, periodEntries, curFocus, period, lang, t
   }, [])
 
   const isPt = lang === 'pt'
-  const now = Date.now()
-  const dayLabels = t.pomodoroInsightsDayLabels ?? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  const dayLabels = useMemo(
+    () => t.pomodoroInsightsDayLabels ?? ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    [t.pomodoroInsightsDayLabels],
+  )
 
-  const byWeek = new Map()
-  timelineHistory.forEach(p => {
-    const ts = getPomodoroTimestamp(p)
-    const w = startOfWeekLocal(ts > 0 ? ts : now)
-    const prev = byWeek.get(w) ?? 0
-    byWeek.set(w, prev + getPomodoroFocusSecs(p))
-  })
+  // Read once at mount so "this week" can't shift while the modal is open.
+  const [now] = useState(() => Date.now())
 
-  if (timelineHistory.length === 0 && aggregateFocus > 0) {
-    const w = startOfWeekLocal(now)
-    byWeek.set(w, (byWeek.get(w) ?? 0) + aggregateFocus)
-  }
+  const { chartData, avgWeekDaySecs, weeklyRows } = useMemo(() => {
+    const byWeek = new Map()
+    timelineHistory.forEach(p => {
+      const ts = getPomodoroTimestamp(p)
+      const w = startOfWeekLocal(ts > 0 ? ts : now)
+      const prev = byWeek.get(w) ?? 0
+      byWeek.set(w, prev + getPomodoroFocusSecs(p))
+    })
 
-  const sortedWeeks = [...byWeek.entries()]
-    .filter(([, total]) => total > 0)
-    .sort((a, b) => b[0] - a[0])
-
-  const chartWeekStart = sortedWeeks[0]?.[0] ?? startOfWeekLocal(now)
-
-  const weekDaily = Array.from({ length: 7 }, (_, i) => ({
-    dayTs: chartWeekStart + i * 86400000,
-    secs: 0,
-  }))
-
-  timelineHistory.forEach(p => {
-    const ts = getPomodoroTimestamp(p)
-    const dayTs = startOfDay(ts > 0 ? ts : now)
-    const idx = Math.round((dayTs - chartWeekStart) / 86400000)
-    if (idx >= 0 && idx < 7) weekDaily[idx].secs += getPomodoroFocusSecs(p)
-  })
-
-  if (timelineHistory.length === 0 && aggregateFocus > 0) {
-    const dayIdx = Math.round((startOfDay(now) - chartWeekStart) / 86400000)
-    if (dayIdx >= 0 && dayIdx < 7) {
-      weekDaily[dayIdx].secs += aggregateFocus
+    if (timelineHistory.length === 0 && aggregateFocus > 0) {
+      const w = startOfWeekLocal(now)
+      byWeek.set(w, (byWeek.get(w) ?? 0) + aggregateFocus)
     }
-  }
 
-  const chartData = weekDaily.map((d, idx) => ({
-    day: dayLabels[idx],
-    secs: d.secs,
-    formatted: fmtDuration(d.secs)
-  }))
+    const sortedWeeks = [...byWeek.entries()]
+      .filter(([, total]) => total > 0)
+      .sort((a, b) => b[0] - a[0])
 
-  const thisWeekTotal = weekDaily.reduce((s, d) => s + d.secs, 0)
-  const avgWeekDaySecs = Math.round(thisWeekTotal / 7)
+    const chartWeekStart = sortedWeeks[0]?.[0] ?? startOfWeekLocal(now)
 
-  const weeklyRows = sortedWeeks
-    .slice(0, 6)
-    .map(([weekTs, totalSecs]) => ({
-      weekTs,
-      totalSecs,
-      avgDaySecs: Math.round(totalSecs / 7),
+    const weekDaily = Array.from({ length: 7 }, (_, i) => ({
+      dayTs: chartWeekStart + i * 86400000,
+      secs: 0,
     }))
+
+    timelineHistory.forEach(p => {
+      const ts = getPomodoroTimestamp(p)
+      const dayTs = startOfDay(ts > 0 ? ts : now)
+      const idx = Math.round((dayTs - chartWeekStart) / 86400000)
+      if (idx >= 0 && idx < 7) weekDaily[idx].secs += getPomodoroFocusSecs(p)
+    })
+
+    if (timelineHistory.length === 0 && aggregateFocus > 0) {
+      const dayIdx = Math.round((startOfDay(now) - chartWeekStart) / 86400000)
+      if (dayIdx >= 0 && dayIdx < 7) {
+        weekDaily[dayIdx].secs += aggregateFocus
+      }
+    }
+
+    const chartData = weekDaily.map((d, idx) => ({
+      day: dayLabels[idx],
+      secs: d.secs,
+      formatted: fmtDuration(d.secs)
+    }))
+
+    const thisWeekTotal = weekDaily.reduce((s, d) => s + d.secs, 0)
+    const avgWeekDaySecs = Math.round(thisWeekTotal / 7)
+
+    const weeklyRows = sortedWeeks
+      .slice(0, 6)
+      .map(([weekTs, totalSecs]) => ({
+        weekTs,
+        totalSecs,
+        avgDaySecs: Math.round(totalSecs / 7),
+      }))
+
+    return { chartData, avgWeekDaySecs, weeklyRows }
+  }, [timelineHistory, aggregateFocus, dayLabels, now])
 
   const periodDays = daySpanForPeriod(period, periodEntries)
   const avgPeriodDaySecs = Math.round(curFocus / periodDays)
@@ -315,7 +325,7 @@ function MonthlyTrendChart({ pomodoros, lang, t }) {
   )
 }
 
-function buildSummaryText({ pomodoros, period, t, curCompletedCount, curAbandonedCount, curFocus, allCompletedCount, allAbandonedCount, allFocus }) {
+function buildSummaryText({ pomodoros, t, curCompletedCount, curAbandonedCount, curFocus, allCompletedCount, allAbandonedCount, allFocus }) {
   const { current, best } = getPomodoroStreaks(pomodoros)
   const lines = [
     t.pomodoroStatsTitle,
@@ -327,7 +337,7 @@ function buildSummaryText({ pomodoros, period, t, curCompletedCount, curAbandone
 }
 
 export function PomodoroStatsModal({ pomodoros, period, t, onClose, lang = 'en', trackStats = false }) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const all = pomodoros
   const cur = getPeriodPomodoros(pomodoros, period)
   const prev = getPrevPeriodPomodoros(pomodoros, period)
@@ -350,14 +360,12 @@ export function PomodoroStatsModal({ pomodoros, period, t, onClose, lang = 'en',
   const completedDelta = prev.length > 0 ? delta(curCompletedCount, prevCompletedCount) : null
   const focusDelta = (prev.length > 0 && prevFocus > 0) ? delta(Math.round(curFocus / 60), Math.round(prevFocus / 60)) : null
 
-  const handleCopySummary = async () => {
+  const handleCopySummary = () => {
     const text = buildSummaryText({
-      pomodoros: all, period, t, curCompletedCount, curAbandonedCount, curFocus,
+      pomodoros: all, t, curCompletedCount, curAbandonedCount, curFocus,
       allCompletedCount, allAbandonedCount, allFocus,
     })
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    return copy(text)
   }
 
   return (

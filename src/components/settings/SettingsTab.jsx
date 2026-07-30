@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, Link, QrCode } from 'lucide-react'
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
+import { Download, Upload, Link, QrCode, Info } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import {
@@ -22,6 +23,7 @@ import { KanbanSettings } from './KanbanSettings'
 import { FocusSettings } from './FocusSettings'
 import { HolidaysForm } from './HolidaysForm'
 import { PresetOverlay } from '@/components/presets/PresetOverlay'
+import { GuidesOverlay } from '@/components/guides/GuidesOverlay'
 import { exportState, importState } from '@/store/persist'
 import { encodeStateToUrl, exportEncryptedState, exportPlaintextState } from '@/lib/shareUtils'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -39,7 +41,7 @@ function DataPanel({ syncStatus }) {
   const t = useStrings(lang)
   const fileRef = useRef(null)
   const [importError, setImportError] = useState(null)
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [showQr, setShowQr] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
@@ -79,9 +81,7 @@ function DataPanel({ syncStatus }) {
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(await encodeStateToUrl(state))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    await copy(await encodeStateToUrl(state))
   }
 
   const handleQr = async () => {
@@ -162,24 +162,12 @@ export function SettingsTab({ syncStatus }) {
   const hasValidDates = noneMode || (!!semester?.startDate && !!semester?.endDate)
   const hasClasses = noneMode || classes.length > 0
 
-  const addClass           = useStore(s => s.addClass)
-  const deleteClass        = useStore(s => s.deleteClass)
-  const addHoliday         = useStore(s => s.addHoliday)
-  const deleteHoliday      = useStore(s => s.deleteHoliday)
-  const setGradeComponents = useStore(s => s.setGradeComponents)
-  const setTargetGrade     = useStore(s => s.setTargetGrade)
-  const addTask            = useStore(s => s.addTask)
-  const deleteTask         = useStore(s => s.deleteTask)
-  const addSemester        = useStore(s => s.addSemester)
-  const getClasses         = () => useStore.getState().classes
-  const getState           = () => useStore.getState()
-
   const [showPresets, setShowPresets] = useState(false)
+  const [showGuides, setShowGuides] = useState(false)
   const [showFirebaseGuide, setShowFirebaseGuide] = useState(false)
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
   const firebaseConnected = !!loadFirebaseConfig()
-  const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
 
   const handleFileChange = async e => {
     const file = e.target.files?.[0]
@@ -203,6 +191,9 @@ export function SettingsTab({ syncStatus }) {
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">{t.settings}</h1>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" aria-label={t.guides} onClick={() => setShowGuides(true)}>
+                <Info className="h-4 w-4" />
+              </Button>
               <LangToggle />
               <ThemeToggle />
             </div>
@@ -225,6 +216,7 @@ export function SettingsTab({ syncStatus }) {
           </Accordion>
           <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
           <PresetOverlay open={showPresets} onClose={() => setShowPresets(false)} />
+          <GuidesOverlay open={showGuides} onClose={() => setShowGuides(false)} />
           {showFirebaseGuide && <FirebaseGuideModal onClose={() => setShowFirebaseGuide(false)} syncStatus={syncStatus} />}
           <p className="pt-1 text-center text-[11px] text-muted-foreground/70">
             <a
@@ -247,6 +239,9 @@ export function SettingsTab({ syncStatus }) {
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">{t.settings}</h1>
           <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" aria-label={t.guides} onClick={() => setShowGuides(true)}>
+              <Info className="h-4 w-4" />
+            </Button>
             <LangToggle />
             <ThemeToggle />
           </div>
@@ -389,6 +384,7 @@ export function SettingsTab({ syncStatus }) {
       </div>
 
       <PresetOverlay open={showPresets} onClose={() => setShowPresets(false)} />
+      <GuidesOverlay open={showGuides} onClose={() => setShowGuides(false)} />
     </div>
   )
 }

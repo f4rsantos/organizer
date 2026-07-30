@@ -1,0 +1,274 @@
+/* Shared keyframes/classes for PomodoroScene, FirebaseSyncScene, CollabScene. */
+
+/* ============================= Pomodoro (5.5s) ============================= */
+.guide-tomato-drop-1 {
+    left: 22%;
+    top: -20%;
+    animation: guide-tomato-drop-1 5.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: top, transform;
+}
+@keyframes guide-tomato-drop-1 {
+    0% {
+        top: -20%;
+        transform: rotate(0deg);
+    }
+    16% {
+        top: 68%;
+        transform: rotate(140deg);
+    }
+    20% {
+        top: 50%;
+        transform: rotate(150deg);
+    }
+    24% {
+        top: 68%;
+        transform: rotate(155deg);
+    }
+    27% {
+        top: 58%;
+        transform: rotate(158deg);
+    }
+    30%,
+    100% {
+        top: 68%;
+        transform: rotate(160deg);
+    }
+}
+
+.guide-tomato-drop-2 {
+    left: 46%;
+    top: -20%;
+    animation: guide-tomato-drop-2 5.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: top, transform;
+}
+@keyframes guide-tomato-drop-2 {
+    0%,
+    15% {
+        top: -20%;
+        transform: rotate(0deg);
+    }
+    31% {
+        top: 62%;
+        transform: rotate(-130deg);
+    }
+    35% {
+        top: 45%;
+        transform: rotate(-140deg);
+    }
+    39% {
+        top: 62%;
+        transform: rotate(-148deg);
+    }
+    42% {
+        top: 53%;
+        transform: rotate(-152deg);
+    }
+    45%,
+    100% {
+        top: 62%;
+        transform: rotate(-155deg);
+    }
+}
+
+.guide-tomato-drop-3 {
+    left: 70%;
+    top: -20%;
+    animation: guide-tomato-drop-3 5.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: top, transform;
+}
+@keyframes guide-tomato-drop-3 {
+    0%,
+    30% {
+        top: -20%;
+        transform: rotate(0deg);
+    }
+    46% {
+        top: 70%;
+        transform: rotate(120deg);
+    }
+    50% {
+        top: 54%;
+        transform: rotate(128deg);
+    }
+    54% {
+        top: 70%;
+        transform: rotate(133deg);
+    }
+    57% {
+        top: 61%;
+        transform: rotate(136deg);
+    }
+    60%,
+    100% {
+        top: 70%;
+        transform: rotate(138deg);
+    }
+}
+
+/* ============================= FirebaseSync (2.6s) ============================= */
+.guide-fb-pulse {
+    left: 16%;
+    top: 62%;
+    opacity: 0;
+    animation: guide-fb-pulse 2.6s ease-in-out infinite;
+    will-change: left, top, opacity;
+}
+@keyframes guide-fb-pulse {
+    0%,
+    8% {
+        left: 16%;
+        top: 62%;
+        opacity: 0;
+    }
+    14% {
+        opacity: 1;
+    }
+    38% {
+        left: 48%;
+        top: 22%;
+        opacity: 1;
+    }
+    62% {
+        left: 80%;
+        top: 62%;
+        opacity: 1;
+    }
+    68%,
+    100% {
+        left: 80%;
+        top: 62%;
+        opacity: 0;
+    }
+}
+
+.guide-fb-bar-1 {
+    animation: guide-fb-bar-1 2.6s ease-in-out infinite;
+    will-change: background-color;
+}
+@keyframes guide-fb-bar-1 {
+    0%,
+    64% {
+        background-color: var(--secondary);
+    }
+    72%,
+    100% {
+        background-color: var(--primary);
+    }
+}
+.guide-fb-bar-2 {
+    animation: guide-fb-bar-2 2.6s ease-in-out infinite;
+    will-change: background-color;
+}
+@keyframes guide-fb-bar-2 {
+    0%,
+    68% {
+        background-color: var(--secondary);
+    }
+    76%,
+    100% {
+        background-color: var(--primary);
+    }
+}
+
+/* ============================= Collab (4.5s) ============================= */
+.guide-collab-badge {
+    opacity: 0;
+    transform: translateY(4px);
+    animation: guide-collab-badge 4.5s ease-in-out infinite;
+    will-change: opacity, transform;
+}
+@keyframes guide-collab-badge {
+    0%,
+    18% {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    30%,
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.guide-collab-progress {
+    transform-origin: left center;
+    transform: scaleX(0.4);
+    animation: guide-collab-progress 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: transform;
+}
+@keyframes guide-collab-progress {
+    0%,
+    42% {
+        transform: scaleX(0.4);
+    }
+    56%,
+    100% {
+        transform: scaleX(0.7);
+    }
+}
+
+.guide-collab-updated {
+    opacity: 0;
+    animation: guide-collab-updated 4.5s ease-in-out infinite;
+    will-change: opacity;
+}
+@keyframes guide-collab-updated {
+    0%,
+    58% {
+        opacity: 0;
+    }
+    70%,
+    100% {
+        opacity: 1;
+    }
+}
+
+/* ================================ Reduced motion ================================ */
+@media (prefers-reduced-motion: reduce) {
+    .guide-tomato-drop-1,
+    .guide-tomato-drop-2,
+    .guide-tomato-drop-3,
+    .guide-fb-pulse,
+    .guide-fb-bar-1,
+    .guide-fb-bar-2,
+    .guide-collab-badge,
+    .guide-collab-progress,
+    .guide-collab-updated {
+        animation: none !important;
+    }
+
+    /* Pomodoro: tomatoes resting on the floor at their landed positions */
+    .guide-tomato-drop-1 {
+        top: 68% !important;
+        transform: rotate(160deg) !important;
+    }
+    .guide-tomato-drop-2 {
+        top: 62% !important;
+        transform: rotate(-155deg) !important;
+    }
+    .guide-tomato-drop-3 {
+        top: 70% !important;
+        transform: rotate(138deg) !important;
+    }
+
+    /* FirebaseSync: right-phone bars lit, pulse hidden */
+    .guide-fb-pulse {
+        opacity: 0 !important;
+    }
+    .guide-fb-bar-1,
+    .guide-fb-bar-2 {
+        background-color: var(--primary) !important;
+    }
+
+    /* Collab: badge visible, bar at wider width, updated line visible */
+    .guide-collab-badge {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
+    .guide-collab-progress {
+        transform: scaleX(0.7) !important;
+    }
+    .guide-collab-updated {
+        opacity: 1 !important;
+    }
+}

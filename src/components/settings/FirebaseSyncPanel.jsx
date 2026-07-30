@@ -285,7 +285,9 @@ function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
 
 function parseFirebaseConfig(raw) {
   const trimmed = raw.trim()
-  try { return JSON.parse(trimmed) } catch {}
+  try { return JSON.parse(trimmed) } catch {
+    // fall through to lenient parsing below
+  }
   // Strip JS variable declaration and trailing semicolon, then extract the object literal
   const match = trimmed.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('no object found')

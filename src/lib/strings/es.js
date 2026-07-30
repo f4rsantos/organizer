@@ -3,6 +3,7 @@ export const es = {
     weekdaysShort: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     weekdays: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     tasks: 'Tareas', kanban: 'Kanban', grades: 'Calificaciones', calendar: 'Calendario', focus: 'Enfoque', settings: 'Ajustes',
+    guides: 'Guías',
     noSemester: 'Ningún semestre configurado', goToSettings: 'Ve a Ajustes para empezar.',
     weekLabel: w => `Semana ${w}`, done: 'completadas', timeToRelax: '¡Hora de relajarse!',
     addTask: 'Nueva tarea', task: 'Tarea', class: 'Asignatura', priority: 'Prioridad',

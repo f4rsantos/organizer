@@ -20,17 +20,6 @@ export function PreviousSemestersSection() {
 
   const pastSemesters = semesters.filter((s) => s.id !== activeSemesterId);
 
-  const semesterGrades = pastSemesters.map(
-    (sem) => grades[sem.id]?._semesterFinalGrade ?? null,
-  );
-  const validSemGrades = semesterGrades.filter((g) => g !== null);
-  const computedAvg =
-    validSemGrades.length > 0
-      ? roundPT(
-          validSemGrades.reduce((a, b) => a + b, 0) / validSemGrades.length,
-        )
-      : null;
-
   const currentSemGPA = selectSemesterGPA(activeSemesterId, {
     semesters,
     classes: allClasses,

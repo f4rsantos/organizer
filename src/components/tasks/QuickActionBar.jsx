@@ -10,6 +10,7 @@ import { useWeekContext } from "@/hooks/useWeekContext";
 import { nanoid } from "@/lib/ids";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
 import { useCollabActions } from "@/hooks/useCollabActions";
+import { sortByOrder } from "@/lib/utils";
 
 function AutoTextarea({ value, onChange, onKeyDown, placeholder, ...props }) {
   const textareaRef = useRef(null);
@@ -42,7 +43,7 @@ const DEFAULT_COLUMNS = [
   { id: "col_done", title: "Done", order: 2 },
 ];
 
-export function QuickActionBar({ semesterId, classes = [], onDone, spotlight }) {
+export function QuickActionBar({ semesterId, classes = [], onDone }) {
   const lang = useStore((s) => s.lang ?? "en");
   const t = useStrings(lang);
   const addTask = useStore((s) => s.addTask);
@@ -52,12 +53,11 @@ export function QuickActionBar({ semesterId, classes = [], onDone, spotlight }) 
     (s) => s.kanban?.[boardId]?.columns ?? DEFAULT_COLUMNS,
   );
   const columns = useMemo(
-    () => [...rawColumns].sort((a, b) => a.order - b.order),
+    () => sortByOrder(rawColumns),
     [rawColumns],
   );
 
   const [text, setText] = useState("");
-  const [pending, setPending] = useState(null);
 
   const { currentWeek, weekCount, dateToWeek } = useWeekContext();
   const resolveWeek = (dateStr, explicitWeek) => {

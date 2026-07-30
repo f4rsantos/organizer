@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Plus, Star, Pencil, ChevronDown, ChevronRight, ChevronLeft, FolderPlus, GripVertical, X, Check, Folder, FolderOpen, Archive, FileText, StickyNote, Search, LayoutGrid, List } from 'lucide-react'
-import { format, formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -78,19 +78,26 @@ function FolderNode({ folder, depth, tree, notesByFolder, selectedId, onSelect, 
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(folder.name)
   const { setNodeRef, isOver } = useDroppable({ id: folder.id, data: { type: 'folder' } })
-  const sortable = useSortable({ id: folder.id, data: { type: 'folder' }, animateLayoutChanges: () => false })
-  const style = { transform: CSS.Transform.toString(sortable.transform), transition: sortable.isDragging ? 'none' : sortable.transition }
+  const {
+    attributes: sortableAttributes,
+    listeners: sortableListeners,
+    setNodeRef: setSortableNodeRef,
+    transform: sortableTransform,
+    transition: sortableTransition,
+    isDragging: sortableIsDragging,
+  } = useSortable({ id: folder.id, data: { type: 'folder' }, animateLayoutChanges: () => false })
+  const style = { transform: CSS.Transform.toString(sortableTransform), transition: sortableIsDragging ? 'none' : sortableTransition }
   const saveName = () => { onRename(folder.id, name.trim() || folder.name); setEditing(false) }
   const childFolders = (tree[folder.id] ?? []).sort(folderOrder)
   const notes = (notesByFolder[folder.id] ?? []).sort(noteOrder)
   const FolderIcon = open ? FolderOpen : Folder
 
   return (
-    <div ref={sortable.setNodeRef} style={style} className={cn(sortable.isDragging && 'opacity-40')}>
+    <div ref={setSortableNodeRef} style={style} className={cn(sortableIsDragging && 'opacity-40')}>
       <div ref={setNodeRef} className={cn('rounded-lg', isOver && 'ring-2 ring-primary/40 bg-primary/5')}>
         <div className="group flex items-center gap-1 px-1 py-1.5 text-xs text-muted-foreground" style={{ paddingLeft: depth * 16 }}>
           <button className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-            {...sortable.attributes} {...sortable.listeners}>
+            {...sortableAttributes} {...sortableListeners}>
             <GripVertical className="h-3.5 w-3.5" />
           </button>
           <button onClick={() => setOpen(v => !v)} className="shrink-0 hover:text-foreground transition-colors">

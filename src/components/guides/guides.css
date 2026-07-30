@@ -1,0 +1,25 @@
+/* Onboarding panels hardcode an 8.5rem frame. Scale them up here instead of
+   forking six working components. */
+.guide-scene-scale .tour-scene {
+    height: 11rem;
+    border-radius: 1rem;
+}
+
+@media (min-width: 768px) {
+    .guide-scene-scale .tour-scene {
+        height: 12.5rem;
+    }
+}
+
+.guide-chips {
+    display: flex;
+    scrollbar-width: none;
+}
+.guide-chips::-webkit-scrollbar {
+    display: none;
+}
+
+.guide-entry + .guide-entry {
+    border-top: 1px solid var(--border);
+    padding-top: 2rem;
+}

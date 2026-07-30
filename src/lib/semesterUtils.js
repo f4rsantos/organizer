@@ -29,10 +29,6 @@ export function isTaskInWeek(task, week) {
   return task.weekStart <= week && task.weekEnd >= week
 }
 
-export function generateWeekOptions(count) {
-  return Array.from({ length: count }, (_, i) => ({ value: i + 1, label: `Week ${i + 1}` }))
-}
-
 export function getHolidaysForWeek(semesterStartDate, weekNumber, holidays) {
   const start = parseISO(semesterStartDate)
   const weekStart = addWeeks(startOfWeek(start, { weekStartsOn: 1 }), weekNumber - 1)

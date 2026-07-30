@@ -224,7 +224,7 @@ export function EisenhowerTab() {
     setTaskEisenhower(active.id, { urgent: quadrant.urgent, important: quadrant.important })
   }
 
-  const handleAddTaskDone = (quadrant) => {
+  const handleAddTaskDone = () => {
     setAddingQuadrant(null)
   }
 

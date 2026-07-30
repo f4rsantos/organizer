@@ -27,7 +27,6 @@ import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
 import { useStrings } from '@/lib/strings'
-import { collabErrorTextForCode } from '@/lib/collab/errors'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
 
@@ -61,8 +60,6 @@ function NewerVersionBanner() {
 function CollabErrorToast() {
   const lastError = useStore(s => s.collabRuntime?.lastError ?? null)
   const clearCollabError = useStore(s => s.clearCollabError)
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
   useEffect(() => {
     if (!lastError) return
     const id = setTimeout(() => clearCollabError(), 6000)

@@ -1,24 +1,15 @@
+import { readJson, writeJson } from './safeStorage'
+
 const PREFIX = 'f4rsantos.github.io/organizer:'
 const DEVICE_KEY = `${PREFIX}device`
 
 function readAll() {
-  try {
-    const raw = localStorage.getItem(DEVICE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+  const parsed = readJson(DEVICE_KEY, {})
+  return parsed && typeof parsed === 'object' ? parsed : {}
 }
 
 function writeAll(prefs) {
-  try {
-    localStorage.setItem(DEVICE_KEY, JSON.stringify(prefs))
-    return true
-  } catch {
-    return false
-  }
+  return writeJson(DEVICE_KEY, prefs)
 }
 
 export function readDevicePref(key, fallback = null) {

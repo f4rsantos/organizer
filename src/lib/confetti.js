@@ -8,5 +8,6 @@ export async function fireConfetti() {
       colors: ['#6366f1', '#22c55e', '#f97316', '#ec4899'],
     })
   } catch {
+    // non-critical visual flourish
   }
 }

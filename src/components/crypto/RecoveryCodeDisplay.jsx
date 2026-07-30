@@ -2,19 +2,16 @@ import { useState } from 'react'
 import { Copy, Check, QrCode, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
 
 export function RecoveryCodeDisplay({ t, recoveryCode, onAcknowledge, acknowledgeLabel }) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
 
   const words = recoveryCode.split(' ')
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(recoveryCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const handleCopy = () => copy(recoveryCode)
 
   const handleQr = async () => {
     if (qrDataUrl) { setQrDataUrl(null); return }
