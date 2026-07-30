@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils'
 const AXIS_STYLE = { fontSize: 10, fill: 'currentColor' }
 const MIN_HEIGHT = 100
 const MAX_HEIGHT = 480
+const MIN_WIDTH = 200
+const MAX_WIDTH = 1200
+const DEFAULT_WIDTH_CSS = 'min(100%, 34rem)'
 
 const ALIGNMENTS = [
   { value: 'left', icon: AlignLeft, className: 'mr-auto' },
@@ -25,7 +28,7 @@ function isPlottable(source) {
 }
 
 export function MathGraphView({ node, updateAttributes, selected }) {
-  const { expression, xMin, xMax, height, align } = node.attrs
+  const { expression, xMin, xMax, height, graphWidth, align } = node.attrs
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const [wrapRef, width] = useMeasuredWidth(200)
@@ -53,17 +56,31 @@ export function MathGraphView({ node, updateAttributes, selected }) {
     setEditing(false)
   }
 
-  const startResize = event => {
+  const startResize = axis => event => {
     event.preventDefault()
-    resizeRef.current = { startY: event.clientY, startHeight: height }
+    resizeRef.current = {
+      axis,
+      startX: event.clientX,
+      startY: event.clientY,
+      startHeight: height,
+      startWidth: graphWidth || width,
+    }
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
 
   const moveResize = event => {
     const state = resizeRef.current
     if (!state) return
-    const next = state.startHeight + (event.clientY - state.startY)
-    updateAttributes({ height: Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(next))) })
+    const patch = {}
+    if (state.axis !== 'x') {
+      const nextHeight = state.startHeight + (event.clientY - state.startY)
+      patch.height = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(nextHeight)))
+    }
+    if (state.axis !== 'y') {
+      const nextWidth = state.startWidth + (event.clientX - state.startX)
+      patch.graphWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(nextWidth)))
+    }
+    updateAttributes(patch)
   }
 
   const endResize = event => {
@@ -77,7 +94,7 @@ export function MathGraphView({ node, updateAttributes, selected }) {
         'w-full max-w-full rounded-xl p-3 transition-colors',
         selected && 'ring-1 ring-primary/40',
         alignment.className,
-      )} style={{ width: 'min(100%, 34rem)' }}>
+      )} style={{ width: graphWidth ? `min(100%, ${graphWidth}px)` : DEFAULT_WIDTH_CSS }}>
         <div className="mb-1 flex items-center gap-1">
           {editing ? (
             <input autoFocus value={draft.expression} spellCheck={false}
@@ -137,12 +154,21 @@ export function MathGraphView({ node, updateAttributes, selected }) {
           )}
         </div>
 
-        <div role="separator" aria-label={t.notesGraphResize}
-          className="mx-auto mt-1 h-1.5 w-16 cursor-ns-resize rounded-full bg-border touch-none hover:bg-muted-foreground/50"
-          onPointerDown={startResize}
-          onPointerMove={moveResize}
-          onPointerUp={endResize}
-          onPointerCancel={endResize} />
+        <div className="mt-1 flex items-center gap-2">
+          <div role="separator" aria-label={t.notesGraphResize}
+            className="mx-auto h-1.5 w-16 cursor-ns-resize rounded-full bg-border touch-none hover:bg-muted-foreground/50"
+            onPointerDown={startResize('y')}
+            onPointerMove={moveResize}
+            onPointerUp={endResize}
+            onPointerCancel={endResize} />
+
+          <div role="separator" aria-label={t.notesGraphResizeWidth}
+            className="h-1.5 w-1.5 shrink-0 cursor-nwse-resize rounded-full bg-border touch-none ring-2 ring-transparent hover:bg-muted-foreground/50"
+            onPointerDown={startResize('both')}
+            onPointerMove={moveResize}
+            onPointerUp={endResize}
+            onPointerCancel={endResize} />
+        </div>
       </div>
     </NodeViewWrapper>
   )

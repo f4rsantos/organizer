@@ -83,7 +83,7 @@ export function Onboarding({ onDone }) {
   const handleImport = async e => {
     const file = e.target.files?.[0]
     if (!file) return
-    try { setImportError(null); importData(await importState(file)); onDone() }
+    try { setImportError(null); importData(await importState(file), { preferLocalSettings: false }); onDone() }
     catch { setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.') }
     e.target.value = ''
   }

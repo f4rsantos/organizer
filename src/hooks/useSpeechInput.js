@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useStore } from '@/store/useStore'
 
 const LANG_MAP = { en: 'en-US', pt: 'pt-PT', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', af: 'af-ZA', pirate: 'en-US' }
 
@@ -13,13 +14,15 @@ export function useSpeechInput({ lang, onResult } = {}) {
   const onResultRef = useRef(onResult)
   useEffect(() => { onResultRef.current = onResult }, [onResult])
 
-  const isSupported = typeof window !== 'undefined' && Boolean(getSpeechRecognitionCtor())
+  const enabled = useStore(s => s.settings?.speechInputEnabled === true)
+  const isSupported = enabled && typeof window !== 'undefined' && Boolean(getSpeechRecognitionCtor())
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop()
   }, [])
 
   const start = useCallback(() => {
+    if (!enabled) return
     const Ctor = getSpeechRecognitionCtor()
     if (!Ctor) return
 
@@ -51,7 +54,7 @@ export function useSpeechInput({ lang, onResult } = {}) {
     recognitionRef.current = recognition
     setTranscript('')
     recognition.start()
-  }, [lang])
+  }, [lang, enabled])
 
   useEffect(() => () => { recognitionRef.current?.stop() }, [])
 

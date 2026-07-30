@@ -72,7 +72,7 @@ function DataPanel({ syncStatus }) {
   const handleImport = async e => {
     const file = e.target.files?.[0]
     if (!file) return
-    try { setImportError(null); importData(await importState(file)) }
+    try { setImportError(null); importData(await importState(file), { preferLocalSettings: false }) }
     catch (err) {
       if (err?.message === 'encryption-key-required') setImportError(t.firebaseKeyRequiredForImport)
       else setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.')

@@ -1,4 +1,6 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readStoredRaw, resetStateDb } from './testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const KEY_STORAGE_KEY = 'f4rsantos.github.io/organizer:encryption-key'
@@ -19,10 +21,11 @@ function createStorage() {
 
 let storage
 
-beforeEach(() => {
+beforeEach(async () => {
   storage = createStorage()
   vi.stubGlobal('localStorage', storage)
   vi.resetModules()
+  await resetStateDb()
 })
 
 afterEach(() => {
@@ -37,7 +40,7 @@ const baseState = () => ({
 async function flush() {
   for (let i = 0; i < 50; i++) {
     await new Promise(resolve => setTimeout(resolve, 2))
-    if (storage.getItem(STORAGE_KEY)) return
+    if (await readStoredRaw()) return
   }
 }
 
@@ -104,14 +107,14 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
     useStore.getState().addTask({ title: 'y' })
     await flush()
-    expect(storage.getItem(STORAGE_KEY)).not.toContain('dirtiedBeforeHydrate')
+    expect(await readStoredRaw()).not.toContain('dirtiedBeforeHydrate')
   })
 
   it('does not write to disk before hydration', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().addTask({ title: 'x' })
     await flush()
-    expect(storage.getItem(STORAGE_KEY)).toBe(null)
+    expect(await readStoredRaw()).toBe(null)
   })
 
   it('does not let a second hydration revert an edit made after the first', async () => {
@@ -145,6 +148,43 @@ describe('edits made before hydration are never discarded', () => {
     expect(useStore.getState().collabRuntime?.teams?.t1?.name).toBe('Real Team')
   })
 
+  it('keeps app toggles and tab renames through a tab-switch pull', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().updateSettings({
+      apps: { collab: false, notes: true, eisenhower: false },
+      navbar: { order: ['tasks', 'kanban'], hidden: [], customNames: { tasks: 'My Stuff' } },
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [],
+      settings: {
+        apps: { collab: false, notes: false, eisenhower: false },
+        navbar: { order: ['tasks', 'kanban'], hidden: [], customNames: {} },
+      },
+      collab: { userId: 'u1', memberships: [] },
+    })
+
+    expect(useStore.getState().settings.apps.notes).toBe(true)
+    expect(useStore.getState().settings.navbar.customNames?.tasks).toBe('My Stuff')
+  })
+
+  it('lets an explicit restore replace local settings', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().updateSettings({ apps: { collab: false, notes: true, eisenhower: false } })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [],
+      settings: { apps: { collab: false, notes: false, eisenhower: false } },
+      collab: { userId: 'u1', memberships: [] },
+    }, { preferLocalSettings: false })
+
+    expect(useStore.getState().settings.apps.notes).toBe(false)
+  })
+
   it('lets a remote membership update win over the local copy', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().markHydrated()
@@ -168,7 +208,7 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
     await flush()
 
-    expect(storage.getItem(STORAGE_KEY)).toContain('typed before hydrate')
+    expect(await readStoredRaw()).toContain('typed before hydrate')
   })
 
   it('flushes a pre-hydration edit when the snapshot fails to load', async () => {
@@ -178,7 +218,7 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().markHydrated()
     await flush()
 
-    expect(storage.getItem(STORAGE_KEY)).toContain('survives failed load')
+    expect(await readStoredRaw()).toContain('survives failed load')
   })
 
   it('does not flush an empty membership list over the stored one', async () => {
@@ -187,6 +227,6 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().removeCollabMembership('t1')
     await flush()
 
-    expect(storage.getItem(STORAGE_KEY)).toBe(null)
+    expect(await readStoredRaw()).toBe(null)
   })
 })

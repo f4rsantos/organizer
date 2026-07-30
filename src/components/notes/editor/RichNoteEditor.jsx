@@ -104,6 +104,7 @@ export function RichNoteEditor({ note }) {
             onSelect={mention.select}
             onHover={mention.setActiveIndex}
             emptyLabel={t.notesMentionNoResults}
+            coords={mention.mention.coords}
           />
         )}
       </div>

@@ -27,6 +27,7 @@ export function GeneralSettings() {
   const taskAlertMode = settings.taskAlertMode ?? 'none'
   const taskAlertNextDayTime = settings.taskAlertNextDayTime ?? '18:00'
   const taskDefaultToCalendar = settings.taskDefaultToCalendar ?? false
+  const speechInputEnabled = settings.speechInputEnabled ?? false
 
   const spanOptions = [
     { value: 'single', label: t.spanSingle },
@@ -109,6 +110,18 @@ export function GeneralSettings() {
             ? <CircleCheck className="h-4 w-4 text-primary" />
             : <Circle className="h-4 w-4" />}
           {taskDefaultToCalendar ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>{t.speechInputLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.speechInputDesc}</p>
+        <button type="button" onClick={() => updateSettings({ speechInputEnabled: !speechInputEnabled })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {speechInputEnabled
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {speechInputEnabled ? t.settingEnabled : t.settingDisabled}
         </button>
       </div>
 

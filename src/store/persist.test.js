@@ -1,4 +1,6 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readStoredRaw, resetStateDb } from './testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const KEY_STORAGE_KEY = 'f4rsantos.github.io/organizer:encryption-key'
@@ -20,10 +22,11 @@ function createStorage() {
 
 let storage
 
-beforeEach(() => {
+beforeEach(async () => {
   storage = createStorage()
   vi.stubGlobal('localStorage', storage)
   vi.resetModules()
+  await resetStateDb()
 })
 
 afterEach(() => {
@@ -40,16 +43,11 @@ const baseState = () => ({
   settings: {},
 })
 
-function storedRev() {
-  const raw = storage.getItem(STORAGE_KEY)
-  if (raw === null) return -1
-  try { return JSON.parse(raw).rev ?? 0 } catch { return 0 }
-}
-
-async function flush(minRev = 1) {
-  for (let i = 0; i < 50; i++) {
+async function flush(predicate) {
+  for (let i = 0; i < 60; i++) {
     await new Promise(resolve => setTimeout(resolve, 2))
-    if (storedRev() >= minRev) return
+    const raw = await readStoredRaw()
+    if (raw !== null && (!predicate || predicate(raw))) return
   }
 }
 
@@ -58,14 +56,14 @@ describe('plaintext persistence when no key is set', () => {
     const { saveState } = await import('./persist.js')
     saveState(baseState())
     await flush()
-    expect(storage.getItem(STORAGE_KEY)).toContain('secret plan')
+    expect(await readStoredRaw()).toContain('secret plan')
   })
 
   it('loads the plaintext blob back', async () => {
-    const { saveState, loadState } = await import('./persist.js')
+    const { saveState, loadStateAsync } = await import('./persist.js')
     saveState(baseState())
     await flush()
-    expect(loadState().tasks[0].title).toBe('secret plan')
+    expect((await loadStateAsync()).tasks[0].title).toBe('secret plan')
   })
 
   it('returns null when nothing is stored', async () => {
@@ -84,14 +82,14 @@ describe('encrypted persistence when a key is set', () => {
     const { saveState } = await import('./persist.js')
     saveState(baseState())
     await flush()
-    expect(storage.getItem(STORAGE_KEY)).not.toContain('secret plan')
+    expect(await readStoredRaw()).not.toContain('secret plan')
   })
 
   it('writes a sliced container of envelopes', async () => {
     const { saveState } = await import('./persist.js')
     saveState(baseState())
     await flush()
-    const stored = JSON.parse(storage.getItem(STORAGE_KEY))
+    const stored = JSON.parse(await readStoredRaw())
     expect(stored).toMatchObject({ format: 'blue-tangerine' })
     expect(stored.slices.tasks).toMatchObject({ version: 1 })
     expect(typeof stored.slices.tasks.ciphertext).toBe('string')
@@ -101,7 +99,7 @@ describe('encrypted persistence when a key is set', () => {
     const { saveState } = await import('./persist.js')
     saveState(baseState())
     await flush()
-    expect(JSON.parse(storage.getItem(STORAGE_KEY)).meta)
+    expect(JSON.parse(await readStoredRaw()).meta)
       .toMatchObject({ version: 7, theme: 'system', lang: 'en', onboardingDone: true })
   })
 
@@ -127,7 +125,7 @@ describe('a missing key never downgrades to plaintext', () => {
     const { saveState } = await import('./persist.js')
     saveState(baseState())
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(storage.getItem(STORAGE_KEY)).toBe(null)
+    expect(await readStoredRaw()).toBe(null)
   })
 
   it('reports a key requirement instead of returning data', async () => {
@@ -154,8 +152,8 @@ describe('legacy plaintext installs keep working', () => {
   })
 })
 
-describe('the size cap sheds the least valuable slices first', () => {
-  it('keeps a large but under-cap state intact after encryption', async () => {
+describe('large states are stored whole', () => {
+  it('keeps a large encrypted state intact', async () => {
     storage.setItem(KEY_STORAGE_KEY, KEY)
     storage.setItem(ENABLED_FLAG_KEY, '1')
 
@@ -168,51 +166,41 @@ describe('the size cap sheds the least valuable slices first', () => {
 
     const loaded = await loadStateAsync()
     expect(loaded.tasks).toHaveLength(1)
+    expect(loaded.tasks[0].note).toHaveLength(1_700_000)
   })
 
-  it('sheds task alert states before tasks when over the cap', async () => {
+  it('keeps state past the old localStorage cap', async () => {
     const heavy = baseState()
-    heavy.taskAlertStates = { a1: { pad: 'x'.repeat(2_600_000) } }
+    heavy.taskAlertStates = { a1: { pad: 'x'.repeat(6_000_000) } }
     heavy.tasks = [{ id: 't1', title: 'secret plan' }]
 
-    const { saveState } = await import('./persist.js')
+    const { saveState, loadStateAsync } = await import('./persist.js')
     saveState(heavy)
     await flush()
 
-    const stored = JSON.parse(storage.getItem(STORAGE_KEY))
-    expect(stored.omitted).toContain('taskAlertStates')
-    expect(stored.slices.tasks).toBeTruthy()
+    const stored = JSON.parse(await readStoredRaw())
+    expect(stored.omitted ?? []).toHaveLength(0)
+
+    const loaded = await loadStateAsync()
+    expect(loaded.taskAlertStates.a1.pad).toHaveLength(6_000_000)
+    expect(loaded.tasks).toHaveLength(1)
   })
 
-  it('drops canvas notes before shedding whole slices', async () => {
+  it('keeps canvas notes instead of dropping them', async () => {
     const heavy = baseState()
+    const strokes = Array.from({ length: 20_000 }, (_, i) => ({ x: i, y: i, pad: 'x'.repeat(200) }))
     heavy.notes = [
-      { id: 'n1', kind: 'canvas', strokes: 'x'.repeat(2_600_000) },
+      { id: 'n1', kind: 'canvas', strokes },
       { id: 'n2', kind: 'text', body: 'keep me' },
     ]
 
-    const { saveState } = await import('./persist.js')
+    const { saveState, loadStateAsync } = await import('./persist.js')
     saveState(heavy)
     await flush()
 
-    const stored = JSON.parse(storage.getItem(STORAGE_KEY))
-    expect(stored.omitted ?? []).not.toContain('notes')
-    expect(stored.slices.notes.plain).toHaveLength(1)
-    expect(stored.slices.notes.plain[0].id).toBe('n2')
-  })
-
-  it('reports the shed slices as a load warning', async () => {
-    const heavy = baseState()
-    heavy.taskAlertStates = { a1: { pad: 'x'.repeat(2_600_000) } }
-
-    const { saveState } = await import('./persist.js')
-    saveState(heavy)
-    await flush()
-
-    vi.resetModules()
-    const { loadState, getLoadWarnings } = await import('./persist.js')
-    loadState()
-    expect(getLoadWarnings().some(w => w.startsWith('storage-cap-shed:'))).toBe(true)
+    const loaded = await loadStateAsync()
+    expect(loaded.notes).toHaveLength(2)
+    expect(loaded.notes[0].strokes).toHaveLength(20_000)
   })
 })
 
@@ -227,11 +215,11 @@ describe('only changed slices are re-encrypted', () => {
     const first = baseState()
     saveState(first)
     await flush()
-    const before = JSON.parse(storage.getItem(STORAGE_KEY))
+    const before = JSON.parse(await readStoredRaw())
 
     saveState({ ...first, tasks: [{ id: 't2', title: 'new plan' }] })
-    await flush(2)
-    const after = JSON.parse(storage.getItem(STORAGE_KEY))
+    await flush(raw => JSON.parse(raw).slices.tasks.ciphertext !== before.slices.tasks.ciphertext)
+    const after = JSON.parse(await readStoredRaw())
 
     expect(after.slices.tasks.ciphertext).not.toBe(before.slices.tasks.ciphertext)
     expect(after.slices.settings.ciphertext).toBe(before.slices.settings.ciphertext)
@@ -243,26 +231,23 @@ describe('only changed slices are re-encrypted', () => {
     const state = baseState()
     saveState(state)
     await flush()
-    const before = storage.getItem(STORAGE_KEY)
+    const before = await readStoredRaw()
 
-    const spy = vi.spyOn(storage, 'setItem')
     saveState(state)
     await new Promise(resolve => setTimeout(resolve, 20))
-    expect(spy).not.toHaveBeenCalled()
-    expect(storage.getItem(STORAGE_KEY)).toBe(before)
-    spy.mockRestore()
+    expect(await readStoredRaw()).toBe(before)
   })
 
-  it('bumps the revision on every real write', async () => {
+  it('rewrites the container on every real write', async () => {
     const { saveState } = await import('./persist.js')
     const state = baseState()
     saveState(state)
     await flush()
-    const first = JSON.parse(storage.getItem(STORAGE_KEY)).rev
+    const before = await readStoredRaw()
 
     saveState({ ...state, tasks: [] })
-    await flush(first + 1)
-    expect(JSON.parse(storage.getItem(STORAGE_KEY)).rev).toBe(first + 1)
+    await flush(raw => raw !== before)
+    expect(await readStoredRaw()).not.toBe(before)
   })
 
   it('retries a slice whose encryption failed', async () => {
@@ -273,12 +258,12 @@ describe('only changed slices are re-encrypted', () => {
 
     saveState(baseState())
     await new Promise(resolve => setTimeout(resolve, 30))
-    expect(storage.getItem(STORAGE_KEY)).toBe(null)
+    expect(await readStoredRaw()).toBe(null)
 
     spy.mockImplementation(encrypt)
     saveState(baseState())
     await flush()
-    expect(JSON.parse(storage.getItem(STORAGE_KEY)).slices.tasks).toBeTruthy()
+    expect(JSON.parse(await readStoredRaw()).slices.tasks).toBeTruthy()
     spy.mockRestore()
   })
 })
@@ -311,7 +296,7 @@ describe('transient fields never reach storage', () => {
     })
     await flush()
 
-    const raw = storage.getItem(STORAGE_KEY)
+    const raw = await readStoredRaw()
     expect(raw).not.toContain('activeTab')
     expect(raw).not.toContain('resetSignal')
     expect(raw).not.toContain('collabRuntime')

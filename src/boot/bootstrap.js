@@ -1,5 +1,5 @@
 import { decodeStateFromUrl, clearUrlHash } from '../lib/shareUtils'
-import { forceSaveState, hasEncryptedSnapshot, hasLocalState } from '../store/persist'
+import { forceSaveState, hasEncryptedSnapshotAsync, hasLocalStateAsync } from '../store/persist'
 import { migrateState } from '../store/migrations'
 import { loadFirebaseConfig } from '../lib/firebaseConfig'
 import { getEncMode, MODE_OFF } from '../lib/crypto'
@@ -17,7 +17,7 @@ async function importFromUrl() {
 
 async function hydrateFromFirebase() {
   const config = loadFirebaseConfig()
-  if (!config || hasLocalState()) return
+  if (!config || await hasLocalStateAsync()) return
 
   try {
     const { pullFromFirebase } = await import('../lib/firebase')
@@ -37,7 +37,7 @@ async function hydrateFromFirebase() {
 
 export async function runBootstrap() {
   const mode = getEncMode()
-  const locked = hasEncryptedSnapshot()
+  const locked = await hasEncryptedSnapshotAsync()
 
   if (mode === MODE_OFF && !locked) {
     await importFromUrl()

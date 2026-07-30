@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
-import { loadFirebaseConfig } from '@/lib/firebase'
 import { EmptyState } from '@/components/common/EmptyState'
 import { NoteEditor } from './NoteEditor'
 import { NoteGrid } from './NoteGrid'
@@ -171,7 +170,6 @@ export function NotesTab() {
   const deleteNoteFolder = useStore(s => s.deleteNoteFolder)
   const updateSettings = useStore(s => s.updateSettings)
   const viewMode = useStore(s => s.settings?.notesViewMode ?? 'list')
-  const firebaseConnected = !!loadFirebaseConfig()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -264,11 +262,9 @@ export function NotesTab() {
           <Button size="icon" className="h-8 w-8 shrink-0" onClick={() => create('text')}>
             <Plus className="h-4 w-4" />
           </Button>
-          {firebaseConnected && (
-            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t.notesCanvas} onClick={() => create('canvas')}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
+          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t.notesCanvas} onClick={() => create('canvas')}>
+            <Pencil className="h-4 w-4" />
+          </Button>
         </div>
         <div className="px-3 pb-2 shrink-0 flex items-center gap-2">
           <button onClick={() => setShowArchived(v => !v)}

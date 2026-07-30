@@ -366,6 +366,7 @@ function normalizeSettings(settings) {
   }
   if (!['list', 'mosaic'].includes(s.notesViewMode)) s.notesViewMode = 'list'
   if (typeof s.notesMathEnabled !== 'boolean') s.notesMathEnabled = false
+  if (typeof s.speechInputEnabled !== 'boolean') s.speechInputEnabled = false
   if (typeof s.notesMathSolveEquations !== 'boolean') s.notesMathSolveEquations = true
   if (typeof s.notesMathSelectionGraph !== 'boolean') s.notesMathSelectionGraph = true
   if (typeof s.notesMathStepByStep !== 'boolean') s.notesMathStepByStep = true

@@ -42,7 +42,7 @@ export function isEncryptedContainer(container) {
 }
 
 export async function encodeSlices({
-  state, key, aadFor, previousContainer = null, dirtySlices = null, omitted = [], rev = 0,
+  state, key, aadFor, previousContainer = null, dirtySlices = null, omitted = [], rev = null,
 }) {
   const slices = {}
   const omit = new Set(omitted)
@@ -72,7 +72,7 @@ export async function encodeSlices({
   return {
     format: CONTAINER_FORMAT,
     meta: pickMeta(state),
-    rev,
+    ...(rev === null ? {} : { rev }),
     slices,
     ...(omit.size ? { omitted: [...omit] } : {}),
   }

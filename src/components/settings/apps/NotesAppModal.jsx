@@ -4,7 +4,6 @@ import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { loadFirebaseConfig } from '@/lib/firebase'
 import { notesApp } from '@/apps/notes'
 
 const MATH_OPTIONS = [
@@ -25,7 +24,6 @@ export function NotesAppModal({ open, onOpenChange }) {
   }
   const updateSettings = useStore(s => s.updateSettings)
   const wipeAppData = useStore(s => s.wipeAppData)
-  const firebaseConnected = !!loadFirebaseConfig()
   const [confirmOff, setConfirmOff] = useState(false)
 
   const toggle = v => {
@@ -75,11 +73,6 @@ export function NotesAppModal({ open, onOpenChange }) {
                 </div>
               )}
             </>
-          )}
-          {!firebaseConnected && (
-            <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-              {t.notesCanvasWarning}
-            </p>
           )}
         </div>
         <ConfirmDialog open={confirmOff} onOpenChange={setConfirmOff}

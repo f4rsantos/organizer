@@ -6,6 +6,7 @@ import { stripTransient } from '@/lib/crypto'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 const PUSH_DEBOUNCE_MS = 1000
+const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
   return JSON.parse(JSON.stringify(stripTransient(useStore.getState())))
@@ -19,12 +20,14 @@ export function useFirebaseSync() {
     isPulling: false,
     remoteNewer: false,
     lastLocalUpdateAt: 0,
+    lastPullAt: 0,
   })
   const [status, setStatus] = useState('idle')
 
-  const pull = useCallback(async () => {
+  const pull = useCallback(async ({ force = true } = {}) => {
     if (!hydrated) return
     if (refs.current.isPulling) return
+    if (!force && Date.now() - refs.current.lastPullAt < PULL_GATE_MS) return
     const config = loadFirebaseConfig()
     if (!config) return
     refs.current.isPulling = true
@@ -53,6 +56,7 @@ export function useFirebaseSync() {
       setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
     } finally {
       refs.current.isPulling = false
+      refs.current.lastPullAt = Date.now()
     }
   }, [importData, hydrated])
 
@@ -78,6 +82,10 @@ export function useFirebaseSync() {
 
   const pullNow = useCallback(() => {
     void pull()
+  }, [pull])
+
+  const pullIfStale = useCallback(() => {
+    void pull({ force: false })
   }, [pull])
 
   useEffect(() => {
@@ -121,5 +129,5 @@ export function useFirebaseSync() {
 
   useEffect(() => { pullNow() }, [pullNow])
 
-  return { status, pullNow }
+  return { status, pullNow, pullIfStale }
 }

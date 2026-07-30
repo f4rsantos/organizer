@@ -23,6 +23,7 @@ export const MathGraph = Node.create({
       xMin: numberAttribute('x-min', -10),
       xMax: numberAttribute('x-max', 10),
       height: numberAttribute('height', 180),
+      graphWidth: numberAttribute('graph-width', 0),
       align: {
         default: 'center',
         parseHTML: element => element.getAttribute('data-align') ?? 'center',

@@ -4,17 +4,17 @@ import {
   isEnvelope, decryptForSlot, aadForLocalSlice, aadForPersonalSlice, aadForExport, WHOLE_STATE,
   loadKeyString, wasEncryptionEverEnabled, importRawKey, getCachedDek,
   DATA_SLICES, META_KEYS, encodeSlices, decodeSlices, isContainer, stripTransient,
-  planWithinBudget,
 } from '../lib/crypto'
+import { readContainer, writeContainerRecord } from './stateStore'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const BACKUP_KEY = `${STORAGE_KEY}:pre-slice-backup`
 const LEGACY_FULL_PCT_UNITS = 2.5
 const POMODORO_UNITS_MAX = 120
-const LOCAL_CACHE_LIMIT_BYTES = Math.floor(4.8 * 1024 * 1024)
 
 let loadWarnings = []
 let writesBlocked = null
+let cachedContainer = null
 
 export function getLoadWarnings() {
   return loadWarnings
@@ -132,13 +132,38 @@ function finalizeLoadedState(data) {
   return normalizeState(state)
 }
 
-function readStoredValue() {
+function readLegacyStoredValue() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
+}
+
+function readStoredValue() {
+  return cachedContainer ?? readLegacyStoredValue()
+}
+
+function clearLegacyStoredValue() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    return
+  }
+}
+
+async function readPersistedValue() {
+  try {
+    const stored = await readContainer()
+    if (stored) {
+      cachedContainer = stored
+      return stored
+    }
+  } catch {
+    addLoadWarning('state-store-unavailable')
+  }
+  return readLegacyStoredValue()
 }
 
 function noteOmitted(container) {
@@ -153,14 +178,30 @@ export function readContainerMeta() {
   return isContainer(parsed) ? (parsed.meta ?? null) : null
 }
 
+export async function readContainerMetaAsync() {
+  const parsed = await readPersistedValue()
+  return isContainer(parsed) ? (parsed.meta ?? null) : null
+}
+
 export function hasLocalState() {
   return readStoredValue() !== null
 }
 
-export function hasEncryptedSnapshot() {
-  const parsed = readStoredValue()
+export async function hasLocalStateAsync() {
+  return (await readPersistedValue()) !== null
+}
+
+function containerIsEncrypted(parsed) {
   if (!isContainer(parsed)) return isEnvelope(parsed)
   return Object.values(parsed.slices ?? {}).some(isEnvelope)
+}
+
+export function hasEncryptedSnapshot() {
+  return containerIsEncrypted(readStoredValue())
+}
+
+export async function hasEncryptedSnapshotAsync() {
+  return containerIsEncrypted(await readPersistedValue())
 }
 
 async function resolveKey() {
@@ -171,7 +212,7 @@ async function resolveKey() {
 }
 
 export function loadState() {
-  const parsed = readStoredValue()
+  const parsed = readLegacyStoredValue()
   if (!parsed || isEnvelope(parsed)) return null
 
   try {
@@ -196,7 +237,7 @@ function decodeSlicesSync(container) {
 }
 
 export async function loadStateAsync() {
-  const parsed = readStoredValue()
+  const parsed = await readPersistedValue()
   if (!parsed) return null
 
   try {
@@ -261,9 +302,7 @@ let queued = null
 
 function dirtySlicesOf(state) {
   if (!lastPersisted) return DATA_SLICES
-  const omitted = new Set(lastPersisted.omitted)
-  return DATA_SLICES.filter(slice => !omitted.has(slice)
-    && state[slice] !== lastPersisted.sliceRefs[slice])
+  return DATA_SLICES.filter(slice => state[slice] !== lastPersisted.sliceRefs[slice])
 }
 
 function metaChanged(state) {
@@ -283,30 +322,26 @@ async function writeContainer(state) {
   const key = await resolveKey()
   if (!key && wasEncryptionEverEnabled()) throw new Error('encryption-key-required')
 
-  backupOnce(readStoredValue())
+  backupOnce(readLegacyStoredValue())
 
-  const { state: planned, omitted } = planWithinBudget(state, LOCAL_CACHE_LIMIT_BYTES)
   const reusable = lastPersisted && lastPersisted.key === key
-  const dirty = reusable ? dirtySlicesOf(planned) : null
-  const rev = (lastPersisted?.rev ?? 0) + 1
+  const dirty = reusable ? dirtySlicesOf(state) : null
 
   const container = await encodeSlices({
-    state: planned,
+    state,
     key,
     aadFor: aadForLocalSlice,
     previousContainer: reusable ? lastPersisted.container : null,
     dirtySlices: dirty,
-    omitted,
-    rev,
   })
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(container))
+  await writeContainerRecord(container)
+  cachedContainer = container
+  clearLegacyStoredValue()
   lastPersisted = {
-    sliceRefs: snapshotRefs(planned, DATA_SLICES),
-    meta: snapshotRefs(planned, META_KEYS),
+    sliceRefs: snapshotRefs(state, DATA_SLICES),
+    meta: snapshotRefs(state, META_KEYS),
     container,
-    omitted,
-    rev,
     key,
   }
 }
@@ -351,6 +386,8 @@ export function resetPersistCacheForTests() {
   queued = null
   compactedPomodoros = { source: null, value: null }
   loadWarnings = []
+  writesBlocked = null
+  cachedContainer = null
 }
 
 export function getAppStorageBytes() {

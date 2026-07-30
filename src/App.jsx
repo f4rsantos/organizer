@@ -139,7 +139,7 @@ export default function App() {
   }, [requestedTab, clearRequestedTab, tabs])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showStorageWarning, setShowStorageWarning] = useState(false)
-  const { status: syncStatus, pullNow } = useFirebaseSync()
+  const { status: syncStatus, pullIfStale } = useFirebaseSync()
 
   const quickActionAppEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
   const quickActionShortcutRaw = useStore(s => s.settings?.apps?.quickActionShortcut)
@@ -191,8 +191,8 @@ export default function App() {
   }, [quickActionAppEnabled, quickActionTripleTap])
 
   useEffect(() => {
-    pullNow()
-  }, [activeTab, pullNow])
+    pullIfStale()
+  }, [activeTab, pullIfStale])
 
   useEffect(() => {
     const check = () => {

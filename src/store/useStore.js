@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { nanoid } from '@/lib/ids'
-import { loadState, saveState, forceSaveState } from './persist'
+import { saveState, forceSaveState } from './persist'
 import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
 import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
@@ -93,8 +93,6 @@ function mergeStateOnHydrate(diskState, s) {
 }
 
 function buildInitialState() {
-  const saved = loadState()
-  if (saved) return saved
   return {
     version: CURRENT_VERSION,
     theme: 'system',
@@ -118,6 +116,7 @@ function buildInitialState() {
       kanbanChecklistPreviewMode: 'none',
       notesViewMode: 'list',
       notesMathEnabled: false,
+      speechInputEnabled: false,
       notesMathSolveEquations: true,
       notesMathSelectionGraph: true,
       notesMathStepByStep: true,
@@ -691,15 +690,19 @@ export const useStore = create((set, _get) => ({
   }),
 
   // --- Import / Export ---
-  importData: data => set(s => {
+  importData: (data, { preferLocalSettings = true } = {}) => set(s => {
     const { state, status } = migrateState(data)
     if (status === 'invalid' || status === 'newer') return s
     const next = normalizeState({ ...state })
     const localMemberships = s.collab?.memberships ?? []
     const remoteMemberships = next.collab?.memberships ?? []
     const remoteTeamIds = new Set(remoteMemberships.map(m => m.teamId))
+    const settings = preferLocalSettings && s.hydrated
+      ? { ...next.settings, ...s.settings }
+      : next.settings
     return persist({
       ...next,
+      settings,
       collab: {
         ...next.collab,
         userId: next.collab?.userId ?? s.collab?.userId ?? null,

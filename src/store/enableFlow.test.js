@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readStoredRaw, resetStateDb } from './testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 
@@ -29,8 +30,8 @@ beforeEach(async () => {
     request.onerror = () => resolve()
     request.onblocked = () => resolve()
   })
-
   vi.resetModules()
+  await resetStateDb()
 })
 
 afterEach(async () => {
@@ -43,8 +44,8 @@ async function settle() {
   await new Promise(resolve => setTimeout(resolve, 80))
 }
 
-function stored() {
-  const raw = storage.getItem(STORAGE_KEY)
+async function stored() {
+  const raw = await readStoredRaw()
   return raw ? JSON.parse(raw) : null
 }
 
@@ -59,7 +60,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     useStore.getState().addTask({ title: 'secret plan' })
     await settle()
 
-    expect(JSON.stringify(stored())).toContain('secret plan')
+    expect(JSON.stringify(await stored())).toContain('secret plan')
 
     await enableLocalEncryption({
       passphrase: 'purple-tractor-91',
@@ -67,7 +68,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     })
     await settle()
 
-    expect(JSON.stringify(stored())).not.toContain('secret plan')
+    expect(JSON.stringify(await stored())).not.toContain('secret plan')
   })
 
   it('keeps onboardingDone readable after enabling', async () => {
@@ -85,7 +86,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     })
     await settle()
 
-    expect(stored().meta.onboardingDone).toBe(true)
+    expect((await stored()).meta.onboardingDone).toBe(true)
   })
 
   it('reloads the data back through the async loader', async () => {
