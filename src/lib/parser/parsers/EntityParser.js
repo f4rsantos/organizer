@@ -44,9 +44,13 @@ export class EntityParser extends Parser {
         if (cls.name) classTrie.addPhrase(cls.name, { classId: cls.id })
       }
       const matches = classTrie.searchTokens(tokens)
+      const unconsumed = tokens.filter(t => !t.consumed)
+      const classPreps = [...new Set([...preps.for, ...preps.to, ...preps.in, ...preps.on])]
+
       for (const m of matches) {
+        const startToken = extendForPreposition(unconsumed, m.startToken, classPreps, wordOpts)
         results.push({
-          startToken: m.startToken,
+          startToken: startToken ?? m.startToken,
           endToken: m.endToken,
           value: m.value,
           type: 'class',

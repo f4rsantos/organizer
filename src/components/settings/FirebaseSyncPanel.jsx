@@ -5,14 +5,19 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import {
   loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig, validateFirebaseConfig,
-  loadCollabRulesTag, pushEncryptedToFirebase, pullFromFirebase,
+  loadCollabRulesTag, pullFromFirebase, inspectRemoteState, pushEnabledContainer, pushWraps,
+  fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
 import { forceSaveState } from '@/store/persist'
-import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { stripTransient, getHint, putDek } from '@/lib/crypto'
+import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
 import {
-  loadKeyString, saveKeyString, generateRawKeyString,
-  validateKeyString, isEncryptionEnabled,
-} from '@/lib/crypto'
+  enableSyncEncryption, updatePassphrase, replaceRecoveryCode, updateHint, rotateSyncKey,
+} from '@/lib/crypto/syncEnable'
+import { EnableEncryptionDialog } from '@/components/crypto/EnableEncryptionDialog'
+import { KeyManagementPanel } from '@/components/crypto/KeyManagementPanel'
+import { PlaintextSyncWarning } from '@/components/crypto/PlaintextSyncWarning'
+import { SecretPrompt } from '@/components/crypto/SecretPrompt'
 
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStep3', 'firebaseStep4']
 
@@ -83,206 +88,127 @@ function UnauthenticatedWarning({ t }) {
   )
 }
 
-function EncryptionSection({ config, t }) {
-  const [enabled, setEnabled] = useState(() => isEncryptionEnabled())
-  const [showKey, setShowKey] = useState(false)
-  const [confirmShow, setConfirmShow] = useState(false)
-  const [pendingKey, setPendingKey] = useState(null)
-  const [pasteMode, setPasteMode] = useState(false)
-  const [pasteValue, setPasteValue] = useState('')
-  const [pasteError, setPasteError] = useState(null)
-  const [migrating, setMigrating] = useState(false)
-  const [migrateError, setMigrateError] = useState(null)
-  const [copied, setCopied] = useState(false)
+function EncryptionSection({ config, t, remote, onRemoteChange }) {
+  const [enabling, setEnabling] = useState(false)
 
-  const handleEnableNow = async () => {
-    setMigrateError(null)
-    setMigrating(true)
-    try {
-      const keyString = generateRawKeyString()
-      const state = JSON.parse(JSON.stringify(useStore.getState()))
-      await pushEncryptedToFirebase(config, state, keyString)
-      saveKeyString(keyString)
-      setPendingKey(keyString)
-      setEnabled(true)
-    } catch {
-      setMigrateError(t.firebaseEncryptMigrateFailed)
-    } finally {
-      setMigrating(false)
-    }
+  const encryptionOn = remote?.encrypted && remote?.hasWraps && isUnlocked()
+
+  const handleEnable = async ({ passphrase, hint }) => {
+    const state = stripTransient(JSON.parse(JSON.stringify(useStore.getState())))
+    const result = await enableSyncEncryption({
+      passphrase,
+      hint,
+      state,
+      pushContainer: payload => pushEnabledContainer(config, payload),
+    })
+    await forceSaveState(useStore.getState())
+    return result
   }
 
-  const handleConfirmShow = () => {
-    setPendingKey(loadKeyString())
-    setShowKey(true)
+  const handleDone = async () => {
+    setEnabling(false)
+    onRemoteChange(await inspectRemoteState(config))
   }
 
-  const handleCopy = async () => {
-    if (!pendingKey) return
-    await navigator.clipboard.writeText(pendingKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const pushWrapsToRemote = wraps => pushWraps(config, wraps)
 
-  const handlePasteKey = async () => {
-    setPasteError(null)
-    if (!validateKeyString(pasteValue)) { setPasteError(t.firebaseKeyInvalid); return }
-    saveKeyString(pasteValue.trim())
-    try {
-      const remote = await pullFromFirebase(config)
-      if (remote) useStore.getState().importData(remote)
-    } catch {
-      setPasteError(t.firebaseKeyWrongOrUnreadable)
-      return
-    }
-    setEnabled(true)
-    setPasteMode(false)
-    setPasteValue('')
-  }
-
-  if (!enabled) {
+  if (enabling) {
     return (
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{t.firebaseEncryptionOffTitle}</span>
-        </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseEncryptionOffDesc}</p>
-
-        {!pasteMode ? (
-          <div className="space-y-2">
-            <Button className="w-full gap-2" variant="outline" onClick={handleEnableNow} disabled={migrating}>
-              {migrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-              {t.firebaseEncryptNow}
-            </Button>
-            <button onClick={() => setPasteMode(true)}
-              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {t.firebaseHaveKeyAlready}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <textarea
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-mono resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-              rows={2}
-              placeholder={t.firebaseKeyPastePlaceholder}
-              value={pasteValue}
-              onChange={e => { setPasteValue(e.target.value); setPasteError(null) }}
-            />
-            {pasteError && <p className="text-xs text-destructive">{pasteError}</p>}
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => { setPasteMode(false); setPasteValue(''); setPasteError(null) }}>
-                {t.cancel}
-              </Button>
-              <Button className="flex-1" onClick={handlePasteKey} disabled={!pasteValue.trim()}>
-                {t.confirm}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {migrateError && <p className="text-xs text-destructive">{migrateError}</p>}
-
-        {pendingKey && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-            <p className="text-xs font-medium">{t.firebaseRecoveryKeyShownOnceTitle}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseRecoveryKeyShownOnceDesc}</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 break-all rounded-md bg-background border border-border px-2 py-1.5 text-[11px]">{pendingKey}</code>
-              <button onClick={handleCopy} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => setPendingKey(null)}>{t.firebaseKeySavedItConfirm}</Button>
-          </div>
-        )}
-      </div>
+      <EnableEncryptionDialog
+        t={t}
+        onEnable={handleEnable}
+        onDone={handleDone}
+        onCancel={() => setEnabling(false)}
+      />
     )
   }
 
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium">{t.firebaseEncryptionOnTitle}</span>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseEncryptionOnDesc}</p>
-      <button onClick={() => setConfirmShow(true)}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-        <KeyRound className="h-3.5 w-3.5" /> {t.firebaseShowRecoveryKey}
-      </button>
+  if (encryptionOn) {
+    return (
+      <KeyManagementPanel
+        t={t}
+        hint={getHint(remote.wraps)}
+        onChangePassphrase={async args => {
+          const result = await updatePassphrase({ ...args, wraps: remote.wraps, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+        onRegenerateRecoveryCode={async args => {
+          const result = await replaceRecoveryCode({ ...args, wraps: remote.wraps, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+        onSaveHint={async hint => {
+          await updateHint({ wraps: remote.wraps, hint, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return true
+        }}
+        onRotateKey={async args => {
+          const container = await fetchStateContainer(config)
+          if (!container) throw new Error('sync-doc-missing')
+          const result = await rotateSyncKey({
+            ...args,
+            container,
+            wraps: remote.wraps,
+            publishRotation: payload => publishRotation(config, payload),
+            commitDek: async dek => {
+              await openStore()
+              await putDek(dek)
+            },
+          })
+          await forceSaveState(useStore.getState())
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+      />
+    )
+  }
 
-      {showKey && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-md bg-background border border-border px-2 py-1.5 text-[11px]">
-              {loadKeyString()}
-            </code>
-            <button onClick={async () => {
-              await navigator.clipboard.writeText(loadKeyString() ?? '')
-              setCopied(true)
-              setTimeout(() => setCopied(false), 2000)
-            }} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-          <Button variant="outline" className="w-full" onClick={() => setShowKey(false)}>{t.cancel}</Button>
-        </div>
-      )}
-
-      <ConfirmDialog open={confirmShow} onOpenChange={setConfirmShow}
-        title={t.firebaseShowRecoveryKeyConfirmTitle} description={t.firebaseShowRecoveryKeyConfirmDesc}
-        destructive={false} onConfirm={handleConfirmShow} />
-    </div>
-  )
+  return <PlaintextSyncWarning t={t} onEnable={() => setEnabling(true)} />
 }
 
-function KeyRequiredPrompt({ config, t, onResolved }) {
-  const [value, setValue] = useState('')
-  const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
-
-  const handleSubmit = async () => {
-    setError(null)
-    if (!validateKeyString(value)) { setError(t.firebaseKeyInvalid); return }
-    setBusy(true)
-    saveKeyString(value.trim())
-    try {
-      const remote = await pullFromFirebase(config)
-      if (remote) useStore.getState().importData(remote)
-      onResolved()
-    } catch {
-      setError(t.firebaseKeyWrongOrUnreadable)
-    } finally {
-      setBusy(false)
-    }
+function UnlockRemotePrompt({ config, t, remote, onUnlocked }) {
+  const handleUnlock = async ({ slot, secret }) => {
+    await unlockWithSecret({
+      wraps: remote.wraps,
+      slot,
+      secret,
+      expectedDekId: remote.dekId,
+    })
+    const pulled = await pullFromFirebase(config)
+    if (pulled) useStore.getState().importData(pulled)
+    onUnlocked()
   }
 
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <KeyRound className="h-4 w-4 text-destructive" />
-        <span className="text-sm font-medium">{t.firebaseKeyRequiredTitle}</span>
+        <span className="text-sm font-medium">{t.encUnlockTitle}</span>
       </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseKeyRequiredDesc}</p>
-      <textarea
-        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-mono resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-        rows={2}
-        placeholder={t.firebaseKeyPastePlaceholder}
-        value={value}
-        onChange={e => { setValue(e.target.value); setError(null) }}
-      />
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      <Button className="w-full" onClick={handleSubmit} disabled={!value.trim() || busy}>
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t.confirm}
-      </Button>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t.encRemoteAlreadyEncrypted}</p>
+      <SecretPrompt t={t} hint={getHint(remote.wraps)} onUnlock={handleUnlock}
+        submitLabel={t.encUnlockTitle} autoFocus={false} />
     </div>
   )
 }
 
 function ConnectedView({ config, syncStatus, t, onDisconnect }) {
-  const [keyResolved, setKeyResolved] = useState(false)
-  const showKeyPrompt = syncStatus === 'key-required' && !keyResolved
+  const [remote, setRemote] = useState(null)
+  const [unlocked, setUnlocked] = useState(() => isUnlocked())
+
+  useEffect(() => {
+    let cancelled = false
+    inspectRemoteState(config)
+      .then(info => { if (!cancelled) setRemote(info) })
+      .catch(() => { if (!cancelled) setRemote(null) })
+    return () => { cancelled = true }
+  }, [config])
+
+  const needsRemoteUnlock = Boolean(
+    remote?.encrypted && remote?.hasWraps && !unlocked,
+  )
+  const unrecoverable = Boolean(remote?.encrypted && !remote?.hasWraps)
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-4">
@@ -305,15 +231,53 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
 
       {loadCollabRulesTag() !== 1 && <UnauthenticatedWarning t={t} />}
 
-      {showKeyPrompt && (
-        <KeyRequiredPrompt config={config} t={t} onResolved={() => setKeyResolved(true)} />
+      {unrecoverable && (
+        <p className="text-xs text-destructive leading-relaxed">{t.encRemoteUnrecoverable}</p>
       )}
 
-      <EncryptionSection config={config} t={t} />
+      {needsRemoteUnlock && (
+        <UnlockRemotePrompt config={config} t={t} remote={remote}
+          onUnlocked={async () => {
+            setUnlocked(true)
+            setRemote(await inspectRemoteState(config))
+          }} />
+      )}
+
+      {remote && !needsRemoteUnlock && !unrecoverable && (
+        <EncryptionSection config={config} t={t} remote={remote} onRemoteChange={setRemote} />
+      )}
 
       <button onClick={onDisconnect}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
         <CloudOff className="h-3.5 w-3.5" /> {t.firebaseDisconnect}
+      </button>
+    </div>
+  )
+}
+
+function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
+  const handleUnlock = async ({ slot, secret }) => {
+    await unlockWithSecret({
+      wraps: pending.remote.wraps,
+      slot,
+      secret,
+      expectedDekId: pending.remote.dekId,
+    })
+    onUnlocked()
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium">{t.encUnlockTitle}</span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t.encRemoteAlreadyEncrypted}</p>
+      <SecretPrompt t={t} hint={getHint(pending.remote.wraps)} onUnlock={handleUnlock}
+        submitLabel={t.encUnlockTitle} />
+      <button onClick={onCancel}
+        className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
+        {t.cancel}
       </button>
     </div>
   )
@@ -338,6 +302,7 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
   const [raw, setRaw] = useState('')
   const [error, setError] = useState(null)
   const [testing, setTesting] = useState(false)
+  const [pendingConnect, setPendingConnect] = useState(null)
 
   useEffect(() => {
     const handler = e => { if (e.key === 'Escape') onClose() }
@@ -361,7 +326,18 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
     if (!parsed.apiKey || !parsed.projectId) { setError(t.firebaseConfigInvalid); return }
     setTesting(true)
     try {
-      await validateFirebaseConfig(parsed)
+      const remote = await validateFirebaseConfig(parsed)
+
+      if (remote.encrypted && !remote.hasWraps) {
+        setError(t.encRemoteUnrecoverable)
+        return
+      }
+
+      if (remote.encrypted) {
+        setPendingConnect({ config: parsed, remote })
+        return
+      }
+
       saveFirebaseConfig(parsed)
       setConfig(parsed)
     } catch {
@@ -369,6 +345,12 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
     } finally {
       setTesting(false)
     }
+  }
+
+  const completePendingConnect = () => {
+    saveFirebaseConfig(pendingConnect.config)
+    setConfig(pendingConnect.config)
+    setPendingConnect(null)
   }
 
   return (
@@ -382,7 +364,11 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
             </button>
           </div>
 
-          {config
+          {pendingConnect
+            ? <ConnectUnlockPrompt t={t} pending={pendingConnect}
+                onUnlocked={completePendingConnect}
+                onCancel={() => setPendingConnect(null)} />
+            : config
             ? <ConnectedView config={config} syncStatus={syncStatus} t={t} onDisconnect={handleDisconnect} />
             : (
               <div className="space-y-6">

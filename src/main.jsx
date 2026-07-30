@@ -1,51 +1,65 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { decodeStateFromUrl, clearUrlHash } from './lib/shareUtils'
-import { saveState, forceSaveState } from './store/persist'
-import { migrateState } from './store/migrations'
-import { loadFirebaseConfig } from './lib/firebaseConfig'
 import { registerPwa } from './pwa/registerPwa'
+import { runBootstrap, resumeBootstrap } from './boot/bootstrap'
+import { readContainerMeta } from './store/persist'
 
-const urlData = decodeStateFromUrl()
-if (urlData) {
-  const { state, status } = migrateState(urlData)
-  if (status === 'ok' || status === 'migrated') saveState(state)
-  clearUrlHash()
+function rootElement() {
+  return document.getElementById('root')
 }
 
-async function hydrateLocalFromFirebaseBeforeRender() {
-  const config = loadFirebaseConfig()
-  if (!config) return
-
-  try {
-    const { pullFromFirebase } = await import('./lib/firebase')
-    const remote = await Promise.race([
-      pullFromFirebase(config),
-      new Promise(resolve => setTimeout(() => resolve(null), 6000)),
-    ])
-
-    if (remote?.version) {
-      const { state, status } = migrateState(remote)
-      if (status === 'newer') sessionStorage.setItem('organizer:remote-newer', '1')
-      else if (status !== 'invalid') forceSaveState(state)
-    }
-  } catch {
-  }
-}
-
-async function start() {
-  await hydrateLocalFromFirebaseBeforeRender()
-
-  registerPwa()
-
-  const { default: App } = await import('./App.jsx')
-
-  createRoot(document.getElementById('root')).render(
+function renderApp(App) {
+  createRoot(rootElement()).render(
     <StrictMode>
       <App />
     </StrictMode>,
   )
+}
+
+async function renderUnlockGate({ storeError }) {
+  const [{ UnlockGate }, { loadPersonalWraps, unlockPersonal }] = await Promise.all([
+    import('./components/crypto/UnlockGate.jsx'),
+    import('./boot/unlockFlow'),
+  ])
+
+  const meta = readContainerMeta()
+  const wraps = await loadPersonalWraps()
+  if (!wraps) return
+
+  return new Promise(resolve => {
+    const root = createRoot(rootElement())
+    const handleUnlock = async ({ slot, secret }) => {
+      await unlockPersonal({ wraps, slot, secret })
+      root.unmount()
+      resolve()
+    }
+
+    root.render(
+      <StrictMode>
+        <UnlockGate
+          lang={meta?.lang ?? 'en'}
+          hint={wraps?.hint ?? null}
+          storeError={storeError}
+          onUnlock={handleUnlock}
+        />
+      </StrictMode>,
+    )
+  })
+}
+
+async function start() {
+  const boot = await runBootstrap()
+
+  if (boot.needsUnlock) {
+    await renderUnlockGate(boot)
+    await resumeBootstrap()
+  }
+
+  registerPwa()
+
+  const { default: App } = await import('./App.jsx')
+  renderApp(App)
 }
 
 void start()

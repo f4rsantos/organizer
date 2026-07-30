@@ -19,10 +19,10 @@ const PRIORITY_DOT = {
 }
 
 const DEFAULT_QUADRANTS = [
-  { id: 'urgent-important', urgent: true, important: true, labelKey: 'eisenhowerDoNow', tint: 'bg-rose-500/10 border-rose-500/30', dotColor: 'bg-rose-500' },
-  { id: 'important', urgent: false, important: true, labelKey: 'eisenhowerSchedule', tint: 'bg-amber-500/10 border-amber-500/30', dotColor: 'bg-amber-500' },
-  { id: 'urgent', urgent: true, important: false, labelKey: 'eisenhowerDelegate', tint: 'bg-sky-500/10 border-sky-500/30', dotColor: 'bg-sky-500' },
-  { id: 'neither', urgent: false, important: false, labelKey: 'eisenhowerEliminate', tint: 'bg-slate-500/10 border-slate-500/30', dotColor: 'bg-slate-500' },
+  { id: 'urgent-important', urgent: true, important: true, labelKey: 'eisenhowerDoNow', tint: 'bg-muted/60 border-border', dotColor: 'bg-foreground/70' },
+  { id: 'important', urgent: false, important: true, labelKey: 'eisenhowerSchedule', tint: 'bg-muted/40 border-border', dotColor: 'bg-foreground/50' },
+  { id: 'urgent', urgent: true, important: false, labelKey: 'eisenhowerDelegate', tint: 'bg-muted/40 border-border', dotColor: 'bg-foreground/50' },
+  { id: 'neither', urgent: false, important: false, labelKey: 'eisenhowerEliminate', tint: 'bg-muted/20 border-border', dotColor: 'bg-foreground/30' },
 ]
 const UNSORTED_ID = 'unsorted'
 const PAST_DAYS_CUTOFF = 7

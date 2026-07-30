@@ -58,6 +58,12 @@ describe('field extraction', () => {
     expect(item.classId).toBe('c1')
   })
 
+  it('routes a task to a class with "to"', () => {
+    const [item] = run('add task ppt 1 to calculus')
+    expect(item.title).toBe('ppt 1')
+    expect(item.classId).toBe('c1')
+  })
+
   it('pulls a time range', () => {
     const [item] = run('add calendar event lecture 15h-17h')
     expect(item.startTime).toBe('15:00')

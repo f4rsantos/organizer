@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { loadFirebaseConfig, pushToFirebase, pullFromFirebase } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
+import { stripTransient } from '@/lib/crypto'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
+const PUSH_DEBOUNCE_MS = 1000
 
 function getSerializableState() {
-  const s = useStore.getState()
-  return JSON.parse(JSON.stringify(s))
+  return JSON.parse(JSON.stringify(stripTransient(useStore.getState())))
 }
 
 export function useFirebaseSync() {
@@ -29,10 +30,8 @@ export function useFirebaseSync() {
     try {
       setStatus('syncing')
       const remote = await pullFromFirebase(config)
-      
+
       if (refs.current.lastLocalUpdateAt > pullStartTime) {
-        // Local state was modified while we were waiting for remote!
-        // Drop the pulled state to prevent overwriting local changes.
         setStatus('ok')
         return
       }
@@ -63,22 +62,49 @@ export function useFirebaseSync() {
       setStatus('syncing')
       await pushToFirebase(config, getSerializableState())
       setStatus('ok')
-    } catch {
-      setStatus('error')
+    } catch (err) {
+      setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
     }
   }, [])
+
+  const pushNow = useCallback(() => {
+    clearTimeout(refs.current.pushTimeout)
+    refs.current.pushTimeout = null
+    void push()
+  }, [push])
 
   const pullNow = useCallback(() => {
     void pull()
   }, [pull])
 
   useEffect(() => {
-    return useStore.subscribe(() => {
-      refs.current.lastLocalUpdateAt = Date.now()
-      clearTimeout(refs.current.pushTimeout)
-      refs.current.pushTimeout = setTimeout(push, 1000)
+    const tracked = refs.current
+    const unsubscribe = useStore.subscribe(() => {
+      tracked.lastLocalUpdateAt = Date.now()
+      clearTimeout(tracked.pushTimeout)
+      tracked.pushTimeout = setTimeout(push, PUSH_DEBOUNCE_MS)
     })
+    return () => {
+      unsubscribe()
+      clearTimeout(tracked.pushTimeout)
+      tracked.pushTimeout = null
+    }
   }, [push])
+
+  useEffect(() => {
+    const flush = () => {
+      if (refs.current.pushTimeout) pushNow()
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [pushNow])
 
   useEffect(() => {
     window.addEventListener('focus', pullNow)

@@ -4,7 +4,7 @@ import { randomBytes } from './bytes.js'
 import { encryptWithKey, decryptWithKey } from './envelope.js'
 import { aadForWrap } from './aad.js'
 
-const FAST = { alg: 'PBKDF2-SHA256', iterations: 1000 }
+const FAST = { alg: 'argon2id', memoryKiB: 1024, iterations: 1, parallelism: 1 }
 const SALT = randomBytes(SALT_BYTES)
 const AAD = aadForWrap('passphrase')
 
@@ -47,23 +47,38 @@ describe('determinism', () => {
 })
 
 describe('params validation', () => {
-  it('defaults to the shipped params', () => {
-    expect(KDF_DEFAULT.alg).toBe('PBKDF2-SHA256')
-    expect(KDF_DEFAULT.iterations).toBeGreaterThanOrEqual(310000)
+  it('defaults to a memory-hard algorithm', () => {
+    expect(KDF_DEFAULT.alg).toBe('argon2id')
+    expect(KDF_DEFAULT.memoryKiB).toBeGreaterThanOrEqual(19456)
   })
 
   it('rejects an unknown algorithm', async () => {
-    const params = { alg: 'argon2id', m: 19456, t: 2, p: 1 }
-    await expect(deriveWrappingKey('x', SALT, params)).rejects.toThrow('kdf-alg-unsupported')
+    await expect(deriveWrappingKey('x', SALT, { alg: 'scrypt', iterations: 1 }))
+      .rejects.toThrow('kdf-alg-unsupported')
+  })
+
+  it('rejects a legacy pbkdf2 wrap', async () => {
+    await expect(deriveWrappingKey('x', SALT, { alg: 'PBKDF2-SHA256', iterations: 600000 }))
+      .rejects.toThrow('kdf-alg-unsupported')
+  })
+
+  it('rejects a zero memory size', async () => {
+    await expect(deriveWrappingKey('x', SALT, { ...FAST, memoryKiB: 0 }))
+      .rejects.toThrow('kdf-params-invalid')
   })
 
   it('rejects a non-numeric iteration count', async () => {
-    await expect(deriveWrappingKey('x', SALT, { alg: 'PBKDF2-SHA256', iterations: 'lots' }))
+    await expect(deriveWrappingKey('x', SALT, { ...FAST, iterations: 'lots' }))
       .rejects.toThrow('kdf-params-invalid')
   })
 
   it('rejects a zero iteration count', async () => {
-    await expect(deriveWrappingKey('x', SALT, { alg: 'PBKDF2-SHA256', iterations: 0 }))
+    await expect(deriveWrappingKey('x', SALT, { ...FAST, iterations: 0 }))
+      .rejects.toThrow('kdf-params-invalid')
+  })
+
+  it('rejects a zero parallelism', async () => {
+    await expect(deriveWrappingKey('x', SALT, { ...FAST, parallelism: 0 }))
       .rejects.toThrow('kdf-params-invalid')
   })
 

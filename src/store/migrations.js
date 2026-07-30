@@ -1,7 +1,7 @@
 import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
 
-export const CURRENT_VERSION = 7
+export const CURRENT_VERSION = 6
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
@@ -13,7 +13,6 @@ const MIGRATIONS = [
   { toVersion: 4, migrate: migrateV4Events },
   { toVersion: 5, migrate: migrateV5NavbarStandbyApps },
   { toVersion: 6, migrate: migrateV6QuickAction },
-  { toVersion: 7, migrate: migrateV7RichNotes },
 ]
 
 export function migrateState(raw) {
@@ -167,18 +166,6 @@ function migrateV6QuickAction(state) {
   return { ...state, settings }
 }
 
-function migrateV7RichNotes(state) {
-  const notes = Array.isArray(state.notes) ? state.notes : []
-  return {
-    ...state,
-    notes: notes.map(note => {
-      if (!note || typeof note !== 'object' || note.doc) return note
-      const body = typeof note.body === 'string' ? note.body : ''
-      return { ...note, doc: body.trim() ? plaintextToDoc(body) : null }
-    }),
-  }
-}
-
 export function plaintextToDoc(text) {
   const paragraphs = String(text).split(/\n{2,}/)
   return {
@@ -254,6 +241,12 @@ function normalizeApps(apps, settings) {
   }
 }
 
+function noteDoc(note) {
+  if (note.doc && typeof note.doc === 'object') return note.doc
+  const body = typeof note.body === 'string' ? note.body : ''
+  return body.trim() ? plaintextToDoc(body) : null
+}
+
 function normalizeNote(note) {
   if (!note || typeof note !== 'object') return null
   const kind = ['canvas', 'text'].includes(note.kind) ? note.kind : 'text'
@@ -262,7 +255,7 @@ function normalizeNote(note) {
     title: typeof note.title === 'string' ? note.title : '',
     kind,
     body: typeof note.body === 'string' ? note.body : '',
-    doc: note.doc && typeof note.doc === 'object' ? note.doc : null,
+    doc: noteDoc(note),
     strokes: Array.isArray(note.strokes) ? note.strokes : [],
     favorite: Boolean(note.favorite),
     archived: Boolean(note.archived),

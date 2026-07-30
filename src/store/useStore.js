@@ -609,9 +609,9 @@ export const useStore = create((set, get) => ({
     ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
 
-  // Replaces the synchronous boot state once the encrypted snapshot has been
-  // decrypted. Applied without persisting: nothing has changed yet.
-  hydrateState: state => set(() => ({ ...state, hydrated: true })),
+  hydrateState: state => set(s => (s.dirtiedBeforeHydrate
+    ? { ...s, hydrated: true, dirtiedBeforeHydrate: undefined }
+    : { ...state, hydrated: true })),
   markHydrated: () => set(s => (s.hydrated ? s : { ...s, hydrated: true })),
 
   // --- Import / Export ---
@@ -631,5 +631,6 @@ export const useStore = create((set, get) => ({
 
 function persist(state) {
   saveState(state)
-  return state
+  if (state.hydrated) return state
+  return { ...state, dirtiedBeforeHydrate: true }
 }

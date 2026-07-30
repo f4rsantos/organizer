@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { loadStateAsync } from '@/store/persist'
-import { isEncryptionEnabled } from '@/lib/crypto'
+import { loadStateAsync, hasEncryptedSnapshot } from '@/store/persist'
 
 export function useHydrateState() {
   const hydrateState = useStore(s => s.hydrateState)
   const markHydrated = useStore(s => s.markHydrated)
-  const [ready, setReady] = useState(() => !isEncryptionEnabled())
+  const [ready, setReady] = useState(() => !hasEncryptedSnapshot())
 
   useEffect(() => {
     if (ready) {

@@ -1,37 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Link, QrCode } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { encodeStateToUrl } from '@/lib/shareUtils'
+
+const QR_MAX_CHARS = 2800
 
 export function SharePanel() {
   const state = useStore(s => s)
   const [copied, setCopied] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [showQr, setShowQr] = useState(false)
-  const urlRef = useRef(null)
-
-  const getUrl = () => {
-    const { setCourseAvg, setSemesterFinalGrade, setGradeComponents, setTargetGrade,
-      addTask, toggleTask, updateTask, deleteTask, addKanbanCard, updateKanbanCard,
-      moveKanbanCard, deleteKanbanCard, clearKanbanDone, wipeKanban, addKanbanColumn,
-      updateKanbanColumn, deleteKanbanColumn, addClass, updateClass, deleteClass,
-      addSemester, updateSemester, deleteSemester, setActiveSemester,
-      setTheme, setLang, completeOnboarding, updateSettings, importData,
-      ...data } = state
-    return encodeStateToUrl(data)
-  }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(getUrl())
+    await navigator.clipboard.writeText(await encodeStateToUrl(state))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleQr = async () => {
     if (showQr) { setShowQr(false); return }
-    const url = getUrl()
-    if (url.length > 4000) {
+    const url = await encodeStateToUrl(state)
+    if (url.length > QR_MAX_CHARS) {
       setQrDataUrl('toolarge')
     } else {
       const { default: QRCode } = await import('qrcode')
