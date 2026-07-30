@@ -1,7 +1,7 @@
 import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
 
-export const CURRENT_VERSION = 5
+export const CURRENT_VERSION = 6
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
@@ -12,6 +12,7 @@ const MIGRATIONS = [
   { toVersion: 3, migrate: migrateV3SemesterMode },
   { toVersion: 4, migrate: migrateV4Events },
   { toVersion: 5, migrate: migrateV5NavbarStandbyApps },
+  { toVersion: 6, migrate: migrateV6QuickAction },
 ]
 
 export function migrateState(raw) {
@@ -126,11 +127,16 @@ function normalizeEvent(event) {
     color: typeof event.color === 'string' ? event.color : null,
     allDay: event.allDay !== false,
     note: typeof event.note === 'string' ? event.note : '',
+    startTime: typeof event.startTime === 'string' ? event.startTime : null,
+    endTime: typeof event.endTime === 'string' ? event.endTime : null,
+    updatedAt: Number.isFinite(event.updatedAt) ? event.updatedAt : 0,
+    googleEventId: typeof event.googleEventId === 'string' ? event.googleEventId : null,
+    syncToGoogle: Boolean(event.syncToGoogle),
   }
 }
 
 function defaultNavbar() {
-  return { order: [...DEFAULT_TAB_ORDER], hidden: [], folders: [], showAddButton: false, labelMode: 'both', addAction: 'task' }
+  return { order: [...DEFAULT_TAB_ORDER], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
 }
 
 function migrateV5NavbarStandbyApps(state) {
@@ -143,6 +149,36 @@ function migrateV5NavbarStandbyApps(state) {
   return { ...state, settings, notes: Array.isArray(state.notes) ? state.notes : [] }
 }
 
+function migrateV6QuickAction(state) {
+  const settings = { ...(state.settings ?? {}) }
+  const apps = { ...(settings.apps ?? {}) }
+
+  if ('quickAdd' in apps) { apps.quickAction = apps.quickAdd; delete apps.quickAdd }
+  if ('quickAddTripleTap' in apps) { apps.quickActionTripleTap = apps.quickAddTripleTap; delete apps.quickAddTripleTap }
+  if ('quickAddShortcut' in apps) { apps.quickActionShortcut = apps.quickAddShortcut; delete apps.quickAddShortcut }
+  if ('quickAddNavbarShortcut' in apps) { apps.quickActionNavbarShortcut = apps.quickAddNavbarShortcut; delete apps.quickAddNavbarShortcut }
+  settings.apps = apps
+
+  if (settings.navbar?.addAction === 'quickadd') {
+    settings.navbar = { ...settings.navbar, addAction: 'quickaction' }
+  }
+
+  return { ...state, settings }
+}
+
+export function plaintextToDoc(text) {
+  const paragraphs = String(text).split(/\n{2,}/)
+  return {
+    type: 'doc',
+    content: paragraphs.map(block => {
+      const trimmed = block.replace(/\n/g, ' ').trim()
+      return trimmed
+        ? { type: 'paragraph', content: [{ type: 'text', text: trimmed }] }
+        : { type: 'paragraph' }
+    }),
+  }
+}
+
 function normalizeNavbar(navbar) {
   const n = navbar && typeof navbar === 'object' ? navbar : {}
   const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes'])
@@ -151,7 +187,9 @@ function normalizeNavbar(navbar) {
   const hidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
   const labelMode = ['both', 'icons', 'names'].includes(n.labelMode) ? n.labelMode : 'both'
   const mobilePosition = ['bottom', 'side'].includes(n.mobilePosition) ? n.mobilePosition : 'bottom'
-  const addAction = ['task', 'kanban', 'event', 'note', 'picker'].includes(n.addAction) ? n.addAction : 'task'
+  const addAction = ['task', 'kanban', 'event', 'note', 'quickaction', 'picker'].includes(n.addAction) ? n.addAction : 'task'
+  const addButtonLabel = typeof n.addButtonLabel === 'string' ? n.addButtonLabel : ''
+  const customNames = n.customNames && typeof n.customNames === 'object' ? n.customNames : {}
   const knownFolderIcons = ['more', 'folder', 'folderOpen', 'star', 'heart', 'bookmark', 'grid']
   const folders = (Array.isArray(n.folders) ? n.folders : [])
     .map(f => (f && typeof f === 'object' ? {
@@ -161,7 +199,7 @@ function normalizeNavbar(navbar) {
       children: (Array.isArray(f.children) ? f.children : []).filter(id => known.has(id)),
     } : null))
     .filter(Boolean)
-  return { order, hidden, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, folders }
+  return { order, hidden, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, addButtonLabel, customNames, folders }
 }
 
 function defaultStandby() {
@@ -191,7 +229,22 @@ function normalizeStandby(standby) {
 
 function normalizeApps(apps, settings) {
   const a = apps && typeof apps === 'object' ? apps : {}
-  return { collab: a.collab === true || settings.collabEnabled === true, notes: a.notes === true }
+  return {
+    collab: a.collab === true || settings.collabEnabled === true,
+    notes: a.notes === true,
+    eisenhower: a.eisenhower === true,
+    googleCalendar: a.googleCalendar === true,
+    quickAction: a.quickAction !== false,
+    quickActionTripleTap: Boolean(a.quickActionTripleTap),
+    quickActionShortcut: a.quickActionShortcut !== undefined ? a.quickActionShortcut : undefined,
+    quickActionNavbarShortcut: a.quickActionNavbarShortcut !== undefined ? a.quickActionNavbarShortcut : undefined,
+  }
+}
+
+function noteDoc(note) {
+  if (note.doc && typeof note.doc === 'object') return note.doc
+  const body = typeof note.body === 'string' ? note.body : ''
+  return body.trim() ? plaintextToDoc(body) : null
 }
 
 function normalizeNote(note) {
@@ -202,8 +255,11 @@ function normalizeNote(note) {
     title: typeof note.title === 'string' ? note.title : '',
     kind,
     body: typeof note.body === 'string' ? note.body : '',
+    doc: noteDoc(note),
     strokes: Array.isArray(note.strokes) ? note.strokes : [],
     favorite: Boolean(note.favorite),
+    archived: Boolean(note.archived),
+    archivedAt: Number.isFinite(note.archivedAt) ? note.archivedAt : null,
     folderId: typeof note.folderId === 'string' ? note.folderId : null,
     order: Number.isFinite(note.order) ? note.order : 0,
     createdAt: Number.isFinite(note.createdAt) ? note.createdAt : Date.now(),
@@ -241,6 +297,7 @@ function getDefaultPomodoroSettings() {
     trackStats: false,
     showAbandoned: true,
     showPeriodStats: true,
+    showOverlay: false,
   }
 }
 
@@ -254,6 +311,16 @@ function getDefaultFocusSync() {
     breakSecsLeftBase: 0,
     activeBreakSource: null,
     updatedAt: 0,
+  }
+}
+
+function normalizeRecurrence(recurrence) {
+  if (!recurrence || typeof recurrence !== 'object') return null
+  if (!['daily', 'weekly', 'monthly'].includes(recurrence.freq)) return null
+  return {
+    freq: recurrence.freq,
+    interval: Number.isFinite(recurrence.interval) ? Math.max(1, recurrence.interval) : 1,
+    until: typeof recurrence.until === 'string' ? recurrence.until : null,
   }
 }
 
@@ -274,6 +341,16 @@ function normalizeTask(task) {
           checklist: normalizeChecklist(task.kanban.checklist),
         }
       : null,
+    recurrence: normalizeRecurrence(task.recurrence),
+    recurrenceExceptions: task.recurrenceExceptions && typeof task.recurrenceExceptions === 'object'
+      ? task.recurrenceExceptions
+      : {},
+    eisenhower: task.eisenhower && typeof task.eisenhower === 'object'
+      ? {
+          urgent: Boolean(task.eisenhower.urgent),
+          important: Boolean(task.eisenhower.important),
+        }
+      : null,
   }
 }
 
@@ -287,6 +364,11 @@ function normalizeSettings(settings) {
   if (!['none', 'all', 'card'].includes(s.kanbanChecklistPreviewMode)) {
     s.kanbanChecklistPreviewMode = 'none'
   }
+  if (!['list', 'mosaic'].includes(s.notesViewMode)) s.notesViewMode = 'list'
+  if (typeof s.notesMathEnabled !== 'boolean') s.notesMathEnabled = false
+  if (typeof s.notesMathSolveEquations !== 'boolean') s.notesMathSolveEquations = true
+  if (typeof s.notesMathSelectionGraph !== 'boolean') s.notesMathSelectionGraph = true
+  if (typeof s.notesMathStepByStep !== 'boolean') s.notesMathStepByStep = true
   if (typeof s.focusAlertMode !== 'string') {
     s.focusAlertMode = s.vibrateOnPageFocus ? 'vibration' : 'none'
   }
@@ -339,6 +421,9 @@ export function normalizeState(state) {
     state.collab = { userId: null, memberships: [] }
   }
   if (!Array.isArray(state.collab.memberships)) state.collab.memberships = []
+  state.collab.memberships = state.collab.memberships.map(m => (
+    typeof m?.teamKey === 'string' && m.teamKey.trim() ? m : { ...m, teamKey: null }
+  ))
   if (typeof state.collab.userId !== 'string' && state.collab.userId !== null) state.collab.userId = null
 
   if (!state.collabRuntime || typeof state.collabRuntime !== 'object') {

@@ -1,54 +1,51 @@
 import { getPomodoroTimestamp, isPomodoroAggregate } from '../components/focus/pomodoro/utils'
 import { migrateState, normalizeState } from './migrations'
+import {
+  isEnvelope, decryptForSlot, aadForLocalSlice, aadForExport, WHOLE_STATE,
+  loadKeyString, wasEncryptionEverEnabled, importRawKey, getCachedDek,
+  DATA_SLICES, META_KEYS, encodeSlices, decodeSlices, isContainer, stripTransient,
+  planWithinBudget,
+} from '../lib/crypto'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
+const BACKUP_KEY = `${STORAGE_KEY}:pre-slice-backup`
 const LEGACY_FULL_PCT_UNITS = 2.5
 const POMODORO_UNITS_MAX = 120
 const LOCAL_CACHE_LIMIT_BYTES = Math.floor(4.8 * 1024 * 1024)
 
 let loadWarnings = []
+let writesBlocked = null
 
 export function getLoadWarnings() {
   return loadWarnings
 }
 
-function buildLightweightSnapshot(state) {
-  return normalizeState({
-    version: Number.isFinite(state?.version) ? state.version : 1,
-    theme: typeof state?.theme === 'string' ? state.theme : 'system',
-    lang: typeof state?.lang === 'string' ? state.lang : 'pt',
-    onboardingDone: Boolean(state?.onboardingDone),
-    activeSemesterId: typeof state?.activeSemesterId === 'string' ? state.activeSemesterId : null,
-    semesters: Array.isArray(state?.semesters) ? state.semesters : [],
-    classes: Array.isArray(state?.classes) ? state.classes : [],
-    events: Array.isArray(state?.events) ? state.events : [],
-    notes: (Array.isArray(state?.notes) ? state.notes : []).filter(n => n?.kind !== 'canvas'),
-    tasks: [],
-    kanban: {},
-    grades: {},
-    settings: state?.settings,
-    collab: state?.collab,
-    collabRuntime: { teams: {} },
-    focusSync: state?.focusSync,
-    pomodoros: [],
-    taskAlertStates: {},
-    courseAvg: { previousAvg: null, numSemesters: 0 },
-    holidays: [],
-    dismissedNextSemester: {},
-  })
+function blockWrites(reason) {
+  writesBlocked = reason
+  addLoadWarning(`writes-blocked:${reason}`)
 }
 
-function saveStateWithLimit(state) {
-  const fullJson = JSON.stringify(state)
-  const fullBytes = fullJson.length * 2
+export function getWriteBlockReason() {
+  return writesBlocked
+}
 
-  if (fullBytes <= LOCAL_CACHE_LIMIT_BYTES) {
-    localStorage.setItem(STORAGE_KEY, fullJson)
+export function readBackup() {
+  try {
+    const raw = localStorage.getItem(BACKUP_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function backupOnce(previous) {
+  if (previous === null || isContainer(previous)) return
+  try {
+    if (localStorage.getItem(BACKUP_KEY) !== null) return
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(previous))
+  } catch {
     return
   }
-
-  const lightweight = buildLightweightSnapshot(state)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight))
 }
 
 function startOfWeekLocal(ts, weekStartsOn = 0) {
@@ -124,41 +121,227 @@ function compactPomodorosForStorage(state) {
   return active
 }
 
-export function loadState() {
+function addLoadWarning(warning) {
+  if (!loadWarnings.includes(warning)) loadWarnings = [...loadWarnings, warning]
+}
+
+function finalizeLoadedState(data) {
+  const { state, status } = migrateState(data)
+  if (status === 'invalid') return null
+  if (status === 'newer') addLoadWarning('newer-version')
+  return normalizeState(state)
+}
+
+function readStoredValue() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const { state, status } = migrateState(JSON.parse(raw))
-    if (status === 'invalid') return null
-    if (status === 'newer') loadWarnings = ['newer-version']
-    return normalizeState(state)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
+function noteOmitted(container) {
+  const omitted = container?.omitted
+  if (Array.isArray(omitted) && omitted.length) {
+    addLoadWarning(`storage-cap-shed:${omitted.join(',')}`)
+  }
+}
+
+export function readContainerMeta() {
+  const parsed = readStoredValue()
+  return isContainer(parsed) ? (parsed.meta ?? null) : null
+}
+
+export function hasEncryptedSnapshot() {
+  const parsed = readStoredValue()
+  if (!isContainer(parsed)) return isEnvelope(parsed)
+  return Object.values(parsed.slices ?? {}).some(isEnvelope)
+}
+
+async function resolveKey() {
+  const dek = getCachedDek()
+  if (dek) return dek
+  const keyString = loadKeyString()
+  return keyString ? importRawKey(keyString) : null
+}
+
+export function loadState() {
+  const parsed = readStoredValue()
+  if (!parsed || isEnvelope(parsed)) return null
+
+  try {
+    if (!isContainer(parsed)) return finalizeLoadedState(parsed)
+    if (Object.values(parsed.slices ?? {}).some(isEnvelope)) return null
+    noteOmitted(parsed)
+    const loaded = finalizeLoadedState(decodeSlicesSync(parsed))
+    if (!loaded) blockWrites('load-failed')
+    return loaded
+  } catch {
+    blockWrites('load-failed')
+    return null
+  }
+}
+
+function decodeSlicesSync(container) {
+  const state = { ...container.meta }
+  for (const [slice, stored] of Object.entries(container.slices ?? {})) {
+    if (stored && Object.hasOwn(stored, 'plain')) state[slice] = stored.plain
+  }
+  return state
+}
+
+export async function loadStateAsync() {
+  const parsed = readStoredValue()
+  if (!parsed) return null
+
+  try {
+    if (isEnvelope(parsed)) {
+      const legacyKey = loadKeyString()
+      if (!legacyKey) {
+        addLoadWarning('encryption-key-required')
+        blockWrites('encryption-key-required')
+        return null
+      }
+      return finalizeLoadedState(
+        await decryptForSlot(parsed, legacyKey, aadForLocalSlice(WHOLE_STATE)),
+      )
+    }
+
+    if (!isContainer(parsed)) return finalizeLoadedState(parsed)
+
+    const encrypted = Object.values(parsed.slices ?? {}).some(isEnvelope)
+    if (!encrypted) {
+      noteOmitted(parsed)
+      return finalizeLoadedState(decodeSlicesSync(parsed))
+    }
+
+    const key = await resolveKey()
+    if (!key) {
+      addLoadWarning('encryption-key-required')
+      blockWrites('encryption-key-required')
+      return null
+    }
+
+    const state = await decodeSlices({ container: parsed, key, aadFor: aadForLocalSlice })
+    noteOmitted(parsed)
+    return finalizeLoadedState(state)
+  } catch {
+    addLoadWarning('encryption-key-required')
+    blockWrites('encryption-key-required')
+    return null
+  }
+}
+
+let compactedPomodoros = { source: null, value: null }
+
+function compactForStorage(state) {
+  const persistable = stripTransient(state)
+  if (persistable.pomodoros !== compactedPomodoros.source) {
+    compactedPomodoros = {
+      source: persistable.pomodoros,
+      value: compactPomodorosForStorage(persistable),
+    }
+  }
+  return { ...persistable, pomodoros: compactedPomodoros.value }
+}
+
+let lastPersisted = null
+let writeChain = Promise.resolve()
+let queued = null
+
+function dirtySlicesOf(state) {
+  if (!lastPersisted) return DATA_SLICES
+  const omitted = new Set(lastPersisted.omitted)
+  return DATA_SLICES.filter(slice => !omitted.has(slice)
+    && state[slice] !== lastPersisted.sliceRefs[slice])
+}
+
+function metaChanged(state) {
+  if (!lastPersisted) return true
+  return META_KEYS.some(key => state[key] !== lastPersisted.meta[key])
+}
+
+function snapshotRefs(state, keys) {
+  const refs = {}
+  for (const key of keys) refs[key] = state[key]
+  return refs
+}
+
+async function writeContainer(state) {
+  if (writesBlocked) throw new Error(writesBlocked)
+
+  const key = await resolveKey()
+  if (!key && wasEncryptionEverEnabled()) throw new Error('encryption-key-required')
+
+  backupOnce(readStoredValue())
+
+  const { state: planned, omitted } = planWithinBudget(state, LOCAL_CACHE_LIMIT_BYTES)
+  const reusable = lastPersisted && lastPersisted.key === key
+  const dirty = reusable ? dirtySlicesOf(planned) : null
+  const rev = (lastPersisted?.rev ?? 0) + 1
+
+  const container = await encodeSlices({
+    state: planned,
+    key,
+    aadFor: aadForLocalSlice,
+    previousContainer: reusable ? lastPersisted.container : null,
+    dirtySlices: dirty,
+    omitted,
+    rev,
+  })
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(container))
+  lastPersisted = {
+    sliceRefs: snapshotRefs(planned, DATA_SLICES),
+    meta: snapshotRefs(planned, META_KEYS),
+    container,
+    omitted,
+    rev,
+    key,
+  }
+}
+
+function enqueueWrite(state) {
+  queued = state
+  writeChain = writeChain.then(async () => {
+    const pending = queued
+    if (!pending) return
+    queued = null
+    await writeContainer(pending)
+  }).catch(() => {})
+  return writeChain
+}
+
+function persistSnapshot(state, { force = false } = {}) {
+  const compacted = compactForStorage(state)
+  const unchanged = lastPersisted && !metaChanged(compacted) && !dirtySlicesOf(compacted).length
+  if (!force && unchanged) return writeChain
+  return enqueueWrite(compacted)
+}
+
 export function saveState(state) {
   try {
-    const { collabRuntime: _runtime, ...persistableState } = state
-    const compacted = {
-      ...persistableState,
-      pomodoros: compactPomodorosForStorage(persistableState),
-    }
-    saveStateWithLimit(compacted)
+    void persistSnapshot(state)
   } catch {
+    return
   }
 }
 
 export function forceSaveState(state) {
   try {
-    const { collabRuntime: _runtime, ...persistableState } = state
-    const compacted = {
-      ...persistableState,
-      pomodoros: compactPomodorosForStorage(persistableState),
-    }
-    saveStateWithLimit(compacted)
+    return persistSnapshot(state, { force: true })
   } catch {
+    return Promise.resolve()
   }
+}
+
+export function resetPersistCacheForTests() {
+  lastPersisted = null
+  writeChain = Promise.resolve()
+  queued = null
+  compactedPomodoros = { source: null, value: null }
+  loadWarnings = []
 }
 
 export function getAppStorageBytes() {
@@ -183,12 +366,18 @@ export function exportState(state) {
   URL.revokeObjectURL(url)
 }
 
-export function importState(file) {
+export function importState(file, keyString) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = e => {
+    reader.onload = async e => {
       try {
-        const data = JSON.parse(e.target.result)
+        const parsed = JSON.parse(e.target.result)
+        let data = parsed
+        if (isEnvelope(parsed)) {
+          const key = keyString ?? loadKeyString()
+          if (!key) throw new Error('encryption-key-required')
+          data = await decryptForSlot(parsed, key, aadForExport(WHOLE_STATE))
+        }
         const { state, status } = migrateState(data)
         if (status === 'invalid') throw new Error('Invalid backup file')
         if (status === 'newer') throw new Error('Backup was created by a newer app version')

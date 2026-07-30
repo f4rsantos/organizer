@@ -1,0 +1,450 @@
+/* --- Tasks: rows tick off one by one, group counters follow --- */
+.tour-task-tick {
+    opacity: 0;
+}
+.tour-task-r1 .tour-task-box {
+    animation: tour-task-check-1 6s ease-in-out infinite;
+}
+.tour-task-r2 .tour-task-box {
+    animation: tour-task-check-2 6s ease-in-out infinite;
+}
+.tour-task-r3 .tour-task-box {
+    animation: tour-task-check-3 6s ease-in-out infinite;
+}
+.tour-task-r1 .tour-task-tick {
+    animation: tour-task-tick-1 6s ease-in-out infinite;
+}
+.tour-task-r2 .tour-task-tick {
+    animation: tour-task-tick-2 6s ease-in-out infinite;
+}
+.tour-task-r3 .tour-task-tick {
+    animation: tour-task-tick-3 6s ease-in-out infinite;
+}
+.tour-task-r1 .tour-task-label {
+    animation: tour-task-fade-1 6s ease-in-out infinite;
+}
+.tour-task-r2 .tour-task-label {
+    animation: tour-task-fade-2 6s ease-in-out infinite;
+}
+.tour-task-r3 .tour-task-label {
+    animation: tour-task-fade-3 6s ease-in-out infinite;
+}
+@keyframes tour-task-check-1 {
+    0%,
+    18% {
+        background: transparent;
+        border-color: var(--muted-foreground);
+        color: transparent;
+    }
+    26%,
+    100% {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+@keyframes tour-task-check-2 {
+    0%,
+    42% {
+        background: transparent;
+        border-color: var(--muted-foreground);
+        color: transparent;
+    }
+    50%,
+    100% {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+@keyframes tour-task-check-3 {
+    0%,
+    66% {
+        background: transparent;
+        border-color: var(--muted-foreground);
+        color: transparent;
+    }
+    74%,
+    100% {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+@keyframes tour-task-tick-1 {
+    0%,
+    18% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    26%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes tour-task-tick-2 {
+    0%,
+    42% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes tour-task-tick-3 {
+    0%,
+    66% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    74%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes tour-task-fade-1 {
+    0%,
+    22% {
+        opacity: 1;
+    }
+    30%,
+    100% {
+        opacity: 0.35;
+    }
+}
+@keyframes tour-task-fade-2 {
+    0%,
+    46% {
+        opacity: 1;
+    }
+    54%,
+    100% {
+        opacity: 0.35;
+    }
+}
+@keyframes tour-task-fade-3 {
+    0%,
+    70% {
+        opacity: 1;
+    }
+    78%,
+    100% {
+        opacity: 0.35;
+    }
+}
+.tour-task-count-0::after {
+    content: '0/2';
+    animation: tour-task-count-a 6s steps(1) infinite;
+}
+.tour-task-count-1::after {
+    content: '0/1';
+    animation: tour-task-count-b 6s steps(1) infinite;
+}
+@keyframes tour-task-count-a {
+    0%,
+    25% {
+        content: '0/2';
+    }
+    26%,
+    49% {
+        content: '1/2';
+    }
+    50%,
+    100% {
+        content: '2/2';
+    }
+}
+@keyframes tour-task-count-b {
+    0%,
+    73% {
+        content: '0/1';
+    }
+    74%,
+    100% {
+        content: '1/1';
+    }
+}
+
+/* --- Settings: accordion rows open in turn, panes swap --- */
+.tour-set-row-0 {
+    animation: tour-set-row-a 9s steps(1) infinite;
+}
+.tour-set-row-1 {
+    animation: tour-set-row-b 9s steps(1) infinite;
+}
+.tour-set-row-2 {
+    animation: tour-set-row-c 9s steps(1) infinite;
+}
+@keyframes tour-set-row-a {
+    0%,
+    32% {
+        background: var(--accent);
+        color: var(--accent-foreground);
+    }
+    33%,
+    100% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+}
+@keyframes tour-set-row-b {
+    0%,
+    32% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+    33%,
+    65% {
+        background: var(--accent);
+        color: var(--accent-foreground);
+    }
+    66%,
+    100% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+}
+@keyframes tour-set-row-c {
+    0%,
+    65% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+    66%,
+    100% {
+        background: var(--accent);
+        color: var(--accent-foreground);
+    }
+}
+.tour-set-chev-0 {
+    animation: tour-set-chev-a 9s steps(1) infinite;
+}
+.tour-set-chev-1 {
+    animation: tour-set-chev-b 9s steps(1) infinite;
+}
+.tour-set-chev-2 {
+    animation: tour-set-chev-c 9s steps(1) infinite;
+}
+@keyframes tour-set-chev-a {
+    0%,
+    32% {
+        transform: rotate(90deg);
+    }
+    33%,
+    100% {
+        transform: rotate(0deg);
+    }
+}
+@keyframes tour-set-chev-b {
+    0%,
+    32% {
+        transform: rotate(0deg);
+    }
+    33%,
+    65% {
+        transform: rotate(90deg);
+    }
+    66%,
+    100% {
+        transform: rotate(0deg);
+    }
+}
+@keyframes tour-set-chev-c {
+    0%,
+    65% {
+        transform: rotate(0deg);
+    }
+    66%,
+    100% {
+        transform: rotate(90deg);
+    }
+}
+.tour-set-pane {
+    opacity: 0;
+    will-change: opacity;
+}
+.tour-set-pane-0 {
+    animation: tour-set-pane-a 9s ease-in-out infinite;
+}
+.tour-set-pane-1 {
+    animation: tour-set-pane-b 9s ease-in-out infinite;
+}
+.tour-set-pane-2 {
+    animation: tour-set-pane-c 9s ease-in-out infinite;
+}
+@keyframes tour-set-pane-a {
+    0%,
+    30% {
+        opacity: 1;
+    }
+    34%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-set-pane-b {
+    0%,
+    31% {
+        opacity: 0;
+    }
+    35%,
+    63% {
+        opacity: 1;
+    }
+    67%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes tour-set-pane-c {
+    0%,
+    64% {
+        opacity: 0;
+    }
+    68%,
+    100% {
+        opacity: 1;
+    }
+}
+.tour-set-switch-0 {
+    animation: tour-set-switch 9s ease-in-out infinite;
+}
+.tour-set-switch-1 {
+    animation: tour-set-switch 9s ease-in-out infinite 0.5s;
+}
+@keyframes tour-set-switch {
+    0%,
+    10% {
+        background: var(--border);
+    }
+    18%,
+    100% {
+        background: var(--primary);
+    }
+}
+.tour-set-switch-0 .tour-set-knob {
+    animation: tour-set-knob 9s ease-in-out infinite;
+}
+.tour-set-switch-1 .tour-set-knob {
+    animation: tour-set-knob 9s ease-in-out infinite 0.5s;
+}
+@keyframes tour-set-knob {
+    0%,
+    10% {
+        transform: translateX(0);
+    }
+    18%,
+    100% {
+        transform: translateX(0.375rem);
+    }
+}
+.tour-set-app-0 {
+    animation: tour-set-app 9s ease-in-out infinite 0.1s;
+}
+.tour-set-app-1 {
+    animation: tour-set-app 9s ease-in-out infinite 0.25s;
+}
+.tour-set-app-2 {
+    animation: tour-set-app 9s ease-in-out infinite 0.4s;
+}
+.tour-set-app-3 {
+    animation: tour-set-app 9s ease-in-out infinite 0.55s;
+}
+@keyframes tour-set-app {
+    0%,
+    36% {
+        background: var(--secondary);
+    }
+    44%,
+    62% {
+        background: color-mix(in oklab, var(--primary) 35%, var(--secondary));
+    }
+    68%,
+    100% {
+        background: var(--secondary);
+    }
+}
+
+/* --- Share: export presses, file drops in, cloud badge confirms --- */
+.tour-share-btn {
+    animation: tour-share-press 5s steps(1) infinite;
+}
+@keyframes tour-share-press {
+    0%,
+    22% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+    24%,
+    32% {
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
+    34%,
+    100% {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+}
+.tour-share-file {
+    opacity: 0;
+    animation: tour-share-file 5s ease-in-out infinite;
+    will-change: opacity, transform;
+}
+@keyframes tour-share-file {
+    0%,
+    32% {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    42%,
+    92% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+}
+.tour-share-bar {
+    transform-origin: left center;
+    animation: tour-share-bar 5s ease-in-out infinite;
+}
+@keyframes tour-share-bar {
+    0%,
+    38% {
+        transform: scaleX(0);
+    }
+    62%,
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+.tour-share-done {
+    opacity: 0;
+    animation: tour-share-done 5s ease-in-out infinite;
+    will-change: opacity, transform;
+}
+@keyframes tour-share-done {
+    0%,
+    62% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.6);
+    }
+    72%,
+    92% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.6);
+    }
+}

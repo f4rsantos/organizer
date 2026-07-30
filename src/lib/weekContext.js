@@ -1,8 +1,15 @@
 import {
-  differenceInCalendarWeeks, parseISO, format,
+  differenceInCalendarWeeks, parseISO, format, addWeeks,
   getISOWeek, getISOWeeksInYear, setISOWeek, startOfISOWeek,
 } from 'date-fns'
 import { computeCurrentWeek, computeWeekCount, weekDateRange } from '@/lib/semesterUtils'
+
+function semesterWeekBounds(semester, week) {
+  const start = addWeeks(startOfISOWeek(parseISO(semester.startDate)), week - 1)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  return { start, end }
+}
 
 function semesterContext(semester) {
   const hasDates = Boolean(semester?.startDate && semester?.endDate)
@@ -16,14 +23,20 @@ function semesterContext(semester) {
       return differenceInCalendarWeeks(parseISO(dateStr), parseISO(semester.startDate), { weekStartsOn: 1 }) + 1
     },
     weekDateRange: week => (hasDates ? weekDateRange(semester.startDate, week) : null),
+    weekDateBounds: week => (hasDates ? semesterWeekBounds(semester, week) : null),
   }
 }
 
-function isoWeekLabels(week, year) {
+function isoWeekBounds(week, year) {
   const weekStart = startOfISOWeek(setISOWeek(new Date(year, 5, 1), week))
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
-  return { start: format(weekStart, 'dd MMM'), end: format(weekEnd, 'dd MMM') }
+  return { start: weekStart, end: weekEnd }
+}
+
+function isoWeekLabels(week, year) {
+  const { start, end } = isoWeekBounds(week, year)
+  return { start: format(start, 'dd MMM'), end: format(end, 'dd MMM') }
 }
 
 function noneContext() {
@@ -35,6 +48,7 @@ function noneContext() {
     currentWeek: getISOWeek(today),
     dateToWeek: dateStr => (dateStr ? getISOWeek(parseISO(dateStr)) : null),
     weekDateRange: week => isoWeekLabels(week, year),
+    weekDateBounds: week => isoWeekBounds(week, year),
   }
 }
 

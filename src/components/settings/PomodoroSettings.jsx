@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 
-const DEFAULT = { enabled: false, resetPeriod: 'week', trackStats: false, showAbandoned: true, showPeriodStats: true }
+const DEFAULT = { enabled: false, resetPeriod: 'week', trackStats: false, showAbandoned: true, showPeriodStats: true, showOverlay: false }
 
 export function PomodoroSettings() {
   const lang = useStore(s => s.lang ?? 'en')
@@ -58,7 +58,13 @@ export function PomodoroSettings() {
         <button type="button" onClick={() => toggle('showPeriodStats')}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           {pom.showPeriodStats ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
-          {t.pomodoroShowPeriodPomodoros}
+          <span>{t.pomodoroShowPeriodPomodoros}</span>
+        </button>
+
+        <button type="button" onClick={() => toggle('showOverlay')}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {pom.showOverlay === true ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
+          <span>{t.pomodoroShowOverlay || 'Show global overlay over all tabs'}</span>
         </button>
 
         <button type="button" onClick={() => toggle('trackStats')}

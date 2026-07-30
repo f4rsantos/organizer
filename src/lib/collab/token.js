@@ -1,14 +1,22 @@
-function bytesToHex(bytes) {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-}
+import { bytesToHex, randomBytes, constantTimeEqualHex } from '../crypto'
+
+const TOKEN_BYTES = 16
+const SALT_BYTES = 16
 
 export function createInviteToken() {
-  const raw = crypto.getRandomValues(new Uint8Array(8))
-  return bytesToHex(raw)
+  return bytesToHex(randomBytes(TOKEN_BYTES))
 }
 
-export async function hashToken(token) {
-  const data = new TextEncoder().encode(token)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return bytesToHex(new Uint8Array(digest))
+export function createTokenSalt() {
+  return bytesToHex(randomBytes(SALT_BYTES))
+}
+
+export async function hashToken(token, salt = '') {
+  const data = new TextEncoder().encode(`${salt}:${token}`)
+  return bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', data)))
+}
+
+export async function matchesTokenHash({ token, salt, tokenHash }) {
+  if (!token || !tokenHash) return false
+  return constantTimeEqualHex(await hashToken(token, salt ?? ''), tokenHash)
 }

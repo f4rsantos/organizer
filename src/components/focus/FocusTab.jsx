@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
@@ -6,7 +6,7 @@ import { fmtMins, fmtTimer } from './focusTab/formatters'
 import { CenterPomodoro } from './focusTab/CenterPomodoro'
 import { FocusWheel } from './focusTab/FocusWheel'
 import { FocusSettingsPanel } from './focusTab/FocusSettingsPanel'
-import { PomodoroLayer } from './PomodoroLayer'
+import { FocusPomodoroStats } from './focusTab/FocusPomodoroStats'
 import { useFocusPresentation } from './focusTab/useFocusPresentation'
 
 export function FocusTab() {
@@ -14,10 +14,9 @@ export function FocusTab() {
   const [showSettings, setShowSettings] = useState(false)
   const [newTimeH, setNewTimeH] = useState(16)
   const [newTimeM, setNewTimeM] = useState(30)
-  const containerRef = useRef(null)
 
   const {
-    t, lang, focus, clock, pomodoroEnabled, resetSignal, smoothGrowth, growingFace,
+    t, lang, focus, clock, pomodoroEnabled, smoothGrowth, growingFace,
     isBreak, ringPct, focusPct, centerSize, activeFocusText, displayBreakLabel, handleReset,
   } = useFocusPresentation()
 
@@ -26,16 +25,8 @@ export function FocusTab() {
 
   return (
     <div className="h-full overflow-y-auto flex flex-col">
-      <div ref={containerRef} className="relative flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 select-none overflow-hidden">
-        {pomodoroEnabled && (
-          <PomodoroLayer
-            containerRef={containerRef}
-            focusRunning={running}
-            phase={phase}
-            cycleElapsed={cycleElapsed}
-            resetSignal={resetSignal}
-          />
-        )}
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 select-none overflow-hidden">
+        {pomodoroEnabled && <FocusPomodoroStats />}
 
         <FocusWheel pct={ringPct} isBreak={isBreak}
           label={isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)}
@@ -73,10 +64,12 @@ export function FocusTab() {
           </p>
         )}
 
-        <button onClick={() => setShowSettings(v => !v)}
-          className="relative z-20 text-muted-foreground hover:text-foreground transition-colors">
-          <SlidersHorizontal className="h-4 w-4" />
-        </button>
+        <div className="relative z-20 flex items-center justify-center">
+          <button onClick={() => setShowSettings(v => !v)}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1">
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+        </div>
 
         {showSettings && (
           <FocusSettingsPanel

@@ -1,46 +1,30 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAuth, signInAnonymously } from 'firebase/auth'
+import {
+  loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
+  aadForPersonalSlice, WHOLE_STATE, getCachedDek, hasAnySlot,
+  isContainer, isEncryptedContainer, encodeSlices, decodeSlices, stripTransient,
+  MODE_SYNC,
+} from './crypto'
+import { readDevicePref, writeDevicePref } from './devicePrefs'
 
-const CONFIG_KEY = 'f4rsantos.github.io/organizer:firebase'
+export { loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig } from './firebaseConfig'
+
 const DOC_PATH = { collection: 'organizer', id: 'state' }
-const COLLAB_RULES_TAG_KEY = `${CONFIG_KEY}:collab-rules-tag`
-const ANON_AUTH_FAIL_KEY = `${CONFIG_KEY}:anon-auth-fail`
+const PERSONAL_AAD = aadForPersonalSlice(WHOLE_STATE)
+const COLLAB_RULES_PREF = 'collabRules'
+const ANON_AUTH_FAIL_PREF = 'anonAuthFail'
 const ANON_AUTH_STATUS = new Map()
 const ANON_AUTH_PENDING = new Map()
 const ANON_AUTH_FAIL_COOLDOWN_MS = 10 * 60 * 1000
 
-export function loadFirebaseConfig() {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-export function saveFirebaseConfig(config) {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config))
-}
-
-export function clearFirebaseConfig() {
-  localStorage.removeItem(CONFIG_KEY)
-}
-
 export function loadCollabRulesTag() {
-  try {
-    const raw = localStorage.getItem(COLLAB_RULES_TAG_KEY)
-    return raw === '1' ? 1 : 0
-  } catch {
-    return 0
-  }
+  return readDevicePref(COLLAB_RULES_PREF) === true ? 1 : 0
 }
 
 export function markCollabRulesEnabled() {
-  try {
-    localStorage.setItem(COLLAB_RULES_TAG_KEY, '1')
-  } catch {
-  }
+  writeDevicePref(COLLAB_RULES_PREF, true)
 }
 
 function getApp(config) {
@@ -68,21 +52,12 @@ function getProjectIdFromApp(app) {
 }
 
 function readAnonFailCache() {
-  try {
-    const raw = localStorage.getItem(ANON_AUTH_FAIL_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+  const cache = readDevicePref(ANON_AUTH_FAIL_PREF)
+  return cache && typeof cache === 'object' ? cache : {}
 }
 
 function writeAnonFailCache(cache) {
-  try {
-    localStorage.setItem(ANON_AUTH_FAIL_KEY, JSON.stringify(cache))
-  } catch {
-  }
+  writeDevicePref(ANON_AUTH_FAIL_PREF, cache)
 }
 
 function isAnonAuthCooldownActive(app) {
@@ -176,17 +151,118 @@ async function runSyncOperation(app, operation) {
   }
 }
 
-export async function pushToFirebase(config, state) {
-  const app = getApp(config)
-  const db = getFirestore(app)
-  await runSyncOperation(app, () => setDoc(stateDoc(db), state))
-}
-
-export async function pullFromFirebase(config) {
+async function readStateDoc(config) {
   const app = getApp(config)
   const db = getFirestore(app)
   const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
   return snap.exists() ? snap.data() : null
+}
+
+async function writeStateDoc(config, payload) {
+  const app = getApp(config)
+  const db = getFirestore(app)
+  await runSyncOperation(app, () => setDoc(stateDoc(db), payload))
+}
+
+function describeStateDoc(data) {
+  if (!data) {
+    return { exists: false, encrypted: false, hasWraps: false, wraps: null, dekId: null, meta: null }
+  }
+  const container = isContainer(data)
+  return {
+    exists: true,
+    encrypted: container ? isEncryptedContainer(data) : isEnvelope(data),
+    hasWraps: hasAnySlot(data?.wraps),
+    wraps: data?.wraps ?? null,
+    dekId: data?.dekId ?? null,
+    meta: container ? data.meta ?? null : null,
+    legacy: !container,
+  }
+}
+
+export async function pushToFirebase(config, state) {
+  const dek = getCachedDek()
+  if (!dek) {
+    assertKeyExpected()
+    const legacyKey = loadKeyString()
+    if (legacyKey) {
+      await writeStateDoc(config, await encryptForSlot(state, legacyKey, PERSONAL_AAD))
+      return
+    }
+    await writeStateDoc(config, await buildContainer(state, null))
+    return
+  }
+
+  const existing = await readStateDoc(config)
+  if (!hasAnySlot(existing?.wraps)) throw new Error('sync-wraps-missing')
+
+  await writeStateDoc(config, {
+    ...await buildContainer(state, dek),
+    encMode: MODE_SYNC,
+    wraps: existing.wraps,
+    dekId: existing.dekId ?? null,
+  })
+}
+
+async function buildContainer(state, dek) {
+  return encodeSlices({
+    state: stripTransient(state),
+    key: dek,
+    aadFor: aadForPersonalSlice,
+    rev: Date.now(),
+  })
+}
+
+export async function pushEnabledContainer(config, { state, dek, wraps, dekId }) {
+  await writeStateDoc(config, {
+    ...await buildContainer(state, dek),
+    encMode: MODE_SYNC,
+    wraps,
+    dekId,
+  })
+}
+
+export async function fetchStateContainer(config) {
+  const data = await readStateDoc(config)
+  return isContainer(data) ? data : null
+}
+
+export async function publishRotation(config, { container, wraps, dekId }) {
+  await writeStateDoc(config, { ...container, encMode: MODE_SYNC, wraps, dekId })
+}
+
+export async function pushWraps(config, wraps) {
+  const existing = await readStateDoc(config)
+  if (!existing) throw new Error('sync-doc-missing')
+  await writeStateDoc(config, { ...existing, wraps })
+}
+
+export async function fetchStateWraps(config) {
+  const data = await readStateDoc(config)
+  return data?.wraps ?? null
+}
+
+export async function inspectRemoteState(config) {
+  return describeStateDoc(await readStateDoc(config))
+}
+
+export async function pullFromFirebase(config) {
+  const data = await readStateDoc(config)
+  if (!data) return null
+
+  if (isContainer(data)) {
+    if (!isEncryptedContainer(data)) {
+      return decodeSlices({ container: data, key: null, aadFor: aadForPersonalSlice })
+    }
+    const dek = getCachedDek()
+    if (!dek) throw new Error('encryption-key-required')
+    return decodeSlices({ container: data, key: dek, aadFor: aadForPersonalSlice })
+  }
+
+  if (!isEnvelope(data)) return data
+  const keyString = loadKeyString()
+  if (!keyString) throw new Error('encryption-key-required')
+  return decryptForSlot(data, keyString, PERSONAL_AAD)
 }
 
 export async function validateFirebaseConfig(config) {
@@ -197,14 +273,15 @@ export async function validateFirebaseConfig(config) {
 
   if (sameProject) {
     const db = getFirestore(existingDefault)
-    await runSyncOperation(existingDefault, () => getDoc(stateDoc(db)))
-    return
+    const snap = await runSyncOperation(existingDefault, () => getDoc(stateDoc(db)))
+    return describeStateDoc(snap.exists() ? snap.data() : null)
   }
 
   const app = initializeApp(config, `validate_${Date.now()}`)
   try {
     const db = getFirestore(app)
-    await runSyncOperation(app, () => getDoc(stateDoc(db)))
+    const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
+    return describeStateDoc(snap.exists() ? snap.data() : null)
   } finally {
     await deleteApp(app)
   }

@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { loadFirebaseConfig } from '@/lib/firebase'
 import { buildInviteLink, parseInviteLink } from '@/lib/collab/link'
+import { createTeamKey } from '@/lib/collab/teamCrypto'
 import {
   createTeam,
   deleteTeam,
@@ -218,6 +219,9 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
             {team.syncStatus === 'error' && (
               <p className="text-[11px] text-destructive pt-1">{t.collabSyncErrorHint}</p>
             )}
+            {team.syncStatus === 'key-required' && (
+              <p className="text-[11px] text-destructive pt-1">{t.collabKeyRequiredHint}</p>
+            )}
           </>
         )
       }
@@ -277,11 +281,13 @@ export function CollabPanel() {
     setError(null)
     try {
       const expiresAt = Date.now() + parseDays(durationInput, 365) * DAY_MS
+      const teamKey = createTeamKey()
       const teamId = await createTeam({
         config: firebaseConfig,
         hostUserId: collab.userId,
         name: name.trim(),
         expiresAt,
+        teamKey,
       })
       addMembership({
         teamId,
@@ -290,6 +296,7 @@ export function CollabPanel() {
         hostUserId: collab.userId,
         teamName: name.trim(),
         expiresAt,
+        teamKey,
       })
       setName('')
       setDurationInput('365')
@@ -313,6 +320,7 @@ export function CollabPanel() {
         apiKey: team.apiKey,
         teamId: team.teamId,
         token,
+        teamKey: team.teamKey,
       })
       await navigator.clipboard.writeText(link)
     } catch (err) {
@@ -341,6 +349,7 @@ export function CollabPanel() {
         teamId: parsed.teamId,
         apiKey: parsed.apiKey,
         projectId: parsed.projectId,
+        teamKey: parsed.teamKey,
       })
       setJoinLink('')
     } catch (err) {
@@ -362,6 +371,7 @@ export function CollabPanel() {
         userId: collab.userId,
       })
     } catch {
+      // local membership is removed below so the user isn't stuck in the team
     }
 
     removeMembership(membership.teamId)

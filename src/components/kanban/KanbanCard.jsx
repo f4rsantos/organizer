@@ -32,12 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const PRIORITY_DOT = {
-  high: "bg-rose-500",
-  medium: "bg-amber-400",
-  low: "bg-emerald-500",
-};
+import { PRIORITY_COLORS as PRIORITY_DOT } from "@/lib/constants";
 
 export function KanbanCard({
   card,
@@ -119,7 +114,7 @@ export function KanbanCard({
     if (!card?.classId) return null;
     const semClasses = classes.filter((cls) => cls?.semesterId === semId);
     return semClasses.find((cls) => cls.id === card.classId)?.name ?? null;
-  }, [card?.classId, card?.className, classes, semId]);
+  }, [card, classes, semId]);
 
   const toggleChecklistItem = async (itemId, done) => {
     const patch = {

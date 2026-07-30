@@ -85,7 +85,7 @@ function DesktopLayout({ overall, allDone, groups, byClass, t, children }) {
 }
 
 export function TasksTab() {
-  const { mode, semester, currentWeek, weekCount, weekDateRange, dateToWeek } = useWeekContext();
+  const { mode, semester, currentWeek, weekCount, weekDateRange, weekDateBounds, dateToWeek } = useWeekContext();
   const noneMode = mode === "none";
   const storeActiveSemesterId = useStore((s) => s.activeSemesterId);
   const activeSemesterId = noneMode ? null : storeActiveSemesterId;
@@ -111,6 +111,7 @@ export function TasksTab() {
     classes,
     week,
     semesterTasks,
+    weekDateBounds ? weekDateBounds(week) : null,
   );
 
   const prevOverall = useRef(overall);

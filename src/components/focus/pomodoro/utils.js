@@ -154,3 +154,68 @@ export function getPrevPeriodPomodoros(pomodoros, period) {
     return ts >= prev && ts < now
   })
 }
+
+function startOfDayLocal(ts) {
+  const d = new Date(ts)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+export function getPomodoroStreaks(pomodoros) {
+  const completedDays = new Set(
+    pomodoros
+      .filter(p => !isPomodoroAggregate(p) && getPomodoroCompletedCount(p) > 0)
+      .map(p => startOfDayLocal(getPomodoroTimestamp(p)))
+      .filter(ts => ts > 0)
+  )
+
+  if (completedDays.size === 0) return { current: 0, best: 0 }
+
+  const sortedDays = [...completedDays].sort((a, b) => a - b)
+
+  let best = 1
+  let run = 1
+  for (let i = 1; i < sortedDays.length; i++) {
+    const gapDays = Math.round((sortedDays[i] - sortedDays[i - 1]) / 86400000)
+    run = gapDays === 1 ? run + 1 : 1
+    if (run > best) best = run
+  }
+
+  const today = startOfDayLocal(Date.now())
+  const yesterday = today - 86400000
+  const mostRecent = sortedDays[sortedDays.length - 1]
+
+  let current = 0
+  if (mostRecent === today || mostRecent === yesterday) {
+    current = 1
+    for (let i = sortedDays.length - 1; i > 0; i--) {
+      const gapDays = Math.round((sortedDays[i] - sortedDays[i - 1]) / 86400000)
+      if (gapDays === 1) current += 1
+      else break
+    }
+  }
+
+  return { current, best }
+}
+
+export function getMonthlyTrend(pomodoros, months = 6) {
+  const timeline = pomodoros.filter(p => !isPomodoroAggregate(p))
+  const now = new Date()
+  const buckets = []
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    buckets.push({ monthTs: d.getTime(), year: d.getFullYear(), month: d.getMonth(), secs: 0, completed: 0 })
+  }
+
+  timeline.forEach(p => {
+    const ts = getPomodoroTimestamp(p)
+    if (!ts) return
+    const d = new Date(ts)
+    const bucket = buckets.find(b => b.year === d.getFullYear() && b.month === d.getMonth())
+    if (!bucket) return
+    bucket.secs += getPomodoroFocusSecs(p)
+    bucket.completed += getPomodoroCompletedCount(p)
+  })
+
+  return buckets
+}

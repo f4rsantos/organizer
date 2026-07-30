@@ -61,7 +61,7 @@ export async function checkPresetExists(key) {
 }
 
 export function applyPreset(data, actions, presetKey, previousPresetKey) {
-  const { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses } = actions
+  const { addSemester } = actions
 
   const semData = {
     name: data.name ?? presetKey,

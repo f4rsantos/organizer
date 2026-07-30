@@ -20,17 +20,6 @@ export function PreviousSemestersSection() {
 
   const pastSemesters = semesters.filter((s) => s.id !== activeSemesterId);
 
-  const semesterGrades = pastSemesters.map(
-    (sem) => grades[sem.id]?._semesterFinalGrade ?? null,
-  );
-  const validSemGrades = semesterGrades.filter((g) => g !== null);
-  const computedAvg =
-    validSemGrades.length > 0
-      ? roundPT(
-          validSemGrades.reduce((a, b) => a + b, 0) / validSemGrades.length,
-        )
-      : null;
-
   const currentSemGPA = selectSemesterGPA(activeSemesterId, {
     semesters,
     classes: allClasses,
@@ -100,11 +89,17 @@ export function PreviousSemestersSection() {
                 type="number"
                 min="0"
                 max="10"
-                value={courseAvg.numSemesters ?? 0}
+                value={courseAvg.numSemesters}
                 onChange={(e) =>
                   setCourseAvg({
                     ...courseAvg,
-                    numSemesters: parseInt(e.target.value, 10) || 0,
+                    numSemesters: e.target.value,
+                  })
+                }
+                onBlur={() =>
+                  setCourseAvg({
+                    ...courseAvg,
+                    numSemesters: Math.max(0, parseInt(courseAvg.numSemesters, 10) || 0),
                   })
                 }
                 className="w-20 h-7 text-center text-sm"

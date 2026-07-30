@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
-import { cn } from '@/lib/utils'
+import { cn, sortByOrder } from '@/lib/utils'
 import { useStrings } from '@/lib/strings'
 import { computeWeekCount } from '@/lib/semesterUtils'
 import { TaskForm } from './TaskForm'
 import { useCollabActions } from '@/hooks/useCollabActions'
 import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
 import { useWeekContext } from '@/hooks/useWeekContext'
+import { PRIORITY_COLORS } from '@/lib/constants'
 
-const PRIORITY_COLORS = { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-emerald-500' }
 const FREE_BOARD_ID = '__free__'
 
 export function TaskItem({ task }) {
@@ -24,6 +24,7 @@ export function TaskItem({ task }) {
   const [optimisticSharedInKanban, setOptimisticSharedInKanban] = useState(false)
   const menuRef = useRef(null)
   const toggleTask = useStore(s => s.toggleTask)
+  const toggleRecurringOccurrence = useStore(s => s.toggleRecurringOccurrence)
   const deleteTask = useStore(s => s.deleteTask)
   const updateTask = useStore(s => s.updateTask)
   const addKanbanCard = useStore(s => s.addKanbanCard)
@@ -76,14 +77,12 @@ export function TaskItem({ task }) {
     ? !!task.doneForAll || !!task?.doneBy?.[userId]
     : !!task.done
 
-  const resolveKanbanTargetColumnId = () => {
-    const columns = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
+  const todoColumnId = useMemo(() => {
+    const columns = sortByOrder(board?.columns ?? [])
     if (!columns.length) return 'col_todo'
     const todo = columns.find(col => col.id.toLowerCase().includes('todo') || col.title.toLowerCase().includes('to do') || col.title.toLowerCase().includes('todo'))
     return todo?.id ?? columns[0]?.id ?? 'col_todo'
-  }
-
-  const todoColumnId = useMemo(() => resolveKanbanTargetColumnId(), [board])
+  }, [board])
 
   const todoOrder = useMemo(
     () => (mergedBoard?.cards ?? []).filter(c => c.columnId === todoColumnId).length,
@@ -101,14 +100,9 @@ export function TaskItem({ task }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
-  useEffect(() => {
-    if (!isSharedRemote) {
-      setOptimisticSharedInKanban(false)
-      return
-    }
-    const hasSharedCard = (mergedBoard?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
-    if (hasSharedCard) setOptimisticSharedInKanban(false)
-  }, [isSharedRemote, mergedBoard, sharedTaskId])
+  const hasSharedCard = isSharedRemote && (mergedBoard?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
+  const shouldClearOptimistic = optimisticSharedInKanban && (!isSharedRemote || hasSharedCard)
+  if (shouldClearOptimistic) setOptimisticSharedInKanban(false)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -150,6 +144,10 @@ export function TaskItem({ task }) {
       await toggleSharedTask({ teamId: sharedTeamId, sharedTaskId })
       return
     }
+    if (task.isRecurringOccurrence) {
+      toggleRecurringOccurrence(task.templateId, task.occurrenceDate)
+      return
+    }
     toggleTask(task.id)
   }
 
@@ -158,7 +156,7 @@ export function TaskItem({ task }) {
       await updateSharedTask({ teamId: sharedTeamId, sharedTaskId, patch: data })
       return
     }
-    updateTask(task.id, data)
+    updateTask(task.isRecurringOccurrence ? task.templateId : task.id, data)
   }
 
   const handleDelete = async () => {
@@ -166,7 +164,7 @@ export function TaskItem({ task }) {
       await deleteSharedTask({ teamId: sharedTeamId, sharedTaskId })
       return
     }
-    deleteTask(task.id)
+    deleteTask(task.isRecurringOccurrence ? task.templateId : task.id)
   }
 
   const handleShare = async () => {

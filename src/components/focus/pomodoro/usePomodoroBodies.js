@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import {
   DAMPING,
   FACE_COUNT,
@@ -305,7 +305,9 @@ export function usePomodoroBodies({
   }, [getBounds, pomodoros, periodIds, showPeriodStats])
 
   useEffect(() => {
-    syncBodiesFromStore()
+    startTransition(() => {
+      syncBodiesFromStore()
+    })
   }, [syncBodiesFromStore])
 
   const buildSpawnData = useCallback(({ abandoned, pct = 1, focusSecs = 0, colorPct }) => {
@@ -358,11 +360,13 @@ export function usePomodoroBodies({
     if (shouldCreateAbandoned) {
       const pct = growthFromSecs(resetSignal.cycleElapsed)
       const colorPct = Math.min(1, Math.max(0, resetSignal.cycleElapsed) / (25 * 60))
-      spawnTomato({
-        abandoned: true,
-        pct,
-        colorPct,
-        focusSecs: resetSignal.cycleElapsed,
+      startTransition(() => {
+        spawnTomato({
+          abandoned: true,
+          pct,
+          colorPct,
+          focusSecs: resetSignal.cycleElapsed,
+        })
       })
     }
   }, [resetSignal, spawnTomato])
