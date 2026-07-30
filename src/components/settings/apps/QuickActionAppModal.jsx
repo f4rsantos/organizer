@@ -6,17 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-
-function formatShortcut(shortcut) {
-  if (!shortcut || !shortcut.key) return ''
-  const parts = []
-  if (shortcut.ctrl) parts.push('Ctrl')
-  if (shortcut.meta) parts.push('Cmd')
-  if (shortcut.alt) parts.push('Alt')
-  if (shortcut.shift) parts.push('Shift')
-  parts.push(shortcut.key.toUpperCase())
-  return parts.join(' + ')
-}
+import { formatShortcut, shortcutFromEvent, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
 export function QuickActionAppModal({ open, onOpenChange }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -27,7 +17,7 @@ export function QuickActionAppModal({ open, onOpenChange }) {
 
   const quickAction = apps.quickAction !== false
   const tripleTap = apps.quickActionTripleTap === true
-  const shortcut = apps.quickActionShortcut === undefined ? { key: 'k', ctrl: true, meta: false, shift: false, alt: false } : apps.quickActionShortcut
+  const shortcut = apps.quickActionShortcut === undefined ? defaultQuickActionShortcut() : apps.quickActionShortcut
   const navbarShortcut = apps.quickActionNavbarShortcut || null
   const showAddButton = navbarSettings.showAddButton === true
   const addAction = navbarSettings.addAction || 'task'
@@ -66,16 +56,9 @@ export function QuickActionAppModal({ open, onOpenChange }) {
         return
       }
 
-      if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return
+      if (['Control', 'Shift', 'Alt', 'Meta', 'CapsLock', 'Dead'].includes(e.key)) return
 
-      const newShortcut = {
-        key: e.key,
-        ctrl: e.ctrlKey,
-        meta: e.metaKey,
-        alt: e.altKey,
-        shift: e.shiftKey
-      }
-      updateSettings({ apps: { ...(useStore.getState().settings?.apps || {}), [targetKey]: newShortcut } })
+      updateSettings({ apps: { ...(useStore.getState().settings?.apps || {}), [targetKey]: shortcutFromEvent(e) } })
       setListeningSpotlight(false)
       setListeningNavbar(false)
     }

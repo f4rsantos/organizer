@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { cn } from '@/lib/utils'
+import { matchesShortcut } from '@/lib/shortcuts'
 
 const ACTION_META = {
   task: { icon: CheckSquare, key: 'addTask' },
@@ -104,13 +105,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   useEffect(() => {
     if (!quickActionAppEnabled || !navbarShortcut) return
     const handleKeyDown = e => {
-      const match = e.key.toLowerCase() === navbarShortcut.key.toLowerCase() &&
-        e.ctrlKey === !!navbarShortcut.ctrl &&
-        e.metaKey === !!navbarShortcut.meta &&
-        e.shiftKey === !!navbarShortcut.shift &&
-        e.altKey === !!navbarShortcut.alt
-
-      if (match) {
+      if (matchesShortcut(e, navbarShortcut)) {
         e.preventDefault()
         runAction(configured)
       }
