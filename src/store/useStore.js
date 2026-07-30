@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { nanoid } from '@/lib/ids'
-import { loadState, saveState } from './persist'
+import { loadState, saveState, forceSaveState } from './persist'
 import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
 import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
@@ -677,8 +677,17 @@ export const useStore = create((set, _get) => ({
     ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
 
-  hydrateState: state => set(s => mergeStateOnHydrate(state, s)),
-  markHydrated: () => set(s => (s.hydrated ? s : { ...s, hydrated: true })),
+  hydrateState: state => set(s => {
+    const merged = mergeStateOnHydrate(state, s)
+    if (s.dirtiedBeforeHydrate) void forceSaveState(merged)
+    return merged
+  }),
+  markHydrated: () => set(s => {
+    if (s.hydrated) return s
+    const next = { ...s, hydrated: true, dirtiedBeforeHydrate: undefined }
+    if (s.dirtiedBeforeHydrate) void forceSaveState(next)
+    return next
+  }),
 
   // --- Import / Export ---
   importData: data => set(s => {
