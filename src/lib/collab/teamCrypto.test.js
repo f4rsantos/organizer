@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { createTeamKey, isValidTeamKey, encryptTeamState, decryptTeamState, decryptTeamDoc } from './teamCrypto.js'
-import { isEnvelope } from '../crypto/index.js'
+import {
+  createTeamKey, isValidTeamKey, encryptTeamState, decryptTeamState, decryptTeamDoc,
+  isEncryptedTeamState,
+} from './teamCrypto.js'
 
 const STATE = { tasks: [{ id: 't1', title: 'shared secret' }] }
 
@@ -29,14 +31,16 @@ describe('round trip', () => {
     expect(JSON.stringify(envelope)).not.toContain('shared secret')
   })
 
-  it('produces a detectable envelope', async () => {
-    expect(isEnvelope(await encryptTeamState(STATE, createTeamKey()))).toBe(true)
+  it('produces a detectable encrypted container', async () => {
+    expect(isEncryptedTeamState(await encryptTeamState(STATE, createTeamKey()))).toBe(true)
   })
 })
 
 describe('teams without a key stay plaintext', () => {
-  it('passes the state straight through on write', async () => {
-    expect(await encryptTeamState(STATE, null)).toEqual(STATE)
+  it('writes a plaintext container when there is no key', async () => {
+    const stored = await encryptTeamState(STATE, null)
+    expect(isEncryptedTeamState(stored)).toBe(false)
+    expect(await decryptTeamState(stored, null)).toEqual({ tasks: STATE.tasks })
   })
 
   it('reads a legacy plaintext state back', async () => {
@@ -106,16 +110,15 @@ describe('decryptTeamDoc', () => {
 })
 
 describe('a team never changes format mid-life', () => {
-  const writeFormat = teamState => (isEnvelope(teamState) ? 'encrypted' : 'plaintext')
+  const writeFormat = teamState => (isEncryptedTeamState(teamState) ? 'encrypted' : 'plaintext')
 
   it('a plaintext team stays plaintext even when the writer holds a key', async () => {
-    const writeKey = isEnvelope(STATE) ? createTeamKey() : null
+    const writeKey = isEncryptedTeamState(STATE) ? createTeamKey() : null
     expect(writeFormat(await encryptTeamState(STATE, writeKey))).toBe('plaintext')
   })
 
   it('an encrypted team stays encrypted', async () => {
-    const stored = await encryptTeamState(STATE, createTeamKey())
-    expect(writeFormat(stored)).toBe('encrypted')
+    expect(writeFormat(await encryptTeamState(STATE, createTeamKey()))).toBe('encrypted')
   })
 })
 

@@ -1,6 +1,16 @@
+import { readDevicePref, writeDevicePref } from '../devicePrefs'
+
 const PREFIX = 'f4rsantos.github.io/organizer:'
 const LEGACY_KEY = `${PREFIX}encryption-key`
 const ENABLED_FLAG_KEY = `${PREFIX}encryption-enabled`
+const MODE_KEY = `${PREFIX}enc-mode`
+const LOCAL_WRAPS_KEY = `${PREFIX}enc-local-wraps`
+const PLAINTEXT_ACK_PREF = 'plaintextSyncAck'
+
+export const MODE_OFF = 'off'
+export const MODE_LOCAL = 'local'
+export const MODE_SYNC = 'sync'
+const MODES = [MODE_OFF, MODE_LOCAL, MODE_SYNC]
 
 function read(key) {
   try {
@@ -42,12 +52,26 @@ export function clearKeyString() {
   remove(ENABLED_FLAG_KEY)
 }
 
+export function getEncMode() {
+  const mode = read(MODE_KEY)
+  return MODES.includes(mode) ? mode : MODE_OFF
+}
+
+export function setEncMode(mode) {
+  if (!MODES.includes(mode)) throw new Error('enc-mode-invalid')
+  if (mode === MODE_OFF) {
+    remove(MODE_KEY)
+    return
+  }
+  write(MODE_KEY, mode)
+}
+
 export function isEncryptionEnabled() {
-  return Boolean(loadKeyString())
+  return getEncMode() !== MODE_OFF || Boolean(loadKeyString())
 }
 
 export function wasEncryptionEverEnabled() {
-  return read(ENABLED_FLAG_KEY) === '1'
+  return getEncMode() !== MODE_OFF || read(ENABLED_FLAG_KEY) === '1'
 }
 
 export function assertKeyExpected() {
@@ -55,4 +79,29 @@ export function assertKeyExpected() {
   if (keyString) return keyString
   if (wasEncryptionEverEnabled()) throw new Error('encryption-key-required')
   return null
+}
+
+export function loadLocalWraps() {
+  try {
+    const raw = read(LOCAL_WRAPS_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveLocalWraps(wraps) {
+  return write(LOCAL_WRAPS_KEY, JSON.stringify(wraps))
+}
+
+export function clearLocalWraps() {
+  remove(LOCAL_WRAPS_KEY)
+}
+
+export function isPlaintextSyncAcknowledged() {
+  return readDevicePref(PLAINTEXT_ACK_PREF) === true
+}
+
+export function acknowledgePlaintextSync() {
+  writeDevicePref(PLAINTEXT_ACK_PREF, true)
 }

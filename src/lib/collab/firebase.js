@@ -11,10 +11,9 @@ import {
 } from 'firebase/firestore'
 import { getAuth, signInAnonymously } from 'firebase/auth'
 import { nanoid } from '@/lib/ids'
-import { createInviteToken, hashToken } from './token'
+import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash } from './token'
 import { createTeamState, isMember } from './schema'
-import { encryptTeamState, decryptTeamState, decryptTeamDoc } from './teamCrypto'
-import { isEnvelope } from '../crypto'
+import { encryptTeamState, decryptTeamState, decryptTeamDoc, isEncryptedTeamState } from './teamCrypto'
 
 const appCache = new Map()
 
@@ -63,7 +62,6 @@ export async function createTeam({ config, hostUserId, name, expiresAt, teamKey 
     },
     invite: null,
     state: await encryptTeamState(createTeamState(), teamKey, teamId),
-    encrypted: Boolean(teamKey),
     updatedAt: Date.now(),
     serverUpdatedAt: serverTimestamp(),
   })
@@ -95,7 +93,8 @@ export async function generateInvite({ config, teamId, ttlMs }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
   const token = createInviteToken()
-  const tokenHash = await hashToken(token)
+  const tokenSalt = createTokenSalt()
+  const tokenHash = await hashToken(token, tokenSalt)
   const expiresAt = Date.now() + ttlMs
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
@@ -103,6 +102,7 @@ export async function generateInvite({ config, teamId, ttlMs }) {
     if (!snap.exists()) throw new Error('Team not found')
     tx.update(ref, {
       invite: {
+        tokenSalt,
         tokenHash,
         expiresAt,
       },
@@ -116,14 +116,16 @@ export async function generateInvite({ config, teamId, ttlMs }) {
 export async function joinWithInvite({ config, teamId, token, userId }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
-  const tokenHash = await hashToken(token)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
     if (!snap.exists()) throw new Error('Team not found')
     const team = snap.data()
     const invite = team?.invite
-    if (!invite?.tokenHash || invite.tokenHash !== tokenHash) throw new Error('Invalid invite')
+    const valid = await matchesTokenHash({
+      token, salt: invite?.tokenSalt, tokenHash: invite?.tokenHash,
+    })
+    if (!valid) throw new Error('Invalid invite')
     if (Date.now() > (invite.expiresAt ?? 0)) throw new Error('Invite expired')
     const members = team.members ?? {}
     if (!members[userId]) {
@@ -192,13 +194,12 @@ export async function updateTeamState({ config, teamId, userId, teamKey, updater
 
     // The document decides its own format: encrypting a team that other members
     // joined while it was plaintext would lock every one of them out.
-    const teamIsEncrypted = isEnvelope(team.state)
+    const teamIsEncrypted = isEncryptedTeamState(team.state)
     const writeKey = teamIsEncrypted ? teamKey : null
 
     const nextState = updater(current ?? createTeamState(), team)
     tx.update(ref, {
       state: await encryptTeamState(nextState, writeKey, teamId),
-      encrypted: teamIsEncrypted,
       updatedAt: Date.now(),
       serverUpdatedAt: serverTimestamp(),
     })

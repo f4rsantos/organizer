@@ -12,6 +12,7 @@ import { SemesterDatesForm } from './SemesterDatesForm'
 import { ClassesForm } from './ClassesForm'
 import { GradeConfigForm } from './GradeConfigForm'
 import { FirebaseSyncButton } from './FirebaseSyncPanel'
+import { EncryptionButton } from '@/components/crypto/EncryptionSettings'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
 import { DangerZone } from './DangerZone'
 import { GeneralSettings } from './GeneralSettings'
@@ -28,6 +29,8 @@ import { isEncryptionEnabled, loadKeyString } from '@/lib/crypto'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+
+const QR_MAX_CHARS = 2800
 
 function DataPanel({ syncStatus }) {
   const state = useStore(s => s)
@@ -75,30 +78,16 @@ function DataPanel({ syncStatus }) {
     e.target.value = ''
   }
 
-  const getShareUrl = () => {
-    const { setCourseAvg, setSemesterFinalGrade, setGradeComponents, setTargetGrade,
-      addTask, toggleTask, updateTask, deleteTask, addKanbanCard, updateKanbanCard,
-      moveKanbanCard, deleteKanbanCard, clearKanbanDone, wipeKanban, addKanbanColumn,
-      updateKanbanColumn, deleteKanbanColumn, addClass, updateClass, deleteClass,
-      addSemester, updateSemester, deleteSemester, setActiveSemester,
-      setTheme, setLang, completeOnboarding, updateSettings, importData: _i,
-      updateFocusSettings, updatePomodoroSettings, addPomodoro, clearPomodoros,
-      dismissNextSemester, addHoliday, deleteHoliday,
-      dismissTaskAlert, setTaskAlertReminder, clearTaskAlertState,
-      ...data } = state
-    return encodeStateToUrl(data)
-  }
-
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(getShareUrl())
+    await navigator.clipboard.writeText(await encodeStateToUrl(state))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleQr = async () => {
     if (showQr) { setShowQr(false); return }
-    const url = getShareUrl()
-    if (url.length > 4000) {
+    const url = await encodeStateToUrl(state)
+    if (url.length > QR_MAX_CHARS) {
       setQrDataUrl('toolarge')
     } else {
       const { default: QRCode } = await import('qrcode')
@@ -137,6 +126,7 @@ function DataPanel({ syncStatus }) {
           <QrCode className="h-4 w-4" /> {t.qrCode}
         </Button>
         <FirebaseSyncButton syncStatus={syncStatus} />
+        <EncryptionButton />
       </div>
       {importError && <p className="text-xs text-destructive">{importError}</p>}
       {showQr && (
