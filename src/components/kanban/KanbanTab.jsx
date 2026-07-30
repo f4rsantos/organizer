@@ -22,9 +22,11 @@ export function KanbanTab() {
   const t = useStrings(lang)
   const [confirm, setConfirm] = useState(null)
 
+  const hydrated = useStore(s => s.hydrated === true)
+
   useEffect(() => {
-    if (noneMode && !localBoard?.columns?.length) ensureBoard(FREE_BOARD_ID)
-  }, [noneMode, localBoard, ensureBoard])
+    if (hydrated && noneMode && !localBoard?.columns?.length) ensureBoard(FREE_BOARD_ID)
+  }, [hydrated, noneMode, localBoard, ensureBoard])
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen p-4 pt-6 gap-4">

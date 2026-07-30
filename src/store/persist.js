@@ -227,7 +227,12 @@ export async function loadStateAsync() {
       return null
     }
 
-    const state = await decodeSlices({ container: parsed, key, aadFor: aadForLocalSlice })
+    let state
+    try {
+      state = await decodeSlices({ container: parsed, key, aadFor: aadForLocalSlice })
+    } catch {
+      state = await decodeSlices({ container: parsed, key, aadFor: aadForPersonalSlice })
+    }
     noteOmitted(parsed)
     return finalizeLoadedState(state)
   } catch {

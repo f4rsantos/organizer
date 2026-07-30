@@ -24,6 +24,73 @@ function firstColumnIdFor(state, boardId) {
   return sortedColumns(state, boardId)[0]?.id ?? null
 }
 
+function mergeStateOnHydrate(diskState, s) {
+  if (!s.dirtiedBeforeHydrate) {
+    return { ...diskState, hydrated: true }
+  }
+
+  const diskTasks = Array.isArray(diskState?.tasks) ? diskState.tasks : []
+  const currentTasks = Array.isArray(s?.tasks) ? s.tasks : []
+  const diskTaskIds = new Set(diskTasks.map(t => t.id))
+  const mergedTasks = [...diskTasks, ...currentTasks.filter(t => !diskTaskIds.has(t.id))]
+
+  const diskSemesters = Array.isArray(diskState?.semesters) ? diskState.semesters : []
+  const currentSemesters = Array.isArray(s?.semesters) ? s.semesters : []
+  const diskSemIds = new Set(diskSemesters.map(sem => sem.id))
+  const mergedSemesters = [...diskSemesters, ...currentSemesters.filter(sem => !diskSemIds.has(sem.id))]
+
+  const diskClasses = Array.isArray(diskState?.classes) ? diskState.classes : []
+  const currentClasses = Array.isArray(s?.classes) ? s.classes : []
+  const diskClassIds = new Set(diskClasses.map(c => c.id))
+  const mergedClasses = [...diskClasses, ...currentClasses.filter(c => !diskClassIds.has(c.id))]
+
+  const diskNotes = Array.isArray(diskState?.notes) ? diskState.notes : []
+  const currentNotes = Array.isArray(s?.notes) ? s.notes : []
+  const diskNoteIds = new Set(diskNotes.map(n => n.id))
+  const mergedNotes = [...diskNotes, ...currentNotes.filter(n => !diskNoteIds.has(n.id))]
+
+  const diskNoteFolders = Array.isArray(diskState?.noteFolders) ? diskState.noteFolders : []
+  const currentNoteFolders = Array.isArray(s?.noteFolders) ? s.noteFolders : []
+  const diskFolderIds = new Set(diskNoteFolders.map(f => f.id))
+  const mergedNoteFolders = [...diskNoteFolders, ...currentNoteFolders.filter(f => !diskFolderIds.has(f.id))]
+
+  const diskKanban = diskState?.kanban && typeof diskState.kanban === 'object' ? diskState.kanban : {}
+  const currentKanban = s?.kanban && typeof s.kanban === 'object' ? s.kanban : {}
+  const mergedKanban = { ...currentKanban, ...diskKanban }
+
+  const diskCollab = diskState?.collab && typeof diskState.collab === 'object' ? diskState.collab : { userId: null, memberships: [] }
+  const currentCollab = s?.collab && typeof s.collab === 'object' ? s.collab : { userId: null, memberships: [] }
+  const diskMemberships = Array.isArray(diskCollab.memberships) ? diskCollab.memberships : []
+  const currentMemberships = Array.isArray(currentCollab.memberships) ? currentCollab.memberships : []
+  const diskTeamIds = new Set(diskMemberships.map(m => m.teamId))
+  const mergedMemberships = [...diskMemberships, ...currentMemberships.filter(m => !diskTeamIds.has(m.teamId))]
+
+  return {
+    ...s,
+    ...diskState,
+    activeSemesterId: diskState?.activeSemesterId ?? s?.activeSemesterId ?? null,
+    semesters: mergedSemesters,
+    classes: mergedClasses,
+    tasks: mergedTasks,
+    notes: mergedNotes,
+    noteFolders: mergedNoteFolders,
+    kanban: mergedKanban,
+    collab: {
+      userId: diskCollab.userId ?? currentCollab.userId,
+      memberships: mergedMemberships,
+    },
+    settings: {
+      ...(s?.settings ?? {}),
+      ...(diskState?.settings ?? {}),
+    },
+    grades: diskState?.grades && Object.keys(diskState.grades).length ? diskState.grades : (s?.grades ?? {}),
+    courseAvg: diskState?.courseAvg ?? s?.courseAvg,
+    holidays: diskState?.holidays?.length ? diskState.holidays : (s?.holidays ?? []),
+    hydrated: true,
+    dirtiedBeforeHydrate: undefined,
+  }
+}
+
 function buildInitialState() {
   const saved = loadState()
   if (saved) return saved
@@ -610,9 +677,7 @@ export const useStore = create((set, _get) => ({
     ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
 
-  hydrateState: state => set(s => (s.dirtiedBeforeHydrate
-    ? { ...s, hydrated: true, dirtiedBeforeHydrate: undefined }
-    : { ...state, hydrated: true })),
+  hydrateState: state => set(s => mergeStateOnHydrate(state, s)),
   markHydrated: () => set(s => (s.hydrated ? s : { ...s, hydrated: true })),
 
   // --- Import / Export ---
