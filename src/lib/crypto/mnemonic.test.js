@@ -63,12 +63,19 @@ describe('round trip', () => {
 
 describe('checksum', () => {
   it('rejects most single word substitutions', async () => {
-    const words = (await encodeMnemonic(generateRecoveryEntropy())).split(' ')
-    const results = await Promise.all(
-      WORDLIST.slice(0, 64).map(word => decodeMnemonic([...words.slice(0, 3), word, ...words.slice(4)].join(' '))),
-    )
-    const accepted = results.filter(Boolean).length
-    expect(accepted).toBeLessThan(8)
+    const seeds = 8
+    const perSeed = 64
+    let accepted = 0
+
+    for (let i = 0; i < seeds; i++) {
+      const words = (await encodeMnemonic(generateRecoveryEntropy())).split(' ')
+      const results = await Promise.all(
+        WORDLIST.slice(0, perSeed).map(word => decodeMnemonic([...words.slice(0, 3), word, ...words.slice(4)].join(' '))),
+      )
+      accepted += results.filter(Boolean).length
+    }
+
+    expect(accepted / (seeds * perSeed)).toBeLessThan(0.15)
   })
 })
 

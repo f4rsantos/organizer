@@ -176,7 +176,7 @@ function UnlockRemotePrompt({ config, t, remote, onUnlocked }) {
       expectedDekId: remote.dekId,
     })
     const pulled = await pullFromFirebase(config)
-    if (pulled) useStore.getState().importData(pulled)
+    if (pulled) useStore.getState().importData(pulled, { preferLocalSettings: false })
     onUnlocked()
   }
 

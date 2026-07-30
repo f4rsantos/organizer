@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { loadStateAsync, hasEncryptedSnapshot } from '@/store/persist'
+import { loadStateAsync } from '@/store/persist'
 
 export function useHydrateState() {
   const hydrateState = useStore(s => s.hydrateState)
   const markHydrated = useStore(s => s.markHydrated)
-  const [ready, setReady] = useState(() => !hasEncryptedSnapshot())
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (ready) {
-      markHydrated()
-      return
-    }
-
     let cancelled = false
     loadStateAsync()
       .then(state => {
@@ -25,7 +20,7 @@ export function useHydrateState() {
       })
 
     return () => { cancelled = true }
-  }, [ready, hydrateState, markHydrated])
+  }, [hydrateState, markHydrated])
 
   return ready
 }

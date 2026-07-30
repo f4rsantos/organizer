@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { registerPwa } from './pwa/registerPwa'
 import { runBootstrap, resumeBootstrap } from './boot/bootstrap'
-import { readContainerMeta } from './store/persist'
+import { readContainerMetaAsync } from './store/persist'
 
 function rootElement() {
   return document.getElementById('root')
@@ -23,7 +23,7 @@ async function renderUnlockGate({ storeError }) {
     import('./boot/unlockFlow'),
   ])
 
-  const meta = readContainerMeta()
+  const meta = await readContainerMetaAsync()
   const wraps = await loadPersonalWraps()
   if (!wraps) return
 

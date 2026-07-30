@@ -1,4 +1,6 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readStoredRaw, resetStateDb } from '../store/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const ENABLED_FLAG_KEY = 'f4rsantos.github.io/organizer:encryption-enabled'
@@ -20,13 +22,14 @@ function createStorage() {
 
 let storage
 
-beforeEach(() => {
+beforeEach(async () => {
   storage = createStorage()
   vi.stubGlobal('localStorage', storage)
   vi.stubGlobal('sessionStorage', createStorage())
   vi.stubGlobal('location', { hash: '', pathname: '/' })
   vi.stubGlobal('history', { replaceState: () => {} })
   vi.resetModules()
+  await resetStateDb()
 })
 
 afterEach(() => {
@@ -41,7 +44,7 @@ const plainState = () => ({
 async function flush() {
   for (let i = 0; i < 50; i++) {
     await new Promise(resolve => setTimeout(resolve, 2))
-    if (storage.getItem(STORAGE_KEY)) return
+    if (await readStoredRaw()) return
   }
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
-export function TaskMentionPopup({ tasks, activeIndex, onSelect, onHover, emptyLabel }) {
+export function TaskMentionPopup({ tasks, activeIndex, onSelect, onHover, emptyLabel, coords }) {
   const listRef = useRef(null)
 
   useEffect(() => {
@@ -9,8 +9,13 @@ export function TaskMentionPopup({ tasks, activeIndex, onSelect, onHover, emptyL
     active?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex])
 
+  const style = coords
+    ? { left: coords.left, top: coords.top, transform: 'translateY(calc(-100% - 4px))' }
+    : { left: 0, top: 0 }
+
   return (
-    <div className="absolute z-20 mt-1 w-full max-w-sm rounded-lg border border-border bg-popover shadow-md overflow-hidden">
+    <div style={style}
+      className="absolute z-20 w-max min-w-48 max-w-sm rounded-lg border border-border bg-popover shadow-md overflow-hidden">
       <div ref={listRef} className="max-h-48 overflow-y-auto py-1">
         {tasks.length === 0
           ? <div className="px-3 py-2 text-sm text-muted-foreground">{emptyLabel}</div>

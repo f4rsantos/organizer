@@ -1,4 +1,6 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readStoredRaw, resetStateDb } from './testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 
@@ -16,10 +18,11 @@ function createStorage() {
 
 let storage
 
-beforeEach(() => {
+beforeEach(async () => {
   storage = createStorage()
   vi.stubGlobal('localStorage', storage)
   vi.resetModules()
+  await resetStateDb()
 })
 
 afterEach(() => {
@@ -40,7 +43,7 @@ const existingUser = () => ({
 async function flush() {
   for (let i = 0; i < 50; i++) {
     await new Promise(resolve => setTimeout(resolve, 2))
-    if (storage.getItem(STORAGE_KEY)) return
+    if (await readStoredRaw()) return
   }
 }
 
@@ -52,25 +55,31 @@ describe('an existing user is never sent back to onboarding', () => {
   })
 
   it('keeps onboardingDone through a container round trip', async () => {
-    const { saveState, loadState } = await import('./persist.js')
+    const { saveState, loadStateAsync } = await import('./persist.js')
     saveState(existingUser())
     await flush()
-    expect(loadState().onboardingDone).toBe(true)
+    expect((await loadStateAsync()).onboardingDone).toBe(true)
   })
 
-  it('boots the store with onboardingDone from a legacy blob', async () => {
+  it('hydrates the store with onboardingDone from a legacy blob', async () => {
     storage.setItem(STORAGE_KEY, JSON.stringify(existingUser()))
+    const { loadStateAsync } = await import('./persist.js')
     const { useStore } = await import('./useStore.js')
+
+    useStore.getState().hydrateState(await loadStateAsync())
     expect(useStore.getState().onboardingDone).toBe(true)
   })
 
-  it('boots the store with onboardingDone from a container', async () => {
+  it('hydrates the store with onboardingDone from a container', async () => {
     const { saveState } = await import('./persist.js')
     saveState(existingUser())
     await flush()
 
     vi.resetModules()
+    const { loadStateAsync } = await import('./persist.js')
     const { useStore } = await import('./useStore.js')
+
+    useStore.getState().hydrateState(await loadStateAsync())
     expect(useStore.getState().onboardingDone).toBe(true)
   })
 
@@ -80,7 +89,20 @@ describe('an existing user is never sent back to onboarding', () => {
     await flush()
 
     vi.resetModules()
+    const { loadStateAsync } = await import('./persist.js')
     const { useStore } = await import('./useStore.js')
+
+    useStore.getState().hydrateState(await loadStateAsync())
     expect(useStore.getState().semesters).toHaveLength(1)
+  })
+
+  it('does not show onboarding before hydration finishes', async () => {
+    const { saveState } = await import('./persist.js')
+    saveState(existingUser())
+    await flush()
+
+    vi.resetModules()
+    const { useStore } = await import('./useStore.js')
+    expect(useStore.getState().hydrated).toBeFalsy()
   })
 })

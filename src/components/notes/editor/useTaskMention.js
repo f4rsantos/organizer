@@ -12,6 +12,17 @@ export function findMentionQuery(text) {
   return { length: between.length + 1, query: between }
 }
 
+function mentionCoords(editor, pos) {
+  try {
+    const anchor = editor.view.dom.offsetParent ?? editor.view.dom
+    const box = anchor.getBoundingClientRect()
+    const at = editor.view.coordsAtPos(pos)
+    return { left: at.left - box.left, top: at.top - box.top }
+  } catch {
+    return null
+  }
+}
+
 export function useTaskMention(editor, tasks) {
   const [mention, setMention] = useState(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -27,10 +38,10 @@ export function useTaskMention(editor, tasks) {
 
   const refresh = useCallback(() => {
     if (!editor) return
-    const { $from, empty } = editor.state.selection
+    const { $from, empty, from } = editor.state.selection
     if (!empty || !$from.parent.isTextblock) return setMention(null)
     const found = findMentionQuery($from.parent.textBetween(0, $from.parentOffset, '\n', '\n'))
-    setMention(found)
+    setMention(found && { ...found, coords: mentionCoords(editor, from - found.length) })
     setActiveIndex(0)
   }, [editor])
 
