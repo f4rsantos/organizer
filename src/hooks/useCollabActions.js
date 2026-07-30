@@ -4,9 +4,10 @@ import { nanoid } from '@/lib/ids'
 import { useStore } from '@/store/useStore'
 import { updateTeamState } from '@/lib/collab/firebase'
 import { classifyCollabError } from '@/lib/collab/errors'
+import { sortByOrder } from '@/lib/utils'
 
 function resolveTargetColumn(localBoard, desiredColumnId = null) {
-  const columns = [...(localBoard?.columns ?? [])].sort((a, b) => a.order - b.order)
+  const columns = sortByOrder(localBoard?.columns ?? [])
   if (!columns.length) return 'col_todo'
   if (desiredColumnId && columns.some(c => c.id === desiredColumnId)) return desiredColumnId
   const todo = columns.find(col => col.id.toLowerCase().includes('todo') || col.title.toLowerCase().includes('to do') || col.title.toLowerCase().includes('todo'))
@@ -213,12 +214,14 @@ export function useCollabActions() {
     if (!ctx) return
     const { membership } = ctx
 
+    const { id: _id, sharedMeta: _sm, sharedRef: _sr, ...cleanPatch } = patch ?? {}
+
     const applyUpdate = state => ({
       ...state,
       kanban: {
         ...(state?.kanban ?? { columns: [], cards: [] }),
         cards: (state?.kanban?.cards ?? []).map(card =>
-          card.id === sharedCardId ? { ...card, ...patch, updatedAt: Date.now() } : card
+          card.id === sharedCardId ? { ...card, ...cleanPatch, updatedAt: Date.now() } : card
         ),
       },
     })

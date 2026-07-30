@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { PRESET_COLORS } from '@/components/settings/ClassColorDot'
+import { PRESET_COLORS } from '@/lib/constants'
 import { useSpeechInput } from '@/hooks/useSpeechInput'
 
 const FONT_SIZES = [

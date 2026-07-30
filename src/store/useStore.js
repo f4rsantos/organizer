@@ -4,6 +4,7 @@ import { loadState, saveState } from './persist'
 import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
 import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
+import { sortByOrder } from '@/lib/utils'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -13,7 +14,7 @@ const DEFAULT_COLUMNS = [
 
 function sortedColumns(state, boardId) {
   const cols = state.kanban?.[boardId]?.columns ?? DEFAULT_COLUMNS
-  return [...cols].sort((a, b) => a.order - b.order)
+  return sortByOrder(cols)
 }
 function doneColumnIdFor(state, boardId) {
   const cols = sortedColumns(state, boardId)
@@ -105,7 +106,7 @@ function buildInitialState() {
 
 const initialState = buildInitialState()
 
-export const useStore = create((set, get) => ({
+export const useStore = create((set, _get) => ({
   ...initialState,
 
   // --- Theme ---
@@ -409,7 +410,7 @@ export const useStore = create((set, get) => ({
   })),
   clearKanbanDone: semId => set(s => {
     const board = s.kanban[semId]
-    const sorted = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
+    const sorted = sortByOrder(board?.columns ?? [])
     const doneColId = sorted[sorted.length - 1]?.id
     return persist({
       ...s,
@@ -598,7 +599,7 @@ export const useStore = create((set, get) => ({
   erasePomodoroStats: () => set(s => persist({
     ...s,
     pomodoros: (s.pomodoros ?? []).map(p => {
-      const { focusSecs, createdAt, ...rest } = p
+      const { focusSecs: _focusSecs, createdAt: _createdAt, ...rest } = p
       return rest
     }),
   })),

@@ -2,6 +2,7 @@ import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSens
 import { useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { fireConfetti } from '@/lib/confetti'
+import { sortByOrder } from '@/lib/utils'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { useCollabActions } from '@/hooks/useCollabActions'
@@ -15,7 +16,7 @@ export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   )
-  const columns = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
+  const columns = sortByOrder(board?.columns ?? [])
   const doneColumnId = columns[columns.length - 1]?.id ?? null
   const activeColIndex = activeCard ? columns.findIndex(c => c.id === activeCard.columnId) : -1
   const activePrevColId = activeColIndex > 0 ? (columns[activeColIndex - 1]?.id ?? null) : null
@@ -56,7 +57,7 @@ export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
             doneColumnId={doneColumnId}
             prevColumnId={index > 0 ? (columns[index - 1]?.id ?? null) : null}
             nextColumnId={columns[index + 1]?.id ?? null}
-            cards={(board.cards ?? []).filter(c => c.columnId === col.id).sort((a, b) => a.order - b.order)} />
+            cards={sortByOrder((board.cards ?? []).filter(c => c.columnId === col.id))} />
         ))}
       </div>
       <DragOverlay>

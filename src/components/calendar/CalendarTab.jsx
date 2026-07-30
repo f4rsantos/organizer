@@ -18,6 +18,7 @@ import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import { expandTasksForRange } from '@/lib/recurrence'
+import { nanoid } from '@/lib/ids'
 
 const VIEWS = ['day', 'week', 'month', 'year']
 
@@ -131,11 +132,12 @@ export function CalendarTab() {
 
   const detail = dayDetail ? itemsForDay(dayDetail, tasks, holidays, events) : null
 
-  const openNewEvent = (date, startTime = null, endTime = null, endDate = null) => {
+  // EventForm reads props once at mount, so each open needs a distinct key.
+  const openNewEvent =(date, startTime = null, endTime = null, endDate = null) => {
     setDayDetail(null)
-    setEventForm({ event: null, defaultDate: date, defaultStartTime: startTime, defaultEndTime: endTime, defaultEndDate: endDate })
+    setEventForm({ key: `new:${nanoid()}`, event: null, defaultDate: date, defaultStartTime: startTime, defaultEndTime: endTime, defaultEndDate: endDate })
   }
-  const openEditEvent = event => { if (event._remote) return; setDayDetail(null); setEventForm({ event, defaultDate: null }) }
+  const openEditEvent = event => { if (event._remote) return; setDayDetail(null); setEventForm({ key: event.id, event, defaultDate: null }) }
 
   const openMonth = date => { setAnchor(date); setView('month') }
   const openDay = date => { setAnchor(date); setView('day') }
@@ -211,7 +213,7 @@ export function CalendarTab() {
         onEditEvent={openEditEvent} />
 
       {eventForm && (
-        <EventForm open onOpenChange={v => !v && setEventForm(null)}
+        <EventForm key={eventForm.key} open onOpenChange={v => !v && setEventForm(null)}
           event={eventForm.event} semesterId={activeSemesterId} defaultDate={eventForm.defaultDate}
           defaultStartTime={eventForm.defaultStartTime} defaultEndTime={eventForm.defaultEndTime}
           defaultEndDate={eventForm.defaultEndDate} />

@@ -52,7 +52,9 @@ export function useCollabSync() {
         if (isTeamExpired(team)) {
           clearCollabRuntimeTeam(teamId)
           if (team.hostUserId === userId) {
-            try { await deleteTeam({ config, teamId }) } catch {}
+            try { await deleteTeam({ config, teamId }) } catch {
+              // local membership is removed below regardless
+            }
           }
           removeCollabMembership(teamId)
           return

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { FREE_BOARD_ID, boardIdForTask, taskToCard } from '@/lib/taskUtils'
 import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
+import { sortByOrder } from '@/lib/utils'
 
 const EMPTY_BOARD = { columns: [] }
 const EMPTY_TASKS = []
@@ -9,7 +10,7 @@ const EMPTY_MEMBERSHIPS = []
 const EMPTY_TEAMS = {}
 
 function fallbackColumnId(localBoard) {
-  const columns = [...(localBoard?.columns ?? [])].sort((a, b) => a.order - b.order)
+  const columns = sortByOrder(localBoard?.columns ?? [])
   if (!columns.length) return 'col_todo'
   const todo = columns.find(col => col.id.toLowerCase().includes('todo') || col.title.toLowerCase().includes('to do') || col.title.toLowerCase().includes('todo'))
   return todo?.id ?? columns[0].id

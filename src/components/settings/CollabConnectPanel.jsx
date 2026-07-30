@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { loadFirebaseConfig, markCollabRulesEnabled } from '@/lib/firebase'
+import { markCollabRulesEnabled } from '@/lib/firebase'
 import { deleteTeam, leaveTeam } from '@/lib/collab/firebase'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
@@ -85,11 +85,13 @@ export function CollabConnectButton({ firebaseConnected }) {
         try {
           await deleteTeam({ config, teamId: membership.teamId })
         } catch {
+          // local membership is cleared below regardless
         }
       } else if (userId) {
         try {
           await leaveTeam({ config, teamId: membership.teamId, userId })
         } catch {
+          // local membership is cleared below regardless
         }
       }
 

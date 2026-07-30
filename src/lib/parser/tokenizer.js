@@ -11,7 +11,7 @@ export function tokenize(text) {
   for (let i = 0; i < rawTokens.length; i++) {
     const original = rawTokens[i]
     // Value strips surrounding punctuation for easy exact matching
-    const value = original.toLowerCase().replace(/^[.,!?;:()\[\]]+|[.,!?;:()\[\]]+$/g, '')
+    const value = original.toLowerCase().replace(/^[.,!?;:()[\]]+|[.,!?;:()[\]]+$/g, '')
     tokens.push({
       index: i,
       value,

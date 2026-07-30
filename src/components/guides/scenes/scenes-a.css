@@ -1,0 +1,332 @@
+/* Shared keyframes/classes for GradesScene, NotesScene, EisenhowerScene, QuickActionScene. */
+
+/* ============================= Grades (6s) ============================= */
+.guide-grades-input {
+    animation: guide-grades-input 6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: background-color, box-shadow;
+}
+@keyframes guide-grades-input {
+    0%,
+    40% {
+        background-color: var(--secondary);
+        box-shadow: 0 0 0 0 transparent;
+    }
+    45%,
+    60% {
+        background-color: color-mix(in oklab, var(--primary) 20%, var(--secondary));
+        box-shadow: 0 0 0 2px var(--primary);
+    }
+    70%,
+    100% {
+        background-color: var(--secondary);
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+.guide-grades-input::after {
+    content: '\2013';
+    animation: guide-grades-input-text 6s steps(1) infinite;
+}
+@keyframes guide-grades-input-text {
+    0%,
+    44% {
+        content: '\2013';
+    }
+    45%,
+    100% {
+        content: '16';
+    }
+}
+.guide-grades-avg::after {
+    content: '14.2';
+    animation: guide-grades-avg 6s steps(1) infinite;
+}
+@keyframes guide-grades-avg {
+    0%,
+    54% {
+        content: '14.2';
+    }
+    55%,
+    100% {
+        content: '15.1';
+    }
+}
+.guide-grades-needed::after {
+    content: '13.8';
+    animation: guide-grades-needed 6s steps(1) infinite;
+}
+@keyframes guide-grades-needed {
+    0%,
+    64% {
+        content: '13.8';
+    }
+    65%,
+    100% {
+        content: '11.4';
+    }
+}
+
+/* ============================= Notes (5s) ============================= */
+.guide-notes-rendered {
+    animation: guide-notes-rendered 5s ease-in-out infinite;
+    will-change: opacity;
+}
+.guide-notes-source {
+    animation: guide-notes-source 5s ease-in-out infinite;
+    will-change: opacity;
+}
+@keyframes guide-notes-rendered {
+    0%,
+    42% {
+        opacity: 1;
+    }
+    50%,
+    92% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes guide-notes-source {
+    0%,
+    42% {
+        opacity: 0;
+    }
+    50%,
+    92% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+.guide-notes-type-1 {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    border-right: 1px solid var(--foreground);
+    width: 0ch;
+    animation: guide-notes-type-1 5s steps(9) infinite;
+}
+@keyframes guide-notes-type-1 {
+    0%,
+    50% {
+        width: 0ch;
+    }
+    62%,
+    100% {
+        width: 9ch;
+    }
+}
+.guide-notes-type-2 {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    border-right: 1px solid var(--foreground);
+    width: 0ch;
+    animation: guide-notes-type-2 5s steps(7) infinite;
+}
+@keyframes guide-notes-type-2 {
+    0%,
+    63% {
+        width: 0ch;
+    }
+    75%,
+    100% {
+        width: 7ch;
+    }
+}
+
+/* ============================ Eisenhower (6s) ============================ */
+.guide-ei-card {
+    animation: guide-ei-card 6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    will-change: transform, box-shadow, left, top;
+}
+@keyframes guide-ei-card {
+    0%,
+    14% {
+        left: 6%;
+        top: 10%;
+        transform: scale(1);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    }
+    28% {
+        left: 6%;
+        top: 10%;
+        transform: scale(1.08);
+        box-shadow: 0 8px 16px rgb(0 0 0 / 0.22);
+    }
+    60% {
+        left: 54%;
+        top: 54%;
+        transform: scale(1.08);
+        box-shadow: 0 8px 16px rgb(0 0 0 / 0.22);
+    }
+    78%,
+    100% {
+        left: 54%;
+        top: 54%;
+        transform: scale(1);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    }
+}
+
+/* ========================== QuickAction (7s) ========================== */
+.guide-qa-dim {
+    opacity: 0;
+    animation: guide-qa-dim 7s ease-in-out infinite;
+    will-change: opacity;
+}
+@keyframes guide-qa-dim {
+    0%,
+    10% {
+        opacity: 0;
+    }
+    16%,
+    96% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+.guide-qa-modal {
+    opacity: 0;
+    transform: scale(0.95);
+    animation: guide-qa-modal 7s ease-in-out infinite;
+    will-change: opacity, transform;
+}
+@keyframes guide-qa-modal {
+    0%,
+    18% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    26%,
+    94% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+.guide-qa-type {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    border-right: 1px solid var(--foreground);
+    width: 0ch;
+    animation: guide-qa-type 7s steps(17) infinite;
+}
+@keyframes guide-qa-type {
+    0%,
+    22% {
+        width: 0ch;
+    }
+    56%,
+    100% {
+        width: 17ch;
+    }
+}
+.guide-qa-result {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+    animation: guide-qa-result 7s ease-in-out infinite;
+    will-change: opacity, transform;
+}
+@keyframes guide-qa-result {
+    0%,
+    78% {
+        opacity: 0;
+        transform: translateY(6px) scale(0.9);
+    }
+    86%,
+    96% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(6px) scale(0.9);
+    }
+}
+
+/* ================================ Reduced motion ================================ */
+@media (prefers-reduced-motion: reduce) {
+    .guide-grades-input,
+    .guide-grades-input::after,
+    .guide-grades-avg::after,
+    .guide-grades-needed::after,
+    .guide-notes-rendered,
+    .guide-notes-source,
+    .guide-notes-type-1,
+    .guide-notes-type-2,
+    .guide-ei-card,
+    .guide-qa-dim,
+    .guide-qa-modal,
+    .guide-qa-type,
+    .guide-qa-result {
+        animation: none !important;
+    }
+
+    /* Grades: filled-in state */
+    .guide-grades-input {
+        background-color: color-mix(in oklab, var(--primary) 20%, var(--secondary));
+        box-shadow: 0 0 0 2px var(--primary);
+    }
+    .guide-grades-input::after {
+        content: '16';
+    }
+    .guide-grades-avg::after {
+        content: '15.1';
+    }
+    .guide-grades-needed::after {
+        content: '11.4';
+    }
+
+    /* Notes: rendered view visible, source hidden */
+    .guide-notes-rendered {
+        opacity: 1 !important;
+    }
+    .guide-notes-source {
+        opacity: 0 !important;
+    }
+    .guide-notes-type-1 {
+        width: 9ch !important;
+        border-right-color: transparent;
+    }
+    .guide-notes-type-2 {
+        width: 7ch !important;
+        border-right-color: transparent;
+    }
+
+    /* Eisenhower: card settled in destination quadrant */
+    .guide-ei-card {
+        left: 54% !important;
+        top: 54% !important;
+        transform: scale(1) !important;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08) !important;
+    }
+
+    /* QuickAction: modal open, full text, result visible */
+    .guide-qa-dim {
+        opacity: 1 !important;
+    }
+    .guide-qa-modal {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+    }
+    .guide-qa-type {
+        width: 17ch !important;
+        border-right-color: transparent;
+    }
+    .guide-qa-result {
+        opacity: 1 !important;
+        transform: translateY(0) scale(1) !important;
+    }
+}

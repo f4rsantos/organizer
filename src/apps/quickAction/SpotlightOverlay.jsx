@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { QuickActionBar } from '@/components/tasks/QuickActionBar'
 
 export function SpotlightOverlay({ open, onClose }) {
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
   const allClasses = useStore(s => s.classes ?? [])
   const { semester, mode } = useWeekContext()
   const [show, setShow] = useState(false)
@@ -16,14 +13,13 @@ export function SpotlightOverlay({ open, onClose }) {
   const classes = allClasses.filter(c => c.semesterId === scopeId)
 
   useEffect(() => {
-    if (open) setShow(true)
-    else {
+    if (!open) {
       const timer = setTimeout(() => setShow(false), 200)
       return () => clearTimeout(timer)
     }
   }, [open])
 
-  if (!show && !open) return null
+  if (!open && !show) return null
 
   return (
     <div className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}

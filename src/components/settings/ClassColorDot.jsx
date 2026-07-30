@@ -1,10 +1,5 @@
 import { useRef } from 'react'
-
-export const PRESET_COLORS = [
-  '#6366f1', '#8b5cf6', '#a855f7', '#ec4899',
-  '#f97316', '#eab308', '#22c55e', '#14b8a6',
-  '#06b6d4', '#3b82f6', '#64748b', '#78716c',
-]
+import { PRESET_COLORS } from '@/lib/constants'
 
 export function ClassColorDot({ color, onChange, compact = false }) {
   const pickerRef = useRef()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,33 +40,26 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
   const updateEvent = useStore(s => s.updateEvent)
   const deleteEvent = useStore(s => s.deleteEvent)
   const googleCalendarEnabled = useStore(s => s.settings?.apps?.googleCalendar === true) && Boolean(loadGoogleClientId())
-  const [form, setForm] = useState(EMPTY)
-  const [touched, setTouched] = useState({ date: false, startTime: false, endTime: false })
-
-  const [rawTitle, setRawTitle] = useState('')
-
-  useEffect(() => {
-    if (!open) return
-    if (event) {
-      const next = formFromEvent(event)
-      setForm(next)
-      setTouched({ date: true, startTime: Boolean(event.startTime), endTime: Boolean(event.endTime) })
-      setRawTitle(next.title)
-    } else {
-      const spansDays = Boolean(defaultEndDate)
-      setForm({
-        ...EMPTY,
-        date: defaultDate ?? '',
-        multiDay: spansDays,
-        startDate: spansDays ? defaultDate ?? '' : '',
-        endDate: spansDays ? defaultEndDate : '',
-        startTime: defaultStartTime ?? '',
-        endTime: defaultEndTime ?? '',
-      })
-      setTouched({ date: Boolean(defaultDate), startTime: Boolean(defaultStartTime), endTime: Boolean(defaultEndTime) })
-      setRawTitle('')
+  const initialForm = () => {
+    if (event) return formFromEvent(event)
+    const spansDays = Boolean(defaultEndDate)
+    return {
+      ...EMPTY,
+      date: defaultDate ?? '',
+      multiDay: spansDays,
+      startDate: spansDays ? defaultDate ?? '' : '',
+      endDate: spansDays ? defaultEndDate : '',
+      startTime: defaultStartTime ?? '',
+      endTime: defaultEndTime ?? '',
     }
-  }, [open, event, defaultDate, defaultStartTime, defaultEndTime, defaultEndDate])
+  }
+  const initialTouched = () => (event
+    ? { date: true, startTime: Boolean(event.startTime), endTime: Boolean(event.endTime) }
+    : { date: Boolean(defaultDate), startTime: Boolean(defaultStartTime), endTime: Boolean(defaultEndTime) })
+
+  const [form, setForm] = useState(initialForm)
+  const [touched, setTouched] = useState(initialTouched)
+  const [rawTitle, setRawTitle] = useState(() => (event ? formFromEvent(event).title : ''))
 
   const set = patch => setForm(f => ({ ...f, ...patch }))
 

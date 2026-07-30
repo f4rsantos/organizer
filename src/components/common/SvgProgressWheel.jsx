@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Check } from 'lucide-react'
 
 export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label, sublabel, celebrate = false, center }) {
@@ -9,18 +9,19 @@ export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label,
   const done = pct >= 1
 
   const [spinning, setSpinning] = useState(false)
-  const prevPct = useRef(pct)
+  const [prevPct, setPrevPct] = useState(pct)
+
+  if (pct !== prevPct) {
+    if (celebrate && pct >= 1 && prevPct < 1) setSpinning(true)
+    else if (pct < 1) setSpinning(false)
+    setPrevPct(pct)
+  }
 
   useEffect(() => {
-    if (celebrate && pct >= 1 && prevPct.current < 1) {
-      setSpinning(true)
-      const t = setTimeout(() => setSpinning(false), 1200)
-      prevPct.current = pct
-      return () => clearTimeout(t)
-    }
-    if (pct < 1) setSpinning(false)
-    prevPct.current = pct
-  }, [pct, celebrate])
+    if (!spinning) return
+    const t = setTimeout(() => setSpinning(false), 1200)
+    return () => clearTimeout(t)
+  }, [spinning])
 
   const trackColor = done ? 'none' : 'var(--wheel-track)'
   const strokeColor = done ? `url(#${gradId})` : `url(#${gradId})`

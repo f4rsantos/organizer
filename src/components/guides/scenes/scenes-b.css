@@ -1,0 +1,328 @@
+/* --- Google Calendar sync: dashes travel left box -> right box, chip lights up --- */
+.guide-gcal-dash-a {
+    left: 34%;
+    opacity: 0;
+    animation: guide-gcal-dash-a 2.5s linear infinite;
+    will-change: left, opacity;
+}
+@keyframes guide-gcal-dash-a {
+    0% {
+        left: 34%;
+        opacity: 0;
+    }
+    8% {
+        opacity: 1;
+    }
+    38% {
+        opacity: 1;
+    }
+    46% {
+        left: 62%;
+        opacity: 0;
+    }
+    100% {
+        left: 62%;
+        opacity: 0;
+    }
+}
+
+.guide-gcal-dash-b {
+    left: 34%;
+    opacity: 0;
+    animation: guide-gcal-dash-b 2.5s linear infinite;
+    will-change: left, opacity;
+}
+@keyframes guide-gcal-dash-b {
+    0%,
+    50% {
+        left: 34%;
+        opacity: 0;
+    }
+    58% {
+        opacity: 1;
+    }
+    88% {
+        opacity: 1;
+    }
+    96% {
+        left: 62%;
+        opacity: 0;
+    }
+    100% {
+        left: 62%;
+        opacity: 0;
+    }
+}
+
+.guide-gcal-chip {
+    animation: guide-gcal-chip 2.5s linear infinite;
+    will-change: opacity;
+}
+@keyframes guide-gcal-chip {
+    0%,
+    44% {
+        opacity: 0;
+    }
+    48%,
+    94% {
+        opacity: 1;
+    }
+    98%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* --- Ei Calendar: month grid cells ring + chips fade/slide in, staggered --- */
+.guide-ei-ring-9,
+.guide-ei-ring-12,
+.guide-ei-ring-17 {
+    opacity: 0;
+    will-change: opacity;
+}
+.guide-ei-ring-9 {
+    animation: guide-ei-ring-a 4.5s ease-in-out infinite;
+}
+.guide-ei-ring-12 {
+    animation: guide-ei-ring-b 4.5s ease-in-out infinite;
+}
+.guide-ei-ring-17 {
+    animation: guide-ei-ring-c 4.5s ease-in-out infinite;
+}
+@keyframes guide-ei-ring-a {
+    0%,
+    8% {
+        opacity: 0;
+    }
+    14%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes guide-ei-ring-b {
+    0%,
+    30% {
+        opacity: 0;
+    }
+    36%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes guide-ei-ring-c {
+    0%,
+    52% {
+        opacity: 0;
+    }
+    58%,
+    100% {
+        opacity: 1;
+    }
+}
+
+.guide-ei-chip-a,
+.guide-ei-chip-b,
+.guide-ei-chip-c {
+    opacity: 0;
+    transform: translateY(-3px);
+    will-change: opacity, transform;
+}
+.guide-ei-chip-a {
+    animation: guide-ei-chip-a 4.5s ease-out infinite;
+}
+.guide-ei-chip-b {
+    animation: guide-ei-chip-b 4.5s ease-out infinite;
+}
+.guide-ei-chip-c {
+    animation: guide-ei-chip-c 4.5s ease-out infinite;
+}
+@keyframes guide-ei-chip-a {
+    0%,
+    10% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    18%,
+    92% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+@keyframes guide-ei-chip-b {
+    0%,
+    32% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    40%,
+    92% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+@keyframes guide-ei-chip-c {
+    0%,
+    54% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    62%,
+    96% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+
+/* --- Standby: progress ring fills, time ticks, task dots complete in sequence --- */
+.guide-standby-ring-arc {
+    animation: guide-standby-arc 6s linear infinite;
+    will-change: stroke-dashoffset;
+}
+@keyframes guide-standby-arc {
+    0% {
+        stroke-dashoffset: 106.8;
+    }
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+.guide-standby-time {
+    animation: guide-standby-time 6s steps(1) infinite;
+}
+.guide-standby-time::after {
+    content: '11:58 PM';
+    animation: guide-standby-digits 6s steps(1) infinite;
+}
+@keyframes guide-standby-digits {
+    0%,
+    16% {
+        content: '11:58 PM';
+    }
+    17%,
+    33% {
+        content: '11:59 PM';
+    }
+    34%,
+    49% {
+        content: '12:00 AM';
+    }
+    50%,
+    66% {
+        content: '12:01 AM';
+    }
+    67%,
+    83% {
+        content: '12:02 AM';
+    }
+    84%,
+    100% {
+        content: '12:03 AM';
+    }
+}
+
+.guide-standby-dot-0,
+.guide-standby-dot-1,
+.guide-standby-dot-2 {
+    will-change: opacity;
+}
+.guide-standby-dot-0 {
+    animation: guide-standby-dot-0 6s linear infinite;
+}
+.guide-standby-dot-1 {
+    animation: guide-standby-dot-1 6s linear infinite;
+}
+.guide-standby-dot-2 {
+    animation: guide-standby-dot-2 6s linear infinite;
+}
+@keyframes guide-standby-dot-0 {
+    0%,
+    28% {
+        opacity: 0;
+    }
+    34%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes guide-standby-dot-1 {
+    0%,
+    54% {
+        opacity: 0;
+    }
+    60%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes guide-standby-dot-2 {
+    0%,
+    80% {
+        opacity: 0;
+    }
+    86%,
+    100% {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guide-gcal-dash-a,
+    .guide-gcal-dash-b,
+    .guide-gcal-chip,
+    .guide-ei-ring-9,
+    .guide-ei-ring-12,
+    .guide-ei-ring-17,
+    .guide-ei-chip-a,
+    .guide-ei-chip-b,
+    .guide-ei-chip-c,
+    .guide-standby-ring-arc,
+    .guide-standby-time,
+    .guide-standby-dot-0,
+    .guide-standby-dot-1,
+    .guide-standby-dot-2 {
+        animation: none !important;
+    }
+
+    .guide-gcal-dash-a,
+    .guide-gcal-dash-b {
+        opacity: 0 !important;
+    }
+    .guide-gcal-chip {
+        opacity: 1 !important;
+    }
+
+    .guide-ei-ring-9,
+    .guide-ei-ring-12,
+    .guide-ei-ring-17,
+    .guide-ei-chip-a,
+    .guide-ei-chip-b,
+    .guide-ei-chip-c {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
+
+    .guide-standby-ring-arc {
+        stroke-dashoffset: 48 !important;
+    }
+    .guide-standby-time::after {
+        content: '12:01 AM' !important;
+    }
+    .guide-standby-dot-0,
+    .guide-standby-dot-1,
+    .guide-standby-dot-2 {
+        opacity: 1 !important;
+    }
+}

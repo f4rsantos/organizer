@@ -12,6 +12,7 @@ import { SemesterDatesForm } from '@/components/settings/SemesterDatesForm'
 import { ClassesForm } from '@/components/settings/ClassesForm'
 import { importState } from '@/store/persist'
 import { FREE_BOARD_ID } from '@/lib/taskUtils'
+import { sortByOrder } from '@/lib/utils'
 import { TourScene } from './onboarding/TourScene'
 import { TasksPanel } from './onboarding/TasksScene'
 import { KanbanPanel } from './onboarding/KanbanScene'
@@ -66,7 +67,7 @@ export function Onboarding({ onDone }) {
   const tourColumns = useMemo(() => {
     const cols = kanban?.[activeSemesterId ?? FREE_BOARD_ID]?.columns
     if (!cols?.length) return null
-    return [...cols].sort((a, b) => a.order - b.order).map(c => c.title)
+    return sortByOrder(cols).map(c => c.title)
   }, [kanban, activeSemesterId])
 
   const tourGroupLabels = useMemo(() => {

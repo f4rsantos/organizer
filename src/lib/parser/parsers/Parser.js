@@ -7,7 +7,7 @@ export class Parser {
    * Confidence is typically between 0.0 and 1.0. 
    * Higher confidence wins when overlaps occur.
    */
-  parse(tokens, context) {
+  parse(_tokens, _context) {
     return []
   }
 }

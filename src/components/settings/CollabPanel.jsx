@@ -371,6 +371,7 @@ export function CollabPanel() {
         userId: collab.userId,
       })
     } catch {
+      // local membership is removed below so the user isn't stuck in the team
     }
 
     removeMembership(membership.teamId)

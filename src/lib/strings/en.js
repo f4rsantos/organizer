@@ -5,6 +5,7 @@ export const en = {
     nlpToday: ['today'], nlpTomorrow: ['tomorrow'], nlpNextWeek: ['next week'], nlpAt: ['at'],
     nlpDow: [['sunday', 'sun'], ['monday', 'mon'], ['tuesday', 'tue'], ['wednesday', 'wed'], ['thursday', 'thu'], ['friday', 'fri'], ['saturday', 'sat']],
     tasks: 'Tasks', kanban: 'Kanban', grades: 'Grades', calendar: 'Calendar', focus: 'Focus', settings: 'Settings',
+    guides: 'Guides',
     noSemester: 'No semester set up', goToSettings: 'Head to Settings to get started.',
     weekLabel: w => `Week ${w}`, done: 'done', timeToRelax: 'Time to relax!',
     addTask: 'New task', task: 'Task', class: 'Class', priority: 'Priority',

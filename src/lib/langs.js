@@ -8,5 +8,3 @@ export const LANGS = [
   { code: 'cs', label: 'Čeština', short: 'CS' },
   { code: 'pirate', label: '☠ Pirate', short: '☠' },
 ]
-
-export const LANG_CODES = LANGS.map(l => l.code)
