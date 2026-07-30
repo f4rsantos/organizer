@@ -54,6 +54,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     const { forceSaveState } = await import('./persist.js')
     const { enableLocalEncryption } = await import('../lib/crypto/localEnable.js')
 
+    useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
     useStore.getState().addTask({ title: 'secret plan' })
     await settle()
@@ -74,6 +75,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     const { forceSaveState } = await import('./persist.js')
     const { enableLocalEncryption } = await import('../lib/crypto/localEnable.js')
 
+    useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
     await settle()
 
@@ -91,6 +93,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     const { forceSaveState } = await import('./persist.js')
     const { enableLocalEncryption } = await import('../lib/crypto/localEnable.js')
 
+    useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
     useStore.getState().addTask({ title: 'secret plan' })
     await settle()

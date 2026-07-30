@@ -17,7 +17,7 @@ import { itemsForDay } from './calendarUtils'
 import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
-import { expandTasksForRange } from '@/lib/recurrence'
+import { expandTasksForRange, expandEventsForRange } from '@/lib/recurrence'
 import { nanoid } from '@/lib/ids'
 
 const VIEWS = ['day', 'week', 'month', 'year']
@@ -90,12 +90,17 @@ export function CalendarTab() {
 
   const classes = hasScope ? allClasses.filter(c => c.semesterId === activeSemesterId) : []
   const holidays = hasScope ? (allHolidays ?? []).filter(h => h.semesterId === activeSemesterId) : []
-  const events = hasScope
-    ? [...allEvents.filter(e => e.semesterId === activeSemesterId || e.semesterId == null), ...providerEvents]
-        .map(e => ({ ...e, _range: eventDateRange(e) }))
-    : []
   const expandRangeStart = new Date(anchor.getFullYear() - 1, 0, 1)
   const expandRangeEnd = new Date(anchor.getFullYear() + 1, 11, 31)
+  const events = hasScope
+    ? [
+        ...expandEventsForRange(
+          allEvents.filter(e => e.semesterId === activeSemesterId || e.semesterId == null),
+          expandRangeStart, expandRangeEnd,
+        ),
+        ...providerEvents,
+      ].map(e => ({ ...e, _range: eventDateRange(e) }))
+    : []
   const tasks = hasScope
     ? expandTasksForRange(
         allTasks.filter(tk => tk.views?.calendar !== false),
@@ -137,7 +142,12 @@ export function CalendarTab() {
     setDayDetail(null)
     setEventForm({ key: `new:${nanoid()}`, event: null, defaultDate: date, defaultStartTime: startTime, defaultEndTime: endTime, defaultEndDate: endDate })
   }
-  const openEditEvent = event => { if (event._remote) return; setDayDetail(null); setEventForm({ key: event.id, event, defaultDate: null }) }
+  const openEditEvent = event => {
+    if (event._remote) return
+    setDayDetail(null)
+    const target = event.isRecurringOccurrence ? allEvents.find(e => e.id === event.templateId) ?? event : event
+    setEventForm({ key: target.id, event: target, defaultDate: null })
+  }
 
   const openMonth = date => { setAnchor(date); setView('month') }
   const openDay = date => { setAnchor(date); setView('day') }

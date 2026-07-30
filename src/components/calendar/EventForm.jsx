@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Mic } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
+import { Mic, Circle, CircleCheck } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -14,7 +15,7 @@ import { pushEventDeletion } from '@/apps/googleCalendar/useGoogleCalendarSync'
 import { loadGoogleClientId } from '@/apps/googleCalendar/googleAuth'
 import { format } from 'date-fns'
 
-const EMPTY = { title: '', date: '', startDate: '', endDate: '', multiDay: false, color: '#6366f1', note: '', startTime: '', endTime: '', syncToGoogle: false }
+const EMPTY = { title: '', date: '', startDate: '', endDate: '', multiDay: false, color: '#6366f1', note: '', startTime: '', endTime: '', syncToGoogle: false, recurrence: null }
 
 function formFromEvent(event) {
   if (!event) return EMPTY
@@ -30,6 +31,7 @@ function formFromEvent(event) {
     startTime: event.startTime ?? '',
     endTime: event.endTime ?? '',
     syncToGoogle: Boolean(event.syncToGoogle),
+    recurrence: event.recurrence ?? null,
   }
 }
 
@@ -138,6 +140,7 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
         allDay: !spanHasTime,
         startTime: spanHasTime ? f.startTime : null,
         endTime: spanHasTime && f.endTime ? f.endTime : null,
+        recurrence: null,
       }
     }
     const hasTime = Boolean(f.startTime)
@@ -149,7 +152,33 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
       allDay: !hasTime,
       startTime: hasTime ? f.startTime : null,
       endTime: hasTime && f.endTime ? f.endTime : null,
+      recurrence: f.recurrence,
     }
+  }
+
+  const handleRepeatToggle = () => {
+    setForm(f => ({
+      ...f,
+      recurrence: f.recurrence ? null : { freq: 'weekly', interval: 1, until: null },
+    }))
+  }
+
+  const handleRecurrenceChange = patch => {
+    setForm(f => ({ ...f, recurrence: { ...f.recurrence, ...patch } }))
+  }
+
+  const [localInterval, setLocalInterval] = useState('')
+  const [prevInterval, setPrevInterval] = useState(form.recurrence?.interval)
+  if (form.recurrence && form.recurrence.interval !== prevInterval) {
+    setLocalInterval(String(form.recurrence.interval))
+    setPrevInterval(form.recurrence.interval)
+  }
+
+  const handleIntervalBlur = () => {
+    let val = Number(localInterval)
+    if (isNaN(val) || val < 1) val = 1
+    handleRecurrenceChange({ interval: val })
+    setLocalInterval(String(val))
   }
 
   const valid = rawTitle.trim() && (form.multiDay ? form.startDate : form.date)
@@ -211,10 +240,55 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <Label>{t.eventDate}</Label>
-              <Input type="date" value={form.date} onChange={handleDateChange} />
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label>{t.eventDate}</Label>
+                <Input type="date" value={form.date} onChange={handleDateChange} />
+              </div>
+
+              <button type="button" onClick={handleRepeatToggle}
+                className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-foreground">{t.repeat}</span>
+                  <span className="text-muted-foreground">
+                    {form.recurrence
+                      ? <CircleCheck className="h-4 w-4 text-primary" />
+                      : <Circle className="h-4 w-4" />}
+                  </span>
+                </span>
+              </button>
+
+              {form.recurrence && (
+                <div className="grid grid-cols-2 gap-3 p-3 mt-1.5 rounded-lg border border-border/50 bg-secondary/20">
+                  <div className="space-y-1.5">
+                    <Label>{t.repeatFreqLabel}</Label>
+                    <Select value={form.recurrence.freq} onValueChange={v => handleRecurrenceChange({ freq: v })}>
+                      <SelectTrigger className="bg-background">
+                        <span>{{ daily: t.repeatFreqDaily, weekly: t.repeatFreqWeekly, monthly: t.repeatFreqMonthly }[form.recurrence.freq]}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">{t.repeatFreqDaily}</SelectItem>
+                        <SelectItem value="weekly">{t.repeatFreqWeekly}</SelectItem>
+                        <SelectItem value="monthly">{t.repeatFreqMonthly}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{t.repeatEvery}</Label>
+                    <Input type="number" min="1" value={localInterval}
+                      onChange={e => setLocalInterval(e.target.value)}
+                      onBlur={handleIntervalBlur}
+                      className="bg-background" />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>{t.repeatUntil}</Label>
+                    <Input type="date" value={form.recurrence.until ?? ''}
+                      onChange={e => handleRecurrenceChange({ until: e.target.value || null })}
+                      className="bg-background" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
           <div className="flex gap-2">
             <div className="flex-1 flex flex-col gap-1.5">

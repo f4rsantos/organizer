@@ -57,6 +57,14 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
   const [inviteDaysInput, setInviteDaysInput] = useState('1')
   const [copiedInvite, setCopiedInvite] = useState(false)
 
+  const startEditing = () => {
+    setName(team.name ?? '')
+    setDaysInput(String(Math.max(1, daysLeft(team.expiresAt))))
+    setCompletionMode(team.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all')
+    setMembersCanEditShared(team.membersCanEditShared !== false)
+    setEditing(true)
+  }
+
   const save = async () => {
     await onUpdate({
       name: name.trim() || team.name,
@@ -184,7 +192,7 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                    onClick={() => setEditing(true)}
+                    onClick={startEditing}
                     title={t.collabEditTeam}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -235,6 +243,7 @@ export function CollabPanel() {
   const collab = useStore(s => s.collab ?? { userId: null, memberships: [] })
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const addMembership = useStore(s => s.addCollabMembership)
+  const updateMembership = useStore(s => s.updateCollabMembership)
   const removeMembership = useStore(s => s.removeCollabMembership)
   const clearTaskSharedRefByTeam = useStore(s => s.clearTaskSharedRefByTeam)
   const deleteLocalSharedTasksByTeam = useStore(s => s.deleteLocalSharedTasksByTeam)
@@ -457,11 +466,17 @@ export function CollabPanel() {
                 onGenerateInvite={daysToUse => handleGenerateInvite(team, daysToUse)}
                 onDelete={() => setDeleteTeamId(team.teamId)}
                 onLeave={() => setLeaveTeamId(team.teamId)}
-                onUpdate={updates => updateTeamMeta({
-                  config: { apiKey: team.apiKey, projectId: team.projectId },
-                  teamId: team.teamId,
-                  updates,
-                })}
+                onUpdate={async updates => {
+                  await updateTeamMeta({
+                    config: { apiKey: team.apiKey, projectId: team.projectId },
+                    teamId: team.teamId,
+                    updates,
+                  })
+                  updateMembership(team.teamId, {
+                    teamName: updates.name,
+                    expiresAt: updates.expiresAt,
+                  })
+                }}
               />
             )
           })}
