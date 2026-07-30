@@ -12,10 +12,10 @@ import { eisenhowerApp } from '@/apps/eisenhower'
 
 
 const DEFAULT_QUADRANTS = [
-  { id: 'urgent-important', labelKey: 'eisenhowerDoNow', tint: 'bg-rose-500/10 border-rose-500/30', dotColor: 'bg-rose-500' },
-  { id: 'important', labelKey: 'eisenhowerSchedule', tint: 'bg-amber-500/10 border-amber-500/30', dotColor: 'bg-amber-500' },
-  { id: 'urgent', labelKey: 'eisenhowerDelegate', tint: 'bg-sky-500/10 border-sky-500/30', dotColor: 'bg-sky-500' },
-  { id: 'neither', labelKey: 'eisenhowerEliminate', tint: 'bg-slate-500/10 border-slate-500/30', dotColor: 'bg-slate-500' },
+  { id: 'urgent-important', labelKey: 'eisenhowerDoNow', dotColor: '#71717a' },
+  { id: 'important', labelKey: 'eisenhowerSchedule', dotColor: '#a1a1aa' },
+  { id: 'urgent', labelKey: 'eisenhowerDelegate', dotColor: '#a1a1aa' },
+  { id: 'neither', labelKey: 'eisenhowerEliminate', dotColor: '#d4d4d8' },
 ]
 
 export function EisenhowerAppModal({ open, onOpenChange }) {
@@ -79,11 +79,10 @@ export function EisenhowerAppModal({ open, onOpenChange }) {
               </div>
               <div className="grid gap-2">
                 {DEFAULT_QUADRANTS.map(q => {
-                  const currentTint = custom[q.id]?.tint || q.tint
-                  const currentDot = custom[q.id]?.dotColor || q.dotColor
-                  
+                  const currentDot = custom[q.id]?.dotColor || custom[q.id]?.tint || q.dotColor
+
                   const getHex = () => {
-                    if (currentTint?.startsWith('#')) return currentTint
+                    if (currentDot?.startsWith('#')) return currentDot
                     if (currentDot === 'bg-rose-500') return '#f43f5e'
                     if (currentDot === 'bg-amber-500') return '#f59e0b'
                     if (currentDot === 'bg-sky-500') return '#0ea5e9'
