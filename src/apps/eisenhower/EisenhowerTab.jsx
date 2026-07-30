@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
+import { Menu, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,7 +9,6 @@ import { useStrings } from '@/lib/strings'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { TaskForm } from '@/components/tasks/TaskForm'
-import { EmptyState } from '@/components/common/EmptyState'
 import { cn } from '@/lib/utils'
 
 const PRIORITY_DOT = {
@@ -43,25 +42,63 @@ function isPastTask(task) {
   return due < cutoff
 }
 
-function EisenhowerCard({ task, classColor, className: cls }) {
+function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+  const interactive = !!(onEdit || onDelete)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
       className={cn(
-        'flex flex-col gap-2 rounded-xl border border-border bg-card p-3 text-xs select-none cursor-grab touch-none active:cursor-grabbing',
+        'relative flex flex-col gap-2 rounded-xl border border-border bg-card p-3 text-xs select-none cursor-grab touch-none active:cursor-grabbing',
         'transition-shadow hover:shadow-md min-w-[140px] max-w-[200px]',
         isDragging && 'opacity-40 ring-2 ring-primary',
         cls,
       )}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         {task.priority && (
-          <span className={cn('h-2 w-2 rounded-full shrink-0', PRIORITY_DOT[task.priority])} />
+          <span className={cn('h-2 w-2 rounded-full shrink-0 mt-1', PRIORITY_DOT[task.priority])} />
         )}
-        {classColor && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: classColor }} />}
+        {classColor && <span className="h-2 w-2 rounded-full shrink-0 mt-1" style={{ backgroundColor: classColor }} />}
         <span className={cn('flex-1 font-medium leading-tight line-clamp-2', task.done && 'line-through text-muted-foreground')}>
           {task.title || 'Untitled'}
         </span>
+        {interactive && (
+          <div ref={menuRef} className="shrink-0" onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+            {menuOpen ? (
+              <div className="flex items-center gap-0.5">
+                {onEdit && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onClick={() => { onEdit(); setMenuOpen(false) }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => { onDelete(); setMenuOpen(false) }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                onClick={() => setMenuOpen(true)}>
+                <Menu className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {task.dueDate && (
         <Badge variant="secondary" className="text-[10px] self-start px-1.5 font-medium mt-1">
@@ -72,7 +109,7 @@ function EisenhowerCard({ task, classColor, className: cls }) {
   )
 }
 
-function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask }) {
+function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask, onEditTask, onDeleteTask }) {
   const { setNodeRef, isOver } = useDroppable({ id: quadrant.id })
   const label = customLabel || t[quadrant.labelKey]
   const isCustom = quadrant.tint?.startsWith('#')
@@ -96,7 +133,9 @@ function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask }) {
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-wrap gap-2 items-start">
           {tasks.map(task => (
-            <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color} />
+            <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color}
+              onEdit={() => onEditTask(task)}
+              onDelete={() => onDeleteTask(task.id)} />
           ))}
         </div>
         {tasks.length === 0 && <p className="text-xs text-muted-foreground/40 py-6 text-center">{t.eisenhowerEmpty}</p>}
@@ -105,7 +144,7 @@ function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask }) {
   )
 }
 
-function UnsortedTray({ tasks, classById, t }) {
+function UnsortedTray({ tasks, classById, t, onEditTask, onDeleteTask }) {
   const { setNodeRef, isOver } = useDroppable({ id: UNSORTED_ID })
   return (
     <div ref={setNodeRef}
@@ -114,14 +153,18 @@ function UnsortedTray({ tasks, classById, t }) {
         <p className="text-xs font-semibold text-muted-foreground">{t.eisenhowerUnsorted}</p>
         {tasks.length > 0 && <span className="text-[10px] text-muted-foreground/60">({tasks.length})</span>}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className={cn('flex-1', tasks.length > 0 && 'overflow-y-auto')}>
         <div className="flex flex-wrap gap-1.5">
           {tasks.map(task => (
-            <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color} className="flex-shrink-0" />
+            <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color} className="flex-shrink-0"
+              onEdit={() => onEditTask(task)}
+              onDelete={() => onDeleteTask(task.id)} />
           ))}
         </div>
         {tasks.length === 0 && (
-          <EmptyState title={t.eisenhowerUnsortedEmpty} icon={null} />
+          <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+            <p className="text-sm text-muted-foreground">{t.eisenhowerUnsortedEmpty}</p>
+          </div>
         )}
       </div>
     </div>
@@ -131,9 +174,12 @@ function UnsortedTray({ tasks, classById, t }) {
 export function EisenhowerTab() {
   const [activeTask, setActiveTask] = useState(null)
   const [addingQuadrant, setAddingQuadrant] = useState(null)
+  const [editingTask, setEditingTask] = useState(null)
   const activeSemesterId = useStore(s => s.activeSemesterId)
   const allClasses = useStore(s => s.classes) || EMPTY_ARR
   const setTaskEisenhower = useStore(s => s.setTaskEisenhower)
+  const updateTask = useStore(s => s.updateTask)
+  const deleteTask = useStore(s => s.deleteTask)
   const customQuadrants = useStore(s => s.settings?.apps?.eisenhowerQuadrants) || EMPTY_OBJ
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -182,6 +228,12 @@ export function EisenhowerTab() {
     setAddingQuadrant(null)
   }
 
+  const handleEditSubmit = data => {
+    if (!editingTask) return
+    updateTask(editingTask.id, data)
+    setEditingTask(null)
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2 shrink-0">
@@ -197,12 +249,16 @@ export function EisenhowerTab() {
             return (
               <Quadrant key={quadrant.id} quadrant={mergedQuadrant} tasks={grouped[quadrant.id]} classById={classById} t={t}
                 customLabel={custom?.name}
-                onAddTask={() => setAddingQuadrant(quadrant)} />
+                onAddTask={() => setAddingQuadrant(quadrant)}
+                onEditTask={setEditingTask}
+                onDeleteTask={deleteTask} />
             )
           })}
         </div>
         <div className="px-4 md:px-6 py-3 shrink-0">
-          <UnsortedTray tasks={grouped[UNSORTED_ID]} classById={classById} t={t} />
+          <UnsortedTray tasks={grouped[UNSORTED_ID]} classById={classById} t={t}
+            onEditTask={setEditingTask}
+            onDeleteTask={deleteTask} />
         </div>
         <DragOverlay>
           {activeTask && (
@@ -229,6 +285,29 @@ export function EisenhowerTab() {
               dateToWeekFn={noneMode ? dateToWeek : null}
               defaultEisenhower={{ urgent: addingQuadrant.urgent, important: addingQuadrant.important }}
               onDone={() => handleAddTaskDone(addingQuadrant)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingTask} onOpenChange={v => !v && setEditingTask(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t.editTask}</DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <TaskForm
+              semesterId={scopeId}
+              classes={classes}
+              weekCount={weekCount}
+              defaultWeek={editingTask.weekStart ?? currentWeek}
+              startDate={semester?.startDate}
+              rangeFor={noneMode ? weekDateRange : null}
+              dateToWeekFn={noneMode ? dateToWeek : null}
+              initialData={editingTask}
+              submitLabel={t.save}
+              onSubmitTask={handleEditSubmit}
+              onDone={() => setEditingTask(null)}
             />
           )}
         </DialogContent>
