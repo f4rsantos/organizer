@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
 import { useStrings } from '@/lib/strings'
+import { matchesShortcut, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
 
@@ -118,24 +119,16 @@ export default function App() {
 
   const quickActionAppEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
   const quickActionShortcutRaw = useStore(s => s.settings?.apps?.quickActionShortcut)
-  const quickActionShortcut = quickActionShortcutRaw === undefined ? { key: 'k', ctrl: true, meta: false, shift: false, alt: false } : quickActionShortcutRaw
+  const quickActionShortcut = quickActionShortcutRaw === undefined ? defaultQuickActionShortcut() : quickActionShortcutRaw
   const [spotlightOpen, setSpotlightOpen] = useState(false)
 
   useEffect(() => {
     if (!quickActionAppEnabled) return
     const handleKeyDown = e => {
-      if (quickActionShortcut) {
-        const match = e.key.toLowerCase() === quickActionShortcut.key.toLowerCase() &&
-          e.ctrlKey === !!quickActionShortcut.ctrl &&
-          e.metaKey === !!quickActionShortcut.meta &&
-          e.shiftKey === !!quickActionShortcut.shift &&
-          e.altKey === !!quickActionShortcut.alt
-
-        if (match) {
-          e.preventDefault()
-          setSpotlightOpen(v => !v)
-          return
-        }
+      if (matchesShortcut(e, quickActionShortcut)) {
+        e.preventDefault()
+        setSpotlightOpen(v => !v)
+        return
       }
       if (e.key === 'Escape') {
         setSpotlightOpen(false)
