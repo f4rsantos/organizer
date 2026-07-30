@@ -93,9 +93,15 @@ async function decodeTeamContainer(container, teamKey, teamId) {
 
 export async function decryptTeamDoc(team, teamKey) {
   if (!team) return null
+  const expiresAt = typeof team.expiresAt === 'number'
+    ? team.expiresAt
+    : (typeof team.expiresAt?.seconds === 'number'
+        ? team.expiresAt.seconds * 1000
+        : (typeof team.expiresAt === 'string' ? (Number(team.expiresAt) || Date.parse(team.expiresAt) || null) : null))
+
   const state = await decryptTeamState(team.state, teamKey, team.id)
   if (state === null && isEncryptedTeamState(team.state)) {
-    return { ...team, state: null, locked: true }
+    return { ...team, expiresAt: expiresAt ?? team.expiresAt, state: null, locked: true }
   }
-  return { ...team, state: state ?? createTeamState(), locked: false }
+  return { ...team, expiresAt: expiresAt ?? team.expiresAt, state: state ?? createTeamState(), locked: false }
 }

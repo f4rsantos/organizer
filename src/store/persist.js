@@ -1,7 +1,7 @@
 import { getPomodoroTimestamp, isPomodoroAggregate } from '../components/focus/pomodoro/utils'
 import { migrateState, normalizeState } from './migrations'
 import {
-  isEnvelope, decryptForSlot, aadForLocalSlice, aadForExport, WHOLE_STATE,
+  isEnvelope, decryptForSlot, aadForLocalSlice, aadForPersonalSlice, aadForExport, WHOLE_STATE,
   loadKeyString, wasEncryptionEverEnabled, importRawKey, getCachedDek,
   DATA_SLICES, META_KEYS, encodeSlices, decodeSlices, isContainer, stripTransient,
   planWithinBudget,

@@ -114,6 +114,26 @@ describe('edits made before hydration are never discarded', () => {
     expect(storage.getItem(STORAGE_KEY)).toBe(null)
   })
 
+  it('flushes a pre-hydration edit to disk once hydration lands', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().addTask({ title: 'typed before hydrate' })
+
+    useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
+    await flush()
+
+    expect(storage.getItem(STORAGE_KEY)).toContain('typed before hydrate')
+  })
+
+  it('flushes a pre-hydration edit when the snapshot fails to load', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().addTask({ title: 'survives failed load' })
+
+    useStore.getState().markHydrated()
+    await flush()
+
+    expect(storage.getItem(STORAGE_KEY)).toContain('survives failed load')
+  })
+
   it('does not flush an empty membership list over the stored one', async () => {
     const { useStore } = await import('./useStore.js')
 

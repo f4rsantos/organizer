@@ -22,8 +22,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+function parseExpiresAtMs(expiresAt) {
+  if (!expiresAt) return null
+  if (typeof expiresAt === 'number') return Number.isFinite(expiresAt) ? expiresAt : null
+  if (typeof expiresAt === 'string') {
+    const n = Number(expiresAt)
+    if (Number.isFinite(n)) return n
+    const parsed = Date.parse(expiresAt)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  if (typeof expiresAt === 'object' && typeof expiresAt.seconds === 'number') {
+    return expiresAt.seconds * 1000
+  }
+  if (typeof expiresAt === 'object' && typeof expiresAt.toDate === 'function') {
+    return expiresAt.toDate().getTime()
+  }
+  return null
+}
+
 function daysLeft(expiresAt) {
-  return Math.max(0, Math.ceil(((expiresAt ?? Date.now()) - Date.now()) / DAY_MS))
+  const ms = parseExpiresAtMs(expiresAt)
+  if (!ms) return 0
+  return Math.max(0, Math.ceil((ms - Date.now()) / DAY_MS))
+}
+
+function formatExpiresAt(expiresAt) {
+  const ms = parseExpiresAtMs(expiresAt)
+  if (!ms) return null
+  const d = new Date(ms)
+  return isNaN(d.getTime()) ? null : d.toLocaleString()
 }
 
 function parseDays(raw, fallback = 1) {
@@ -146,7 +173,9 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{team.name ?? t.collabDefaultTeamName}</p>
-                <p className="text-xs text-muted-foreground truncate">{t.collabEndsAt} {new Date(team.expiresAt).toLocaleString()}</p>
+                {formatExpiresAt(team.expiresAt) ? (
+                  <p className="text-xs text-muted-foreground truncate">{t.collabEndsAt} {formatExpiresAt(team.expiresAt)}</p>
+                ) : null}
                 {isHost && (
                   <p className="text-[11px] text-muted-foreground truncate">
                     {team.sharedTaskCompletionMode === 'for-all' ? t.collabTaskCompletionForAll : t.collabTaskCompletionPersonal}
