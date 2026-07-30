@@ -12,7 +12,6 @@
 }
 
 .guide-chips {
-    display: flex;
     scrollbar-width: none;
 }
 .guide-chips::-webkit-scrollbar {
