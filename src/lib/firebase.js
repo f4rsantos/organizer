@@ -5,7 +5,7 @@ import {
   loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
   aadForPersonalSlice, WHOLE_STATE, getCachedDek, hasAnySlot,
   isContainer, isEncryptedContainer, encodeSlices, decodeSlices, stripTransient,
-  MODE_SYNC,
+  MODE_SYNC, MODE_LOCAL, getEncMode,
 } from './crypto'
 import { readDevicePref, writeDevicePref } from './devicePrefs'
 
@@ -190,6 +190,11 @@ export async function pushToFirebase(config, state) {
       return
     }
     await writeStateDoc(config, await buildContainer(state, null))
+    return
+  }
+
+  const mode = getEncMode()
+  if (mode === MODE_LOCAL) {
     return
   }
 

@@ -153,6 +153,10 @@ export function readContainerMeta() {
   return isContainer(parsed) ? (parsed.meta ?? null) : null
 }
 
+export function hasLocalState() {
+  return readStoredValue() !== null
+}
+
 export function hasEncryptedSnapshot() {
   const parsed = readStoredValue()
   if (!isContainer(parsed)) return isEnvelope(parsed)
