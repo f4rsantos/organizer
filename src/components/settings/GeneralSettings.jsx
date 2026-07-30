@@ -2,9 +2,19 @@ import { Circle, CircleCheck } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { requestBrowserNotificationPermission } from '@/components/focus/focusAlerts'
+
+function ColorSwatch({ label, value, onChange }) {
+  return (
+    <div className="flex items-center gap-2">
+      <ClassColorDot compact color={value} onChange={onChange} />
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    </div>
+  )
+}
 
 export function GeneralSettings() {
   const settings = useStore(s => s.settings)
@@ -43,6 +53,38 @@ export function GeneralSettings() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label>{t.themeColor}</Label>
+            <button onClick={() => updateSettings({ themeFontColor: null, themeBgColor: null, themeHighlightColor: null })} className="text-xs text-primary hover:underline">
+              {t.themeColorReset}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">{t.themeColorDesc}</p>
+          <div className="pt-2 flex flex-col gap-3">
+            <ColorSwatch
+              key={`font-${settings.themeFontColor ?? ''}`}
+              label={t.themeFontColor}
+              value={settings.themeFontColor ?? '#3b5ea8'}
+              onChange={hex => updateSettings({ themeFontColor: hex })}
+            />
+            <ColorSwatch
+              key={`highlight-${settings.themeHighlightColor ?? ''}`}
+              label={t.themeHighlightColor}
+              value={settings.themeHighlightColor ?? '#e8e6f0'}
+              onChange={hex => updateSettings({ themeHighlightColor: hex })}
+            />
+            <ColorSwatch
+              key={`bg-${settings.themeBgColor ?? ''}`}
+              label={t.themeBgColor}
+              value={settings.themeBgColor ?? '#fafaf9'}
+              onChange={hex => updateSettings({ themeBgColor: hex })}
+            />
+          </div>
+        </div>
+      </div>
+      
       <div className="space-y-1.5">
         <Label>{t.taskSpanLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.taskSpanDesc}</p>

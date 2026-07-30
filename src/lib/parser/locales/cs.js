@@ -1,0 +1,126 @@
+export const cs = {
+  numbers: {
+    nula: 0, jedna: 1, jeden: 1, dva: 2, dve: 2, dvě: 2, tri: 3, tři: 3, ctyri: 4, čtyři: 4, pet: 5, pět: 5,
+    sest: 6, šest: 6, sedm: 7, osm: 8, devet: 9, devět: 9, deset: 10,
+    jedenact: 11, jedenáct: 11, dvanact: 12, dvanáct: 12, trinact: 13, třináct: 13,
+    ctrnact: 14, čtrnáct: 14, patnact: 15, patnáct: 15, sestnact: 16, šestnáct: 16,
+    sedmnact: 17, sedmnáct: 17, osmnact: 18, osmnáct: 18, devatenact: 19, devatenáct: 19,
+    dvacet: 20, tricet: 30, třicet: 30, ctyricet: 40, čtyřicet: 40, padesat: 50, padesát: 50,
+    sedesat: 60, šedesát: 60, sedmdesat: 70, sedmdesát: 70, osmdesat: 80, osmdesát: 80,
+    devadesat: 90, devadesát: 90
+  },
+  ordinals: {
+    prvni: 1, první: 1, druhy: 2, druhý: 2, druha: 2, druhá: 2, treti: 3, třetí: 3,
+    ctvrty: 4, čtvrtý: 4, ctvrta: 4, čtvrtá: 4, paty: 5, pátý: 5, pata: 5, pátá: 5,
+    sesty: 6, šestý: 6, sedmy: 7, sedmý: 7, osmy: 8, osmý: 8, devaty: 9, devátý: 9,
+    desaty: 10, desátý: 10,
+    '1.': 1, '2.': 2, '3.': 3, '4.': 4, '5.': 5, '6.': 6, '7.': 7, '8.': 8, '9.': 9, '10.': 10
+  },
+  modifiers: {
+    pristi: 'next', příští: 'next', dalsi: 'next', další: 'next',
+    tento: 'this', tenhle: 'this', tato: 'this', tuto: 'this',
+    minuly: 'last', minulý: 'last', minula: 'last', minulá: 'last', predchozi: 'last', předchozí: 'last'
+  },
+  weekdays: {
+    nedele: 0, neděle: 0, nedeli: 0, neděli: 0,
+    pondeli: 1, pondělí: 1,
+    utery: 2, úterý: 2,
+    streda: 3, středa: 3, stredu: 3, středu: 3,
+    ctvrtek: 4, čtvrtek: 4,
+    patek: 5, pátek: 5,
+    sobota: 6, sobotu: 6
+  },
+  months: {
+    leden: 0, ledna: 0, unor: 1, únor: 1, unora: 1, února: 1,
+    brezen: 2, březen: 2, brezna: 2, března: 2, duben: 3, dubna: 3,
+    kveten: 4, květen: 4, kvetna: 4, května: 4, cerven: 5, červen: 5, cervna: 5, června: 5,
+    cervenec: 6, červenec: 6, cervence: 6, července: 6, srpen: 7, srpna: 7,
+    zari: 8, září: 8, rijen: 9, říjen: 9, rijna: 9, října: 9,
+    listopad: 10, listopadu: 10, prosinec: 11, prosince: 11
+  },
+  weekWords: ['tyden', 'týden', 'tydnu', 'týdnu'],
+  weekOfWords: ['tyden od', 'týden od'],
+  atWords: ['v', 've', 'o'],
+  timeConnectors: ['a', 'hodin', 'hodina', 'hodiny'],
+  relativeDates: {
+    dnes: 0,
+    zitra: 1, zítra: 1,
+    pozitri: 2, pozítří: 2,
+    vcera: -1, včera: -1
+  },
+  durations: {
+    hodina: 'hour', hodinu: 'hour', hodiny: 'hour', hodin: 'hour', hod: 'hour', h: 'hour',
+    minuta: 'minute', minutu: 'minute', minuty: 'minute', minut: 'minute', min: 'minute', m: 'minute'
+  },
+  recurrences: {
+    kazdy: 'every', každý: 'every', kazda: 'every', každá: 'every', kazde: 'every', každé: 'every',
+    kazdou: 'every', každou: 'every',
+    denne: { freq: 'daily', interval: 1 }, denně: { freq: 'daily', interval: 1 },
+    tydne: { freq: 'weekly', interval: 1 }, týdně: { freq: 'weekly', interval: 1 },
+    mesicne: { freq: 'monthly', interval: 1 }, měsíčně: { freq: 'monthly', interval: 1 },
+    rocne: { freq: 'yearly', interval: 1 }, ročně: { freq: 'yearly', interval: 1 },
+    den: { freq: 'daily' }, dny: { freq: 'daily' }, dni: { freq: 'daily' },
+    tyden: { freq: 'weekly' }, týden: { freq: 'weekly' }, tydny: { freq: 'weekly' }, týdny: { freq: 'weekly' },
+    mesic: { freq: 'monthly' }, měsíc: { freq: 'monthly' }, mesice: { freq: 'monthly' }, měsíce: { freq: 'monthly' },
+    rok: { freq: 'yearly' }, roky: { freq: 'yearly' }, let: { freq: 'yearly' },
+  },
+  time: {
+    am: 'am', pm: 'pm',
+    pul: -30, půl: -30,
+    'ctvrt na': -45, 'čtvrt na': -45,
+    'tri ctvrte na': -15, 'tři čtvrtě na': -15,
+  },
+  focusWords: {
+    start: ['spusť', 'spust', 'spustit', 'začni', 'zacni', 'začít', 'zacit', 'pokračuj', 'pokracuj'],
+    resume: ['pokračuj', 'pokracuj'],
+    stop: ['zastav', 'pozastav', 'ukonči', 'ukonci'],
+    reset: ['resetuj', 'restartuj'],
+    skip: ['přeskoč', 'preskoc'],
+    break: ['přestávka', 'prestavka', 'pauza'],
+    focus: ['soustředění', 'soustredeni', 'fokus', 'časovač', 'casovac', 'studium', 'pomodoro'],
+    minuteUnits: ['m', 'min', 'minuta', 'minut', 'minuty'],
+    hourUnits: ['h', 'hod', 'hodina', 'hodin', 'hodiny'],
+  },
+  priorityWords: {
+    1: ['vysoká priorita', 'vysoka priorita'],
+    2: ['střední priorita', 'stredni priorita'],
+    3: ['nízká priorita', 'nizka priorita'],
+  },
+  mutationVerbs: {
+    'označ jako hotové': { type: 'mut', action: 'complete' },
+    'oznac jako hotove': { type: 'mut', action: 'complete' },
+    dokonči: { type: 'mut', action: 'complete' },
+    dokonci: { type: 'mut', action: 'complete' },
+    hotovo: { type: 'mut', action: 'complete' },
+    smaž: { type: 'mut', action: 'delete' },
+    smaz: { type: 'mut', action: 'delete' },
+    odstraň: { type: 'mut', action: 'delete' },
+    odstran: { type: 'mut', action: 'delete' },
+    přesuň: { type: 'mut', action: 'move' },
+    presun: { type: 'mut', action: 'move' },
+    sdílej: { type: 'mut', action: 'share' },
+    sdilej: { type: 'mut', action: 'share' },
+  },
+  prepositions: {
+    with: ['s', 'se'],
+    for: ['pro', 'na'],
+    on: ['na', 'v', 've'],
+    in: ['v', 've'],
+    to: ['do', 'na'],
+  },
+  sharedWords: ['sdíleno', 'sdileno'],
+  teamWords: ['tým', 'tym'],
+  quickActionForWords: ['pro', 'na'],
+  navVerbs: ['otevřít', 'otevrit', 'jít na', 'jit na', 'zobrazit'],
+  gradeWords: {
+    grade: ['známka', 'znamka', 'známku', 'znamku', 'hodnocení', 'hodnoceni', 'nastav', 'zapiš', 'zapis'],
+    addComponent: ['přidej komponentu', 'pridej komponentu', 'nová komponenta', 'nova komponenta', 'přidat komponentu', 'pridat komponentu'],
+    weight: ['váha', 'vaha', 'váhu', 'vahu', 'hodnota'],
+    forWords: ['pro', 'na', 'v', 've', 'do', 'z', 'ze'],
+  },
+  noteWords: {
+    note: ['poznámka', 'poznamka', 'poznámku', 'poznamku', 'poznámky', 'poznamky'],
+    folder: ['složka', 'slozka', 'složku', 'slozku', 'adresář', 'adresar'],
+    addWords: ['přidej', 'pridej', 'přidat', 'pridat', 'vytvoř', 'vytvor', 'vytvořit', 'vytvorit', 'nová', 'nova', 'nový', 'novy'],
+  },
+}

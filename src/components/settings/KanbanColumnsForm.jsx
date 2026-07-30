@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Trash2, Plus, GripVertical } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
+import { sortByOrder } from '@/lib/utils'
 
 const PROTECTED = new Set(['col_todo', 'col_inprogress', 'col_done'])
 
@@ -40,7 +41,7 @@ export function KanbanColumnsForm({ semesterId, columns }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
-  const sorted = [...columns].sort((a, b) => a.order - b.order)
+  const sorted = sortByOrder(columns)
   const ids = sorted.map(c => c.id)
 
   const sensors = useSensors(

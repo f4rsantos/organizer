@@ -1,9 +1,13 @@
+import React from 'react'
 import { Circle, CircleCheck, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { fmtMins } from './formatters'
 
 function BreakDial({ label, value, onChange, min = 1, max = 120 }) {
+  const [local, setLocal] = React.useState(String(value))
+  React.useEffect(() => { setLocal(String(value)) }, [value])
+
   return (
     <div className="flex flex-col items-center gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -12,8 +16,15 @@ function BreakDial({ label, value, onChange, min = 1, max = 120 }) {
         min={min}
         max={max}
         className="w-16 h-8 text-sm text-center"
-        value={value}
-        onChange={e => onChange(Math.max(min, Math.min(max, Number(e.target.value))))}
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={() => {
+          let num = Number(local)
+          if (isNaN(num)) num = min
+          num = Math.max(min, Math.min(max, num))
+          setLocal(String(num))
+          onChange(num)
+        }}
       />
     </div>
   )

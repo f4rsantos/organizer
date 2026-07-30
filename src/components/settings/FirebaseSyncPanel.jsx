@@ -1,14 +1,56 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, CircleDashed, CloudOff, Cloud, Loader2, X } from 'lucide-react'
+import { CheckCircle2, CircleDashed, CloudOff, Cloud, Loader2, X, ShieldAlert, ShieldCheck, KeyRound, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import {
   loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig, validateFirebaseConfig,
+  loadCollabRulesTag, pullFromFirebase, inspectRemoteState, pushEnabledContainer, pushWraps,
+  fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
 import { forceSaveState } from '@/store/persist'
+import { stripTransient, getHint, putDek } from '@/lib/crypto'
+import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
+import {
+  enableSyncEncryption, updatePassphrase, replaceRecoveryCode, updateHint, rotateSyncKey,
+} from '@/lib/crypto/syncEnable'
+import { EnableEncryptionDialog } from '@/components/crypto/EnableEncryptionDialog'
+import { KeyManagementPanel } from '@/components/crypto/KeyManagementPanel'
+import { PlaintextSyncWarning } from '@/components/crypto/PlaintextSyncWarning'
+import { SecretPrompt } from '@/components/crypto/SecretPrompt'
 
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStep3', 'firebaseStep4']
+
+const RULES_SNIPPET = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /organizer/state {
+      allow read, write: if request.auth != null;
+    }
+
+    match /teams/{teamId} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && request.resource.data.hostUserId == request.auth.uid;
+
+      allow update: if request.auth != null && (
+        (resource.data.members[request.auth.uid] != null)
+        || (
+          resource.data.members[request.auth.uid] == null
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['members', 'updatedAt', 'serverUpdatedAt'])
+          && request.resource.data.members[request.auth.uid] != null
+        )
+      );
+
+      allow delete: if request.auth != null
+        && resource.data.hostUserId == request.auth.uid;
+    }
+  }
+}`
 
 function SetupStep({ titleKey, t, active, done, onClick }) {
   return (
@@ -30,7 +72,144 @@ function SetupStep({ titleKey, t, active, done, onClick }) {
   )
 }
 
+function UnauthenticatedWarning({ t }) {
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex gap-2.5">
+      <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-destructive">{t.firebaseOpenRulesWarningTitle}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseOpenRulesWarningDesc}</p>
+        <div className="rounded-lg border border-border bg-secondary/40 p-3">
+          <p className="text-xs font-medium mb-2">{t.firebaseRulesTemplateLink}</p>
+          <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EncryptionSection({ config, t, remote, onRemoteChange }) {
+  const [enabling, setEnabling] = useState(false)
+
+  const encryptionOn = remote?.encrypted && remote?.hasWraps && isUnlocked()
+
+  const handleEnable = async ({ passphrase, hint }) => {
+    const state = stripTransient(JSON.parse(JSON.stringify(useStore.getState())))
+    const result = await enableSyncEncryption({
+      passphrase,
+      hint,
+      state,
+      pushContainer: payload => pushEnabledContainer(config, payload),
+    })
+    await forceSaveState(useStore.getState())
+    return result
+  }
+
+  const handleDone = async () => {
+    setEnabling(false)
+    onRemoteChange(await inspectRemoteState(config))
+  }
+
+  const pushWrapsToRemote = wraps => pushWraps(config, wraps)
+
+  if (enabling) {
+    return (
+      <EnableEncryptionDialog
+        t={t}
+        onEnable={handleEnable}
+        onDone={handleDone}
+        onCancel={() => setEnabling(false)}
+      />
+    )
+  }
+
+  if (encryptionOn) {
+    return (
+      <KeyManagementPanel
+        t={t}
+        hint={getHint(remote.wraps)}
+        onChangePassphrase={async args => {
+          const result = await updatePassphrase({ ...args, wraps: remote.wraps, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+        onRegenerateRecoveryCode={async args => {
+          const result = await replaceRecoveryCode({ ...args, wraps: remote.wraps, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+        onSaveHint={async hint => {
+          await updateHint({ wraps: remote.wraps, hint, pushWraps: pushWrapsToRemote })
+          onRemoteChange(await inspectRemoteState(config))
+          return true
+        }}
+        onRotateKey={async args => {
+          const container = await fetchStateContainer(config)
+          if (!container) throw new Error('sync-doc-missing')
+          const result = await rotateSyncKey({
+            ...args,
+            container,
+            wraps: remote.wraps,
+            publishRotation: payload => publishRotation(config, payload),
+            commitDek: async dek => {
+              await openStore()
+              await putDek(dek)
+            },
+          })
+          await forceSaveState(useStore.getState())
+          onRemoteChange(await inspectRemoteState(config))
+          return result
+        }}
+      />
+    )
+  }
+
+  return <PlaintextSyncWarning t={t} onEnable={() => setEnabling(true)} />
+}
+
+function UnlockRemotePrompt({ config, t, remote, onUnlocked }) {
+  const handleUnlock = async ({ slot, secret }) => {
+    await unlockWithSecret({
+      wraps: remote.wraps,
+      slot,
+      secret,
+      expectedDekId: remote.dekId,
+    })
+    const pulled = await pullFromFirebase(config)
+    if (pulled) useStore.getState().importData(pulled)
+    onUnlocked()
+  }
+
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-destructive" />
+        <span className="text-sm font-medium">{t.encUnlockTitle}</span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t.encRemoteAlreadyEncrypted}</p>
+      <SecretPrompt t={t} hint={getHint(remote.wraps)} onUnlock={handleUnlock}
+        submitLabel={t.encUnlockTitle} autoFocus={false} />
+    </div>
+  )
+}
+
 function ConnectedView({ config, syncStatus, t, onDisconnect }) {
+  const [remote, setRemote] = useState(null)
+  const [unlocked, setUnlocked] = useState(() => isUnlocked())
+
+  useEffect(() => {
+    let cancelled = false
+    inspectRemoteState(config)
+      .then(info => { if (!cancelled) setRemote(info) })
+      .catch(() => { if (!cancelled) setRemote(null) })
+    return () => { cancelled = true }
+  }, [config])
+
+  const needsRemoteUnlock = Boolean(
+    remote?.encrypted && remote?.hasWraps && !unlocked,
+  )
+  const unrecoverable = Boolean(remote?.encrypted && !remote?.hasWraps)
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -49,6 +228,25 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
         <p className="text-xs text-destructive leading-relaxed">{t.firebaseRemoteNewer}</p>
       )}
       <p className="text-xs text-muted-foreground font-mono">{config.projectId}</p>
+
+      {loadCollabRulesTag() !== 1 && <UnauthenticatedWarning t={t} />}
+
+      {unrecoverable && (
+        <p className="text-xs text-destructive leading-relaxed">{t.encRemoteUnrecoverable}</p>
+      )}
+
+      {needsRemoteUnlock && (
+        <UnlockRemotePrompt config={config} t={t} remote={remote}
+          onUnlocked={async () => {
+            setUnlocked(true)
+            setRemote(await inspectRemoteState(config))
+          }} />
+      )}
+
+      {remote && !needsRemoteUnlock && !unrecoverable && (
+        <EncryptionSection config={config} t={t} remote={remote} onRemoteChange={setRemote} />
+      )}
+
       <button onClick={onDisconnect}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
         <CloudOff className="h-3.5 w-3.5" /> {t.firebaseDisconnect}
@@ -57,9 +255,39 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
   )
 }
 
+function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
+  const handleUnlock = async ({ slot, secret }) => {
+    await unlockWithSecret({
+      wraps: pending.remote.wraps,
+      slot,
+      secret,
+      expectedDekId: pending.remote.dekId,
+    })
+    onUnlocked()
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium">{t.encUnlockTitle}</span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">{t.encRemoteAlreadyEncrypted}</p>
+      <SecretPrompt t={t} hint={getHint(pending.remote.wraps)} onUnlock={handleUnlock}
+        submitLabel={t.encUnlockTitle} />
+      <button onClick={onCancel}
+        className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
+        {t.cancel}
+      </button>
+    </div>
+  )
+}
+
 function parseFirebaseConfig(raw) {
   const trimmed = raw.trim()
-  try { return JSON.parse(trimmed) } catch {}
+  try { return JSON.parse(trimmed) } catch {
+    // fall through to lenient parsing below
+  }
   // Strip JS variable declaration and trailing semicolon, then extract the object literal
   const match = trimmed.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('no object found')
@@ -76,6 +304,7 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
   const [raw, setRaw] = useState('')
   const [error, setError] = useState(null)
   const [testing, setTesting] = useState(false)
+  const [pendingConnect, setPendingConnect] = useState(null)
 
   useEffect(() => {
     const handler = e => { if (e.key === 'Escape') onClose() }
@@ -99,7 +328,18 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
     if (!parsed.apiKey || !parsed.projectId) { setError(t.firebaseConfigInvalid); return }
     setTesting(true)
     try {
-      await validateFirebaseConfig(parsed)
+      const remote = await validateFirebaseConfig(parsed)
+
+      if (remote.encrypted && !remote.hasWraps) {
+        setError(t.encRemoteUnrecoverable)
+        return
+      }
+
+      if (remote.encrypted) {
+        setPendingConnect({ config: parsed, remote })
+        return
+      }
+
       saveFirebaseConfig(parsed)
       setConfig(parsed)
     } catch {
@@ -107,6 +347,12 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
     } finally {
       setTesting(false)
     }
+  }
+
+  const completePendingConnect = () => {
+    saveFirebaseConfig(pendingConnect.config)
+    setConfig(pendingConnect.config)
+    setPendingConnect(null)
   }
 
   return (
@@ -120,7 +366,11 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
             </button>
           </div>
 
-          {config
+          {pendingConnect
+            ? <ConnectUnlockPrompt t={t} pending={pendingConnect}
+                onUnlocked={completePendingConnect}
+                onCancel={() => setPendingConnect(null)} />
+            : config
             ? <ConnectedView config={config} syncStatus={syncStatus} t={t} onDisconnect={handleDisconnect} />
             : (
               <div className="space-y-6">
@@ -151,6 +401,10 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
                           ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />{t.firebaseSyncing}</>
                           : t.firebaseSave}
                       </Button>
+                      <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                        <p className="text-xs font-medium mb-2">{t.firebaseRulesTemplateLink}</p>
+                        <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
+                      </div>
                     </div>
                   )
                 }

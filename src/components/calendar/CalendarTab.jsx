@@ -1,6 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { addWeeks, startOfWeek, parseISO, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, addMonths, subMonths, setISOWeek, startOfISOWeek } from 'date-fns'
+import {
+  addWeeks, startOfWeek, endOfWeek, parseISO, format, startOfMonth,
+  addMonths, subMonths, addDays, subDays, setISOWeek, startOfISOWeek,
+} from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -9,8 +12,15 @@ import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { CalendarEventProviders } from '@/apps/CalendarEventProviders'
 import { EventForm } from './EventForm'
 import { DayDetailDialog } from './DayDetailDialog'
+import { MonthView } from './MonthView'
+import { itemsForDay } from './calendarUtils'
+import { DayView } from './DayView'
+import { WeekView } from './WeekView'
+import { YearView } from './YearView'
+import { expandTasksForRange } from '@/lib/recurrence'
+import { nanoid } from '@/lib/ids'
 
-const MAX_CHIPS = 3
+const VIEWS = ['day', 'week', 'month', 'year']
 
 function weekToDateRange(semesterStartDate, weekNumber) {
   const start = parseISO(semesterStartDate)
@@ -45,54 +55,6 @@ function eventDateRange(event) {
   return null
 }
 
-function itemsForDay(day, tasks, holidays, events) {
-  const dayHolidays = holidays.filter(h => isWithinInterval(day, { start: parseISO(h.startDate), end: parseISO(h.endDate) }))
-  const dayEvents = events.filter(e => e._range && isWithinInterval(day, e._range))
-  const dayTasks = tasks.filter(tk => isWithinInterval(day, tk._range))
-  return { dayHolidays, dayEvents, dayTasks }
-}
-
-function Chip({ color, children, onClick }) {
-  return (
-    <div onClick={onClick} title={typeof children === 'string' ? children : undefined}
-      className="text-[10px] leading-tight px-1 rounded truncate cursor-pointer"
-      style={{ backgroundColor: color + '33', color }}>
-      {children}
-    </div>
-  )
-}
-
-function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen }) {
-  const isToday = isSameDay(day, new Date())
-  const { dayHolidays, dayEvents, dayTasks } = itemsForDay(day, tasks, holidays, events)
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
-
-  const chips = [
-    ...dayHolidays.map(h => ({ key: 'h' + h.id, color: '#d97706', label: h.name })),
-    ...dayEvents.map(e => ({ key: 'e' + e.id, color: e.color ?? '#6366f1', label: e.title })),
-    ...dayTasks.map(tk => {
-      const cls = classes.find(c => c.id === tk.classId)
-      return { key: 't' + tk.id, color: cls?.color ?? '#6366f1', label: cls ? `${tk.title} - ${cls.name}` : tk.title }
-    }),
-  ]
-  const shown = chips.slice(0, MAX_CHIPS)
-  const overflow = chips.length - shown.length
-
-  return (
-    <button type="button" onClick={() => onOpen(day)}
-      className={`min-h-[72px] text-left p-1 border-b border-r border-border/40 flex flex-col gap-0.5 transition-colors hover:bg-accent/40 ${!isCurrentMonth ? 'opacity-30' : ''}`}>
-      <span className={`text-xs font-medium self-start leading-none mb-0.5 w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
-        {format(day, 'd')}
-      </span>
-      {shown.map(c => <Chip key={c.key} color={c.color}>{c.label}</Chip>)}
-      {overflow > 0 && (
-        <span className="text-[10px] leading-tight px-1 text-muted-foreground font-medium">+{overflow} {t.more}</span>
-      )}
-    </button>
-  )
-}
-
 export function CalendarTab() {
   const { mode, semester } = useWeekContext()
   const noneMode = mode === 'none'
@@ -115,7 +77,8 @@ export function CalendarTab() {
   const semEnd = semester ? parseISO(semester.endDate) : null
   const year = new Date().getFullYear()
 
-  const [month, setMonth] = useState(() => {
+  const [view, setView] = useState('month')
+  const [anchor, setAnchor] = useState(() => {
     const today = new Date()
     if (!semStart || !semEnd) return today
     if (today < semStart) return semStart
@@ -131,10 +94,18 @@ export function CalendarTab() {
     ? [...allEvents.filter(e => e.semesterId === activeSemesterId || e.semesterId == null), ...providerEvents]
         .map(e => ({ ...e, _range: eventDateRange(e) }))
     : []
+  const expandRangeStart = new Date(anchor.getFullYear() - 1, 0, 1)
+  const expandRangeEnd = new Date(anchor.getFullYear() + 1, 11, 31)
   const tasks = hasScope
-    ? allTasks
-        .filter(tk => tk.views?.calendar !== false)
-        .map(tk => ({ ...tk, _range: getTaskDateRange(tk, semester?.startDate, noneMode, year) }))
+    ? expandTasksForRange(
+        allTasks.filter(tk => tk.views?.calendar !== false),
+        expandRangeStart, expandRangeEnd,
+      ).map(tk => ({
+        ...tk,
+        _range: tk.isRecurringOccurrence
+          ? { start: parseISO(tk.dueDate), end: parseISO(tk.dueDate) }
+          : getTaskDateRange(tk, semester?.startDate, noneMode, year),
+      }))
     : []
 
   const clampMonth = m => {
@@ -142,25 +113,45 @@ export function CalendarTab() {
     if (semEnd && startOfMonth(m) > startOfMonth(semEnd)) return startOfMonth(semEnd)
     return m
   }
-  const goPrev = () => setMonth(m => clampMonth(subMonths(m, 1)))
-  const goNext = () => setMonth(m => clampMonth(addMonths(m, 1)))
-  const canPrev = !semStart || startOfMonth(month) > startOfMonth(semStart)
-  const canNext = !semEnd || startOfMonth(month) < startOfMonth(semEnd)
 
-  const monthStart = startOfMonth(month)
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
-  const days = eachDayOfInterval({ start: gridStart, end: new Date(Math.min(
-    endOfMonth(month).getTime(),
-    new Date(gridStart.getTime() + 41 * 24 * 60 * 60 * 1000).getTime()
-  )) })
-  while (days.length < 42) days.push(new Date(days[days.length - 1].getTime() + 86400000))
+  const goPrev = () => setAnchor(a => {
+    if (view === 'day') return subDays(a, 1)
+    if (view === 'week') return subDays(a, 7)
+    if (view === 'year') return new Date(a.getFullYear() - 1, a.getMonth(), a.getDate())
+    return clampMonth(subMonths(a, 1))
+  })
+  const goNext = () => setAnchor(a => {
+    if (view === 'day') return addDays(a, 1)
+    if (view === 'week') return addDays(a, 7)
+    if (view === 'year') return new Date(a.getFullYear() + 1, a.getMonth(), a.getDate())
+    return clampMonth(addMonths(a, 1))
+  })
 
-  const DOW = t.weekdaysShort
+  const canPrev = view === 'month' ? (!semStart || startOfMonth(anchor) > startOfMonth(semStart)) : true
+  const canNext = view === 'month' ? (!semEnd || startOfMonth(anchor) < startOfMonth(semEnd)) : true
 
   const detail = dayDetail ? itemsForDay(dayDetail, tasks, holidays, events) : null
 
-  const openNewEvent = date => { setDayDetail(null); setEventForm({ event: null, defaultDate: date }) }
-  const openEditEvent = event => { if (event._remote) return; setDayDetail(null); setEventForm({ event, defaultDate: null }) }
+  // EventForm reads props once at mount, so each open needs a distinct key.
+  const openNewEvent =(date, startTime = null, endTime = null, endDate = null) => {
+    setDayDetail(null)
+    setEventForm({ key: `new:${nanoid()}`, event: null, defaultDate: date, defaultStartTime: startTime, defaultEndTime: endTime, defaultEndDate: endDate })
+  }
+  const openEditEvent = event => { if (event._remote) return; setDayDetail(null); setEventForm({ key: event.id, event, defaultDate: null }) }
+
+  const openMonth = date => { setAnchor(date); setView('month') }
+  const openDay = date => { setAnchor(date); setView('day') }
+
+  const headerLabel = () => {
+    if (view === 'day') return `${t.weekdays[(anchor.getDay() + 6) % 7]}, ${anchor.getDate()} ${t.months[anchor.getMonth()]} ${anchor.getFullYear()}`
+    if (view === 'week') {
+      const ws = startOfWeek(anchor, { weekStartsOn: 1 })
+      const we = endOfWeek(anchor, { weekStartsOn: 1 })
+      return `${format(ws, 'd MMM')} – ${format(we, 'd MMM yyyy')}`
+    }
+    if (view === 'year') return String(anchor.getFullYear())
+    return `${t.months[anchor.getMonth()]} ${anchor.getFullYear()}`
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen select-none relative">
@@ -169,25 +160,45 @@ export function CalendarTab() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} disabled={!canPrev}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <p className="flex-1 text-center font-semibold text-sm capitalize">{t.months[month.getMonth()]} {month.getFullYear()}</p>
+        <p className="flex-1 text-center font-semibold text-sm capitalize truncate">{headerLabel()}</p>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext} disabled={!canNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-7 border-t border-l border-border/40">
-          {DOW.map(d => (
-            <div key={d} className="text-[10px] font-semibold text-muted-foreground text-center py-1.5 border-b border-r border-border/40 uppercase tracking-wide">
-              {d}
-            </div>
-          ))}
-          {days.map(day => (
-            <DayCell key={day.toISOString()} day={day} isCurrentMonth={isSameMonth(day, month)}
-              tasks={tasks} holidays={holidays} events={events} classes={classes} onOpen={setDayDetail} />
+      <div className="flex items-center justify-center px-4 py-1.5 border-b border-border/50 shrink-0">
+        <div className="relative grid grid-cols-4 w-full max-w-xs rounded-md bg-accent/30 p-0.5">
+          <div
+            className="absolute inset-y-0.5 rounded-[5px] bg-secondary transition-[left] duration-200 ease-out"
+            style={{ width: `calc(25% - 4px)`, left: `calc(${VIEWS.indexOf(view)} * 25% + 2px)` }}
+          />
+          {VIEWS.map(v => (
+            <button key={v} type="button" onClick={() => setView(v)}
+              className={`relative z-10 flex items-center justify-center min-w-0 text-xs px-2.5 py-1 rounded-md transition-colors ${view === v ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+              {{ day: t.viewDay, week: t.viewWeek, month: t.viewMonth, year: t.viewYear }[v]}
+            </button>
           ))}
         </div>
       </div>
+
+      {view === 'month' && (
+        <MonthView month={anchor} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenDay={setDayDetail} />
+      )}
+      {view === 'day' && (
+        <DayView day={anchor} tasks={tasks} holidays={holidays} events={events} classes={classes}
+          onOpenEvent={openEditEvent} onCreateRange={(day, startTime, endTime, endDay) =>
+            openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
+      )}
+      {view === 'week' && (
+        <WeekView weekStart={startOfWeek(anchor, { weekStartsOn: 1 })} weekEnd={endOfWeek(anchor, { weekStartsOn: 1 })}
+          tasks={tasks} holidays={holidays} events={events} classes={classes}
+          onOpenEvent={openEditEvent} onCreateRange={(day, startTime, endTime, endDay) =>
+            openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
+      )}
+      {view === 'year' && (
+        <YearView year={anchor.getFullYear()} tasks={tasks} holidays={holidays} events={events}
+          onOpenMonth={openMonth} onOpenDay={openDay} />
+      )}
 
       {hasScope && (
         <Button size="icon" className="absolute bottom-6 right-6 h-12 w-12 rounded-full shadow-lg" onClick={() => openNewEvent(format(new Date(), 'yyyy-MM-dd'))}>
@@ -202,8 +213,10 @@ export function CalendarTab() {
         onEditEvent={openEditEvent} />
 
       {eventForm && (
-        <EventForm open onOpenChange={v => !v && setEventForm(null)}
-          event={eventForm.event} semesterId={activeSemesterId} defaultDate={eventForm.defaultDate} />
+        <EventForm key={eventForm.key} open onOpenChange={v => !v && setEventForm(null)}
+          event={eventForm.event} semesterId={activeSemesterId} defaultDate={eventForm.defaultDate}
+          defaultStartTime={eventForm.defaultStartTime} defaultEndTime={eventForm.defaultEndTime}
+          defaultEndDate={eventForm.defaultEndDate} />
       )}
     </div>
   )

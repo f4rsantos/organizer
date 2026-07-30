@@ -7,6 +7,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import { TAB_ICONS, FOLDER_ICONS, DEFAULT_ORDER, ADD_ID } from '@/components/layout/useNavTabs'
+import { getAppTabs, getAppById } from '@/apps/registry'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,9 +15,9 @@ import { Switch } from '@/components/ui/switch'
 
 const NO_FOLDER = '__none__'
 
-function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onAssignFolder }) {
+function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onAssignFolder, icon, labelKey, customName, onRename }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-  const Icon = TAB_ICONS[id]
+  const Icon = icon ?? TAB_ICONS[id]
   const style = { transform: CSS.Transform.toString(transform), transition }
   const folderItems = [{ value: NO_FOLDER, label: '—' }, ...folders.map(f => ({ value: f.id, label: f.label }))]
   return (
@@ -27,8 +28,17 @@ function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onA
         {...attributes} {...listeners} title={t.navDrag}>
         <GripVertical className="h-4 w-4" />
       </button>
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 text-sm truncate">{isAdd ? t.navAddLabel : t[id]}</span>
+      {Icon && <Icon className="h-4 w-4 shrink-0" />}
+      {isAdd ? (
+        <span className="flex-1 text-sm truncate">{t.navAddLabel}</span>
+      ) : (
+        <Input
+          value={customName !== undefined ? customName : t[labelKey ?? id]}
+          placeholder={t[labelKey ?? id]}
+          onChange={e => onRename?.(id, e.target.value)}
+          className="h-7 flex-1 text-sm"
+        />
+      )}
       {folders.length > 0 && (
         <Select value={folderOf ?? NO_FOLDER} onValueChange={v => onAssignFolder(id, v === NO_FOLDER ? null : v)} items={folderItems}>
           <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
@@ -67,9 +77,9 @@ function FolderRow({ folder, onRename, onSetIcon, onDelete }) {
   )
 }
 
-function buildOrder(navbar, showAddButton, notesEnabled) {
+function buildOrder(navbar, showAddButton, enabledAppIds) {
   let order = navbar.order?.length ? [...navbar.order] : [...DEFAULT_ORDER]
-  order = order.filter(id => id !== 'notes')
+  order = order.filter(id => id === 'notes' ? enabledAppIds.has(id) : true)
   const insert = id => {
     if (order.includes(id)) return
     const i = order.indexOf('settings')
@@ -78,20 +88,28 @@ function buildOrder(navbar, showAddButton, notesEnabled) {
   }
   if (showAddButton) insert(ADD_ID)
   else if (order.includes(ADD_ID)) order.splice(order.indexOf(ADD_ID), 1)
-  if (notesEnabled) insert('notes')
+  for (const id of enabledAppIds) {
+    if (!DEFAULT_ORDER.includes(id)) insert(id)
+    else insert(id)
+  }
   return order
 }
 
 export function NavbarSettings() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const navbar = useStore(s => s.settings?.navbar) ?? { order: DEFAULT_ORDER, hidden: [], folders: [], showAddButton: false, labelMode: 'both' }
-  const notesEnabled = useStore(s => s.settings?.apps?.notes === true)
+  const navbar = useStore(s => s.settings?.navbar) ?? { order: DEFAULT_ORDER, hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
+  const state = useStore(s => s)
   const updateSettings = useStore(s => s.updateSettings)
+
+  const appTabs = getAppTabs()
+  const enabledAppIds = new Set(appTabs.filter(pt => getAppById(pt.id)?.isEnabled(state)).map(pt => pt.id))
+  const appIcons = Object.fromEntries(appTabs.map(pt => [pt.id, getAppById(pt.id)?.icon]))
+  const appLabelKeys = Object.fromEntries(appTabs.map(pt => [pt.id, getAppById(pt.id)?.labelKey ?? pt.id]))
 
   const showAddButton = Boolean(navbar.showAddButton)
   const labelMode = navbar.labelMode ?? 'both'
-  const order = buildOrder(navbar, showAddButton, notesEnabled)
+  const order = buildOrder(navbar, showAddButton, enabledAppIds)
   const hidden = new Set(navbar.hidden ?? [])
   const folders = Array.isArray(navbar.folders) ? navbar.folders : []
   const folderOf = id => folders.find(f => (f.children ?? []).includes(id))?.id ?? null
@@ -127,6 +145,7 @@ export function NavbarSettings() {
         : (f.children ?? []).filter(c => c !== tabId),
     })),
   })
+  const renameTab = (id, name) => save({ customNames: { ...(navbar.customNames ?? {}), [id]: name } })
 
   const labelOptions = [
     { value: 'both', label: t.navLabelBoth },
@@ -138,14 +157,6 @@ export function NavbarSettings() {
     { value: 'bottom', label: t.navPosBottom },
     { value: 'side', label: t.navPosSide },
   ]
-  const addActionOptions = [
-    { value: 'task', label: t.addTask },
-    { value: 'kanban', label: t.addCard },
-    { value: 'event', label: t.addEvent },
-    { value: 'note', label: t.notesNew },
-    { value: 'picker', label: t.navAddPicker },
-  ]
-
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -174,6 +185,8 @@ export function NavbarSettings() {
             {order.map(id => (
               <TabRow key={id} id={id} t={t} isAdd={id === ADD_ID}
                 isHidden={hidden.has(id)}
+                icon={appIcons[id]} labelKey={appLabelKeys[id]}
+                customName={navbar.customNames?.[id]} onRename={renameTab}
                 folders={folders} folderOf={folderOf(id)} onAssignFolder={assignFolder}
                 onToggleHidden={toggleHidden} />
             ))}
@@ -193,22 +206,7 @@ export function NavbarSettings() {
         ))}
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
-        <span>{t.navAddButton}</span>
-        <Switch checked={showAddButton} onCheckedChange={v => save({ showAddButton: v })} />
-      </div>
 
-      {showAddButton && (
-        <div className="space-y-1.5">
-          <Label>{t.navAddAction}</Label>
-          <Select value={navbar.addAction ?? 'task'} onValueChange={v => save({ addAction: v })} items={addActionOptions}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent position="popper" sideOffset={4}>
-              {addActionOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
     </div>
   )
 }

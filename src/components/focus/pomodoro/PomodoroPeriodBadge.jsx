@@ -1,6 +1,6 @@
 import { fmtDuration, getPomodoroCompletedCount, getPomodoroFocusSecs, getPeriodPomodoros } from './utils'
 
-export function PomodoroPeriodBadge({ pomodoros, period, lang, t, onClick }) {
+export function PomodoroPeriodBadge({ pomodoros, period, t, onClick }) {
   const cur = getPeriodPomodoros(pomodoros, period)
   const completedCount = cur.reduce((s, p) => s + getPomodoroCompletedCount(p), 0)
   const focusSecs = cur.reduce((s, p) => s + getPomodoroFocusSecs(p), 0)

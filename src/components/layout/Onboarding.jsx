@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Briefcase, CalendarRange, CheckCircle2, Upload, Cloud } from 'lucide-react'
+import { Briefcase, CalendarRange, Upload, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useStore } from '@/store/useStore'
@@ -11,6 +11,16 @@ import { FirebaseGuideModal } from '@/components/settings/FirebaseSyncPanel'
 import { SemesterDatesForm } from '@/components/settings/SemesterDatesForm'
 import { ClassesForm } from '@/components/settings/ClassesForm'
 import { importState } from '@/store/persist'
+import { FREE_BOARD_ID } from '@/lib/taskUtils'
+import { sortByOrder } from '@/lib/utils'
+import { TourScene } from './onboarding/TourScene'
+import { TasksPanel } from './onboarding/TasksScene'
+import { KanbanPanel } from './onboarding/KanbanScene'
+import { CalendarPanel } from './onboarding/CalendarScene'
+import { FocusPanel } from './onboarding/FocusScene'
+import { SettingsPanel } from './onboarding/SettingsScene'
+import { SharePanel } from './onboarding/ShareScene'
+import './onboarding/tour.css'
 
 function ToggleRow({ icon: Icon, title, desc, checked, onChange }) {
   return (
@@ -25,16 +35,6 @@ function ToggleRow({ icon: Icon, title, desc, checked, onChange }) {
   )
 }
 
-function StepInfo({ title, desc, icon: Icon }) {
-  return (
-    <div className="flex flex-col items-center gap-4 py-8 text-center">
-      <Icon className="h-12 w-12 text-primary" />
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="text-sm text-muted-foreground max-w-xs">{desc}</p>
-    </div>
-  )
-}
-
 export function Onboarding({ onDone }) {
   const lang = useStore(s => s.lang ?? 'pt')
   const t = useStrings(lang)
@@ -45,6 +45,7 @@ export function Onboarding({ onDone }) {
   const semesters = useStore(s => s.semesters)
   const activeSemesterId = useStore(s => s.activeSemesterId)
   const classes = useStore(s => s.classes)
+  const kanban = useStore(s => s.kanban)
 
   const [step, setStep] = useState(0)
   const [showPresets, setShowPresets] = useState(false)
@@ -62,6 +63,19 @@ export function Onboarding({ onDone }) {
   const scopedClasses = classes.filter(c => c.semesterId === scopeId)
   const datesReady = noneMode || (semesters.length > 0 && activeSemesterId)
   const nextDisabled = current === 'dates' && !datesReady
+
+  const tourColumns = useMemo(() => {
+    const cols = kanban?.[activeSemesterId ?? FREE_BOARD_ID]?.columns
+    if (!cols?.length) return null
+    return sortByOrder(cols).map(c => c.title)
+  }, [kanban, activeSemesterId])
+
+  const tourGroupLabels = useMemo(() => {
+    const names = scopedClasses.map(c => c.name).filter(Boolean)
+    if (names.length >= 2) return names.slice(0, 2)
+    const generic = workMode ? t.group : t.class
+    return [names[0] ?? `${generic} A`, `${generic} B`]
+  }, [scopedClasses, workMode, t])
 
   const next = () => setStep(s => Math.min(steps.length - 1, s + 1))
   const back = () => setStep(s => Math.max(0, s - 1))
@@ -107,7 +121,7 @@ export function Onboarding({ onDone }) {
 
         {current === 'welcome' && (
           <div className="flex flex-col items-center gap-6 py-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-card border border-border shadow-sm">
+            <div className="flex h-14 w-14 items-center justify-center">
               <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#22c55e"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
@@ -157,9 +171,29 @@ export function Onboarding({ onDone }) {
           <ClassesForm semesterId={scopeId} classes={scopedClasses} workMode={workMode} />
         )}
 
-        {current === 'info-tasks' && <StepInfo icon={CalendarRange} title={t.obInfoTasksTitle} desc={t.obInfoTasksDesc} />}
-        {current === 'info-cal' && <StepInfo icon={CalendarRange} title={t.obInfoCalTitle} desc={t.obInfoCalDesc} />}
-        {current === 'info-done' && <StepInfo icon={CheckCircle2} title={t.obInfoDoneTitle} desc={t.obInfoDoneDesc} />}
+        {current === 'info-tasks' && (
+          <TourScene title={t.obInfoTasksTitle} desc={t.obInfoTasksDesc}>
+            <TasksPanel groupLabels={tourGroupLabels} />
+            <KanbanPanel columns={tourColumns} />
+          </TourScene>
+        )}
+        {current === 'info-cal' && (
+          <TourScene title={t.obInfoCalTitle} desc={t.obInfoCalDesc}>
+            <CalendarPanel views={[t.viewDay, t.viewWeek, t.viewMonth, t.viewYear]}
+              weekdays={t.weekdaysShort} />
+            <FocusPanel labels={{
+              ready: t.focusReady, focusing: t.focus, break: t.focusBreak,
+              start: t.focusStart, pause: t.focusPause, reset: t.focusReset,
+              skip: t.skip,
+            }} />
+          </TourScene>
+        )}
+        {current === 'info-done' && (
+          <TourScene title={t.obInfoDoneTitle} desc={t.obInfoDoneDesc}>
+            <SettingsPanel rows={[t.general, t.apps, t.data]} />
+            <SharePanel labels={{ export: t.exportJson, import: t.importJson }} />
+          </TourScene>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

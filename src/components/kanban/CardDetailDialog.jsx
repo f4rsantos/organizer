@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,7 @@ import { Circle, CircleCheck, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { nanoid } from '@/lib/ids'
 import { useStrings } from '@/lib/strings'
+import { parseTaskText } from '@/lib/parser/nlpParse'
 import { ChecklistItem } from './ChecklistItem'
 
 const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]
@@ -32,7 +34,41 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
     return classById.get(local.classId)?.name ?? local.className ?? noneClassLabel
   }, [local?.classId, local?.className, classById, noneClassLabel])
 
-  useEffect(() => { if (card) setLocal(card) }, [card])
+  const [touched, setTouched] = useState({ classId: Boolean(card?.classId), dueDate: Boolean(card?.dueDate) })
+  const [rawTitle, setRawTitle] = useState('')
+  const debouncedTitle = useDebouncedValue(rawTitle, 200)
+  const touchedRef = useRef(touched)
+  touchedRef.current = touched
+
+  useEffect(() => {
+    if (card) {
+      setLocal(card)
+      setTouched({ classId: Boolean(card.classId), dueDate: Boolean(card.dueDate) })
+      setRawTitle('')
+    }
+  }, [card])
+
+  const handleTitleChange = e => {
+    const title = e.target.value
+    setRawTitle(title)
+    setLocal(c => ({ ...c, title }))
+  }
+
+  useEffect(() => {
+    if (!debouncedTitle) return
+    const parsed = parseTaskText(debouncedTitle, { classes, t, lang })
+    const touchedNow = touchedRef.current
+    setLocal(c => {
+      let next = { ...c, title: debouncedTitle }
+      if (!touchedNow.classId && parsed.classId) {
+        next.classId = parsed.classId
+        next.className = classById.get(parsed.classId)?.name ?? null
+      }
+      if (!touchedNow.dueDate && parsed.date) next.dueDate = parsed.date
+      return next
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedTitle])
 
   const save = () => {
     if (typeof onSave === 'function') {
@@ -54,14 +90,14 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Edit card</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <Input placeholder="Card title" value={local.title} onChange={e => setLocal(c => ({ ...c, title: e.target.value }))} />
+          <Input placeholder="Card title" value={local.title} onChange={handleTitleChange} />
           <div className="grid grid-cols-2 gap-2">
             <Select value={local.priority ?? ''} onValueChange={v => setLocal(c => ({ ...c, priority: v || null }))}>
               <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Priority" /></SelectTrigger>
               <SelectContent>{PRIORITIES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
             </Select>
             <Input type="date" className="h-8 text-sm" value={local.dueDate ?? ''}
-              onChange={e => setLocal(c => ({ ...c, dueDate: e.target.value || null }))} />
+              onChange={e => { setTouched(x => ({ ...x, dueDate: true })); setLocal(c => ({ ...c, dueDate: e.target.value || null })) }} />
           </div>
 
           <div className="space-y-1.5">
@@ -69,6 +105,7 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
             <Select
               value={local.classId ?? '__none__'}
               onValueChange={value => {
+                setTouched(x => ({ ...x, classId: true }))
                 if (value === '__none__') {
                   setLocal(c => ({ ...c, classId: null, className: null }))
                   return

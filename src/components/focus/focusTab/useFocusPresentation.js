@@ -15,11 +15,12 @@ export function useFocusPresentation() {
   const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
   const focusAlertMode = useStore(s => s.settings?.focusAlertMode ?? 'none')
 
-  const [resetSignal, setResetSignal] = useState(null)
+  const resetSignal = useStore(s => s.resetSignal)
+  const setResetSignal = useStore(s => s.setResetSignal)
   const [smoothGrowth, setSmoothGrowth] = useState(0)
   const [growingFace, setGrowingFace] = useState(() => Math.floor(Math.random() * 5))
+  const [prevPomodoroPhase, setPrevPomodoroPhase] = useState('focus')
   const prevPhaseRef = useRef('focus')
-  const prevPomodoroPhaseRef = useRef('focus')
 
   const clock = useFocusClock({
     useInterval: focus.useInterval,
@@ -32,6 +33,12 @@ export function useFocusPresentation() {
   })
 
   const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, activeBreakSource, reset } = clock
+
+  if (phase !== prevPomodoroPhase) {
+    if (prevPomodoroPhase === 'break' && phase === 'focus') setGrowingFace(() => Math.floor(Math.random() * 5))
+    if (phase !== 'focus') setSmoothGrowth(0)
+    setPrevPomodoroPhase(phase)
+  }
 
   const isBreak = phase === 'break'
   const phrase = running
@@ -70,18 +77,7 @@ export function useFocusPresentation() {
   }, [phase, running, focusAlertMode, lang])
 
   useEffect(() => {
-    const prev = prevPomodoroPhaseRef.current
-    if (prev === 'break' && phase === 'focus') {
-      setGrowingFace(Math.floor(Math.random() * 5))
-    }
-    prevPomodoroPhaseRef.current = phase
-  }, [phase])
-
-  useEffect(() => {
-    if (phase !== 'focus') {
-      setSmoothGrowth(0)
-      return
-    }
+    if (phase !== 'focus') return
 
     let raf = 0
     const animate = () => {

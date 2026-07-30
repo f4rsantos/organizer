@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { nanoid } from '@/lib/ids'
 import { loadState, saveState } from './persist'
 import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
-import { FREE_BOARD_ID, boardIdForTask } from '@/lib/taskUtils'
+import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
+import { sortByOrder } from '@/lib/utils'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -13,7 +14,7 @@ const DEFAULT_COLUMNS = [
 
 function sortedColumns(state, boardId) {
   const cols = state.kanban?.[boardId]?.columns ?? DEFAULT_COLUMNS
-  return [...cols].sort((a, b) => a.order - b.order)
+  return sortByOrder(cols)
 }
 function doneColumnIdFor(state, boardId) {
   const cols = sortedColumns(state, boardId)
@@ -47,6 +48,11 @@ function buildInitialState() {
       taskSpanMode: 'single',
       kanbanShowChecklistInline: false,
       kanbanChecklistPreviewMode: 'none',
+      notesViewMode: 'list',
+      notesMathEnabled: false,
+      notesMathSolveEquations: true,
+      notesMathSelectionGraph: true,
+      notesMathStepByStep: true,
       focusAlertMode: 'none',
       taskAlertMode: 'none',
       taskDefaultToCalendar: false,
@@ -62,13 +68,14 @@ function buildInitialState() {
         trackStats: false,
         showAbandoned: true,
         showPeriodStats: true,
+        showOverlay: false,
       },
       collabEnabled: false,
       workMode: false,
       semesterMode: 'semesters',
-      navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', addAction: 'task' },
+      navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
       standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
-      apps: { collab: false, notes: false },
+      apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false },
     },
     collab: {
       userId: null,
@@ -88,6 +95,7 @@ function buildInitialState() {
       updatedAt: 0,
     },
     pomodoros: [],
+    resetSignal: null,
     taskAlertStates: {},
     courseAvg: { previousAvg: null, numSemesters: 0 },
     holidays: [],
@@ -98,7 +106,7 @@ function buildInitialState() {
 
 const initialState = buildInitialState()
 
-export const useStore = create((set, get) => ({
+export const useStore = create((set, _get) => ({
   ...initialState,
 
   // --- Theme ---
@@ -161,15 +169,22 @@ export const useStore = create((set, get) => ({
   })),
 
   // --- Tasks ---
-  addTask: data => set(s => persist({
-    ...s,
-    tasks: [...s.tasks, {
+  addTask: data => set(s => {
+    const newTask = {
       id: nanoid(),
       done: false,
       views: { list: true, kanban: false, calendar: false },
       kanban: null,
+      recurrence: null,
+      recurrenceExceptions: {},
+      eisenhower: null,
       ...data,
-    }],
+    }
+    newTask.kanban = resolveKanbanPlacement(newTask, null, s, firstColumnIdFor)
+    return persist({ ...s, tasks: [...s.tasks, newTask] })
+  }),
+  setTaskEisenhower: (id, quadrant) => set(s => persist({
+    ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, eisenhower: quadrant } : t),
   })),
   toggleTask: id => set(s => persist({
     ...s,
@@ -182,21 +197,39 @@ export const useStore = create((set, get) => ({
       return { ...t, done, kanban: { ...t.kanban, columnId: targetCol ?? t.kanban.columnId } }
     }),
   })),
+  toggleRecurringOccurrence: (templateId, dateISO) => set(s => persist({
+    ...s,
+    tasks: s.tasks.map(t => {
+      if (t.id !== templateId) return t
+      const prev = t.recurrenceExceptions ?? {}
+      const prevEntry = prev[dateISO] ?? {}
+      const nextDone = !prevEntry.done
+      return {
+        ...t,
+        recurrenceExceptions: { ...prev, [dateISO]: { ...prevEntry, done: nextDone } },
+      }
+    }),
+  })),
   updateTask: (id, data) => set(s => persist({
-    ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, ...data } : t),
+    ...s,
+    tasks: s.tasks.map(t => {
+      if (t.id !== id) return t
+      const updated = { ...t, ...data }
+      return { ...updated, kanban: resolveKanbanPlacement(updated, t, s, firstColumnIdFor) }
+    }),
   })),
   dismissTaskAlert: (taskId, date) => set(s => {
     const key = `${taskId}:${date}`
     const prev = s.taskAlertStates ?? {}
-    const state = prev[key] ?? {}
+    const entry = prev[key] ?? {}
     return persist({
       ...s,
       taskAlertStates: {
         ...prev,
         [key]: {
-          ...state,
+          ...entry,
           hidden: true,
-          remindAt: state.remindAt ?? null,
+          remindAt: entry.remindAt ?? null,
         },
       },
     })
@@ -233,12 +266,23 @@ export const useStore = create((set, get) => ({
   // --- Events ---
   addEvent: data => set(s => persist({
     ...s,
-    events: [...(s.events ?? []), { id: nanoid(), semesterId: null, allDay: true, color: null, note: '', ...data }],
+    events: [...(s.events ?? []), { id: nanoid(), semesterId: null, allDay: true, color: null, note: '', startTime: null, endTime: null, updatedAt: Date.now(), ...data }],
   })),
   updateEvent: (id, data) => set(s => persist({
-    ...s, events: (s.events ?? []).map(e => e.id === id ? { ...e, ...data } : e),
+    ...s, events: (s.events ?? []).map(e => e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e),
   })),
   deleteEvent: id => set(s => persist({ ...s, events: (s.events ?? []).filter(e => e.id !== id) })),
+  upsertGoogleEvent: event => set(s => {
+    const events = s.events ?? []
+    const idx = events.findIndex(e => e.googleEventId === event.googleEventId)
+    if (idx === -1) return persist({ ...s, events: [...events, event] })
+    const next = [...events]
+    next[idx] = { ...next[idx], ...event }
+    return persist({ ...s, events: next })
+  }),
+  removeGoogleEvent: googleEventId => set(s => persist({
+    ...s, events: (s.events ?? []).filter(e => e.googleEventId !== googleEventId),
+  })),
 
   // --- Notes ---
   addNote: data => set(s => {
@@ -246,7 +290,7 @@ export const useStore = create((set, get) => ({
     const order = (s.notes ?? []).reduce((m, n) => Math.min(m, n.order ?? 0), 0) - 1
     return persist({
       ...s,
-      notes: [...(s.notes ?? []), { id: nanoid(), title: '', kind: 'text', body: '', strokes: [], favorite: false, folderId: null, order, createdAt: now, updatedAt: now, ...data }],
+      notes: [...(s.notes ?? []), { id: nanoid(), title: '', kind: 'text', body: '', doc: null, strokes: [], favorite: false, archived: false, archivedAt: null, folderId: null, order, createdAt: now, updatedAt: now, ...data }],
     })
   }),
   updateNote: (id, data) => set(s => persist({
@@ -255,6 +299,12 @@ export const useStore = create((set, get) => ({
   deleteNote: id => set(s => persist({ ...s, notes: (s.notes ?? []).filter(n => n.id !== id) })),
   toggleFavoriteNote: id => set(s => persist({
     ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, favorite: !n.favorite } : n),
+  })),
+  archiveNote: id => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, archived: true, archivedAt: Date.now(), updatedAt: Date.now() } : n),
+  })),
+  unarchiveNote: id => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, archived: false, archivedAt: null, updatedAt: Date.now() } : n),
   })),
   moveNoteToFolder: (id, folderId) => set(s => persist({
     ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, folderId, updatedAt: Date.now() } : n),
@@ -360,7 +410,7 @@ export const useStore = create((set, get) => ({
   })),
   clearKanbanDone: semId => set(s => {
     const board = s.kanban[semId]
-    const sorted = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
+    const sorted = sortByOrder(board?.columns ?? [])
     const doneColId = sorted[sorted.length - 1]?.id
     return persist({
       ...s,
@@ -526,6 +576,7 @@ export const useStore = create((set, get) => ({
     ...s,
     tasks: s.tasks.filter(task => task?.sharedRef?.teamId !== teamId),
   })),
+  setResetSignal: signal => set(s => ({ ...s, resetSignal: signal })),
   setFocusSync: data => set(s => persist({
     ...s,
     focusSync: {
@@ -548,7 +599,7 @@ export const useStore = create((set, get) => ({
   erasePomodoroStats: () => set(s => persist({
     ...s,
     pomodoros: (s.pomodoros ?? []).map(p => {
-      const { focusSecs, createdAt, ...rest } = p
+      const { focusSecs: _focusSecs, createdAt: _createdAt, ...rest } = p
       return rest
     }),
   })),
@@ -558,6 +609,11 @@ export const useStore = create((set, get) => ({
   setPresetUpdatedAt: (key, updatedAt) => set(s => persist({
     ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
+
+  hydrateState: state => set(s => (s.dirtiedBeforeHydrate
+    ? { ...s, hydrated: true, dirtiedBeforeHydrate: undefined }
+    : { ...state, hydrated: true })),
+  markHydrated: () => set(s => (s.hydrated ? s : { ...s, hydrated: true })),
 
   // --- Import / Export ---
   importData: data => set(s => {
@@ -576,5 +632,6 @@ export const useStore = create((set, get) => ({
 
 function persist(state) {
   saveState(state)
-  return state
+  if (state.hydrated) return state
+  return { ...state, dirtiedBeforeHydrate: true }
 }
