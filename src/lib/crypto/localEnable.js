@@ -1,17 +1,26 @@
 import { prepareEnable, changePassphrase, regenerateRecoveryCode, disableEncryption, unlockWithSecret } from './encryptionService'
 import { setHint, unwrapDekRaw } from './wraps'
-import { MODE_LOCAL, loadLocalWraps, saveLocalWraps, clearLocalWraps, getEncMode } from './keyState'
+import { MODE_LOCAL, MODE_SYNC, loadLocalWraps, saveLocalWraps, clearLocalWraps, getEncMode } from './keyState'
 
 export function readLocalWraps() {
   return loadLocalWraps()
 }
 
-export async function enableLocalEncryption({ passphrase, hint, resave }) {
-  const prepared = await prepareEnable({ passphrase, hint, mode: MODE_LOCAL })
+export async function enableLocalEncryption({ passphrase, hint, resave, syncTarget = null }) {
+  const mode = syncTarget ? MODE_SYNC : MODE_LOCAL
+  const prepared = await prepareEnable({ passphrase, hint, mode })
 
   if (!saveLocalWraps(prepared.wraps)) throw new Error('local-wraps-write-failed')
 
   try {
+    if (syncTarget) {
+      await syncTarget.pushContainer({
+        state: syncTarget.state,
+        dek: prepared.dek,
+        wraps: prepared.wraps,
+        dekId: prepared.dekId,
+      })
+    }
     await prepared.commit()
     await resave()
   } catch (err) {

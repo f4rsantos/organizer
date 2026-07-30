@@ -164,6 +164,8 @@ function EncryptionSection({ config, t, remote, onRemoteChange }) {
     )
   }
 
+  if (remote?.encrypted) return null
+
   return <PlaintextSyncWarning t={t} onEnable={() => setEnabling(true)} />
 }
 
