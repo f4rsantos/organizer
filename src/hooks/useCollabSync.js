@@ -47,7 +47,6 @@ export function useCollabSync() {
       const onData = async team => {
         if (team === null) {
           clearCollabRuntimeTeam(teamId)
-          removeCollabMembership(teamId)
           return
         }
         if (isTeamExpired(team)) {

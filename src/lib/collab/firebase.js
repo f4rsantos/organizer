@@ -159,14 +159,30 @@ export async function leaveTeam({ config, teamId, userId }) {
 
 export function subscribeTeam({ config, teamId, teamKey, onData, onError }) {
   const { auth, db } = getOrCreateApp(config)
-  ensureSignedIn(auth).catch(onError)
-  return onSnapshot(teamRef(db, teamId), snap => {
-    if (!snap.exists()) {
-      onData(null)
-      return
-    }
-    decryptTeamDoc(snap.data(), teamKey).then(onData, onError)
-  }, onError)
+  let unsub = null
+  let cancelled = false
+
+  ensureSignedIn(auth)
+    .then(() => {
+      if (cancelled) return
+      unsub = onSnapshot(
+        teamRef(db, teamId),
+        snap => {
+          if (!snap.exists()) {
+            onData(null)
+            return
+          }
+          decryptTeamDoc(snap.data(), teamKey).then(onData, onError)
+        },
+        onError,
+      )
+    })
+    .catch(onError)
+
+  return () => {
+    cancelled = true
+    if (unsub) unsub()
+  }
 }
 
 export async function fetchTeam({ config, teamId, teamKey }) {

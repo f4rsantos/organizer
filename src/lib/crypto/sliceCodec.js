@@ -77,7 +77,6 @@ export async function encodeSlices({
     ...(omit.size ? { omitted: [...omit] } : {}),
   }
 }
-
 export async function decodeSlices({ container, key, aadFor }) {
   if (!isContainer(container)) throw new Error('container-invalid')
 
