@@ -78,7 +78,7 @@ export function GuidesPage({ onClose }) {
         </Button>
       </header>
 
-      <nav className="guide-chips shrink-0 gap-1.5 overflow-x-auto border-b border-border px-4 py-2 md:hidden">
+      <nav className="guide-chips flex shrink-0 gap-1.5 overflow-x-auto border-b border-border px-4 py-2 md:hidden">
         {GUIDE_SECTIONS.map(section => (
           <button key={section.id} onClick={() => jumpTo(section.id)}
             className={cn(
