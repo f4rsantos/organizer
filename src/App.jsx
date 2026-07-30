@@ -77,6 +77,20 @@ function CollabErrorToast() {
   )
 }
 
+function SyncLockedBanner({ onOpenSettings }) {
+  const lang = useStore(s => s.lang ?? 'en')
+  const t = useStrings(lang)
+  return (
+    <div className="fixed bottom-24 md:bottom-6 inset-x-0 z-50 flex justify-center px-4">
+      <button onClick={onOpenSettings}
+        className="flex w-full max-w-sm items-center gap-3 rounded-lg bg-destructive px-4 py-2 text-left text-xs text-destructive-foreground shadow-lg">
+        <span className="flex-1">{t.encRemoteAlreadyEncrypted}</span>
+        <span className="shrink-0 font-medium underline">{t.encUnlockTitle}</span>
+      </button>
+    </div>
+  )
+}
+
 const LAST_TAB_KEY = 'organizer:lastTab'
 
 function readLastTab() {
@@ -237,6 +251,9 @@ export default function App() {
       {!mobileSide && <TabBar activeTab={activeTab} onTabChange={setActiveTab} />}
       <GlobalTomatoLayer activeTab={activeTab} />
       <CollabErrorToast />
+      {syncStatus === 'key-required' && activeTab !== 'settings' && (
+        <SyncLockedBanner onOpenSettings={() => setActiveTab('settings')} />
+      )}
       <NewerVersionBanner />
       <NextSemesterDialog />
       <PresetUpdateDialog />

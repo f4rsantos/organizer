@@ -5,7 +5,7 @@ import {
   loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
   aadForPersonalSlice, WHOLE_STATE, getCachedDek, hasAnySlot,
   isContainer, isEncryptedContainer, encodeSlices, decodeSlices, stripTransient,
-  MODE_SYNC, MODE_LOCAL, getEncMode,
+  MODE_SYNC, loadLocalWraps,
 } from './crypto'
 import { readDevicePref, writeDevicePref } from './devicePrefs'
 
@@ -189,23 +189,21 @@ export async function pushToFirebase(config, state) {
       await writeStateDoc(config, await encryptForSlot(state, legacyKey, PERSONAL_AAD))
       return
     }
+    const existing = await readStateDoc(config)
+    if (describeStateDoc(existing).encrypted) throw new Error('encryption-key-required')
     await writeStateDoc(config, await buildContainer(state, null))
     return
   }
 
-  const mode = getEncMode()
-  if (mode === MODE_LOCAL) {
-    return
-  }
-
   const existing = await readStateDoc(config)
-  if (!hasAnySlot(existing?.wraps)) throw new Error('sync-wraps-missing')
+  const wraps = existing?.wraps ?? (hasAnySlot(loadLocalWraps()) ? loadLocalWraps() : null)
+  if (!hasAnySlot(wraps)) throw new Error('sync-wraps-missing')
 
   await writeStateDoc(config, {
     ...await buildContainer(state, dek),
     encMode: MODE_SYNC,
-    wraps: existing.wraps,
-    dekId: existing.dekId ?? null,
+    wraps,
+    dekId: existing?.dekId ?? null,
   })
 }
 

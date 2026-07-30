@@ -5,7 +5,8 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { forceSaveState } from '@/store/persist'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { getEncMode, getHint, MODE_OFF } from '@/lib/crypto'
+import { getEncMode, getHint, MODE_OFF, stripTransient } from '@/lib/crypto'
+import { loadFirebaseConfig, pushEnabledContainer } from '@/lib/firebase'
 import { isUnlocked } from '@/lib/crypto/encryptionService'
 import {
   readLocalWraps, enableLocalEncryption, unlockLocal, changeLocalPassphrase,
@@ -17,6 +18,15 @@ import { SecretPrompt } from './SecretPrompt'
 
 function resave() {
   return forceSaveState(useStore.getState())
+}
+
+function syncTargetForEnable() {
+  const config = loadFirebaseConfig()
+  if (!config) return null
+  return {
+    state: stripTransient(JSON.parse(JSON.stringify(useStore.getState()))),
+    pushContainer: payload => pushEnabledContainer(config, payload),
+  }
 }
 
 function EncryptionModal({ onClose }) {
@@ -56,7 +66,7 @@ function EncryptionModal({ onClose }) {
       return (
         <EnableEncryptionDialog
           t={t}
-          onEnable={args => enableLocalEncryption({ ...args, resave })}
+          onEnable={args => enableLocalEncryption({ ...args, resave, syncTarget: syncTargetForEnable() })}
           onDone={() => { setEnabling(false); refresh() }}
           onCancel={() => { setEnabling(false); refresh() }}
         />
