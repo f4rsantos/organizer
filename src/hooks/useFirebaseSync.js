@@ -13,6 +13,7 @@ function getSerializableState() {
 
 export function useFirebaseSync() {
   const importData = useStore(s => s.importData)
+  const hydrated = useStore(s => s.hydrated === true)
   const refs = useRef({
     pushTimeout: null,
     isPulling: false,
@@ -22,6 +23,7 @@ export function useFirebaseSync() {
   const [status, setStatus] = useState('idle')
 
   const pull = useCallback(async () => {
+    if (!hydrated) return
     if (refs.current.isPulling) return
     const config = loadFirebaseConfig()
     if (!config) return
@@ -52,9 +54,10 @@ export function useFirebaseSync() {
     } finally {
       refs.current.isPulling = false
     }
-  }, [importData])
+  }, [importData, hydrated])
 
   const push = useCallback(async () => {
+    if (!hydrated) return
     const config = loadFirebaseConfig()
     if (!config) return
     if (refs.current.remoteNewer) return
@@ -65,7 +68,7 @@ export function useFirebaseSync() {
     } catch (err) {
       setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
     }
-  }, [])
+  }, [hydrated])
 
   const pushNow = useCallback(() => {
     clearTimeout(refs.current.pushTimeout)
