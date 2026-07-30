@@ -7,7 +7,8 @@ import { markCollabRulesEnabled } from '@/lib/firebase'
 
 export function useCollabSync() {
   const collab = useStore(s => s.collab)
-  const enabled = useStore(s => s.settings?.collabEnabled === true)
+  const hydrated = useStore(s => s.hydrated === true)
+  const enabled = useStore(s => s.settings?.collabEnabled === true) && hydrated
   const memberships = collab?.memberships ?? []
   const setCollabUserId = useStore(s => s.setCollabUserId)
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)

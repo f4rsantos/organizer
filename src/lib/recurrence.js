@@ -62,3 +62,46 @@ export function expandTasksForRange(tasks, rangeStart, rangeEnd) {
   }
   return result
 }
+
+export function expandRecurringEvent(event, rangeStart, rangeEnd) {
+  if (!isRecurring(event) || !event.date) return []
+  const { freq, until } = event.recurrence
+  const interval = Math.max(1, Number(event.recurrence.interval) || 1)
+  const untilDate = until ? parseISO(until) : null
+  const start = parseISO(event.date)
+
+  const occurrences = []
+  let cursor = start
+  let guard = 0
+  while (guard < 1000) {
+    guard += 1
+    if (untilDate && isAfter(cursor, untilDate)) break
+    if (isAfter(cursor, rangeEnd)) break
+    if (!isBefore(cursor, rangeStart)) {
+      const dateISO = format(cursor, 'yyyy-MM-dd')
+      occurrences.push({
+        ...event,
+        id: `${event.id}::${dateISO}`,
+        templateId: event.id,
+        date: dateISO,
+        isRecurringOccurrence: true,
+      })
+    }
+    const next = stepDate(cursor, freq, interval)
+    if (!next) break
+    cursor = next
+  }
+  return occurrences
+}
+
+export function expandEventsForRange(events, rangeStart, rangeEnd) {
+  const result = []
+  for (const event of events) {
+    if (isRecurring(event) && event.date) {
+      result.push(...expandRecurringEvent(event, rangeStart, rangeEnd))
+    } else {
+      result.push(event)
+    }
+  }
+  return result
+}

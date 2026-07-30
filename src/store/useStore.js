@@ -631,7 +631,7 @@ export const useStore = create((set, _get) => ({
 }))
 
 function persist(state) {
+  if (!state.hydrated) return { ...state, dirtiedBeforeHydrate: true }
   saveState(state)
-  if (state.hydrated) return state
-  return { ...state, dirtiedBeforeHydrate: true }
+  return state
 }

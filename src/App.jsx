@@ -77,6 +77,24 @@ function CollabErrorToast() {
   )
 }
 
+const LAST_TAB_KEY = 'organizer:lastTab'
+
+function readLastTab() {
+  try {
+    return sessionStorage.getItem(LAST_TAB_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeLastTab(tab) {
+  try {
+    sessionStorage.setItem(LAST_TAB_KEY, tab)
+  } catch {
+    return
+  }
+}
+
 function TabPanel({ id, activeTab, children }) {
   const isActive = id === activeTab
   return (
@@ -101,9 +119,15 @@ export default function App() {
   const pluginTabsKey = useStore(s => enabledPluginTabIds(s).join(','))
   const tabs = [...CORE_TABS, ...(pluginTabsKey ? pluginTabsKey.split(',') : [])]
   const [activeTab, setActiveTab] = useState(() => {
-    const tab = new URLSearchParams(window.location.search).get('tab')
-    return [...CORE_TABS, ...enabledPluginTabIds(useStore.getState())].includes(tab) ? tab : 'tasks'
+    const known = [...CORE_TABS, ...enabledPluginTabIds(useStore.getState())]
+    const requested = new URLSearchParams(window.location.search).get('tab')
+    if (known.includes(requested)) return requested
+    const remembered = readLastTab()
+    return known.includes(remembered) ? remembered : 'tasks'
   })
+  useEffect(() => {
+    writeLastTab(activeTab)
+  }, [activeTab])
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
   const requestedTab = useStore(s => s.activeTab)
   const clearRequestedTab = useStore(s => s.setActiveTab)

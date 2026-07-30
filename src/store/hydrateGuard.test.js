@@ -101,7 +101,25 @@ describe('edits made before hydration are never discarded', () => {
   it('never persists the dirty marker', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().addTask({ title: 'x' })
+    useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
+    useStore.getState().addTask({ title: 'y' })
     await flush()
     expect(storage.getItem(STORAGE_KEY)).not.toContain('dirtiedBeforeHydrate')
+  })
+
+  it('does not write to disk before hydration', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().addTask({ title: 'x' })
+    await flush()
+    expect(storage.getItem(STORAGE_KEY)).toBe(null)
+  })
+
+  it('does not flush an empty membership list over the stored one', async () => {
+    const { useStore } = await import('./useStore.js')
+
+    useStore.getState().removeCollabMembership('t1')
+    await flush()
+
+    expect(storage.getItem(STORAGE_KEY)).toBe(null)
   })
 })
