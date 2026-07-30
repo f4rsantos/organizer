@@ -25,6 +25,7 @@ function firstColumnIdFor(state, boardId) {
 }
 
 function mergeStateOnHydrate(diskState, s) {
+  if (s.hydrated) return s
   if (!s.dirtiedBeforeHydrate) {
     return { ...diskState, hydrated: true }
   }
