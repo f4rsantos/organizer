@@ -13,11 +13,11 @@ export function CollabAppModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t.collabApp}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[85vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-2">
             <CollabConnectButton firebaseConnected={firebaseConnected} collabEnabled={collabEnabled} />
           </div>

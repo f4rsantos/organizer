@@ -414,7 +414,7 @@ export function CollabPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="space-y-3">
         <PanelCard icon={Users} title={t.collabCreateTeam} subtitle={t.collabPanelSubtitle}>
           {disabled && <p className="text-xs text-muted-foreground">{t.collabRequiresFirebase}</p>}
 
