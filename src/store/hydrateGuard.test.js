@@ -125,6 +125,42 @@ describe('edits made before hydration are never discarded', () => {
     expect(useStore.getState().tasks[0].title).toBe('edited after hydrate')
   })
 
+  it('keeps collab runtime and memberships through a tab-switch pull', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().addCollabMembership({
+      teamId: 't1', projectId: 'p', apiKey: 'k', teamKey: 'tk', teamName: 'Real Team',
+    })
+    useStore.getState().setCollabRuntimeTeam('t1', {
+      name: 'Real Team', expiresAt: Date.now() + 86400000, syncStatus: 'live',
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: { userId: 'u1', memberships: [] },
+    })
+
+    expect(useStore.getState().collab.memberships).toHaveLength(1)
+    expect(useStore.getState().collabRuntime?.teams?.t1?.name).toBe('Real Team')
+  })
+
+  it('lets a remote membership update win over the local copy', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().addCollabMembership({ teamId: 'merge1', teamName: 'OLD', apiKey: 'k', projectId: 'p' })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: { userId: 'u1', memberships: [{ teamId: 'merge1', teamName: 'NEW', apiKey: 'k', projectId: 'p', teamKey: null }] },
+    })
+
+    const merged = useStore.getState().collab.memberships.filter(m => m.teamId === 'merge1')
+    expect(merged).toHaveLength(1)
+    expect(merged[0].teamName).toBe('NEW')
+  })
+
   it('flushes a pre-hydration edit to disk once hydration lands', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().addTask({ title: 'typed before hydrate' })

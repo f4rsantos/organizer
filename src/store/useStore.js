@@ -694,7 +694,23 @@ export const useStore = create((set, _get) => ({
   importData: data => set(s => {
     const { state, status } = migrateState(data)
     if (status === 'invalid' || status === 'newer') return s
-    return persist(normalizeState({ ...state }))
+    const next = normalizeState({ ...state })
+    const localMemberships = s.collab?.memberships ?? []
+    const remoteMemberships = next.collab?.memberships ?? []
+    const remoteTeamIds = new Set(remoteMemberships.map(m => m.teamId))
+    return persist({
+      ...next,
+      collab: {
+        ...next.collab,
+        userId: next.collab?.userId ?? s.collab?.userId ?? null,
+        memberships: [
+          ...remoteMemberships,
+          ...localMemberships.filter(m => !remoteTeamIds.has(m.teamId)),
+        ],
+      },
+      collabRuntime: s.collabRuntime ?? { teams: {} },
+      activeTab: s.activeTab,
+    })
   }),
 
   // --- Previous Semesters ---
