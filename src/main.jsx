@@ -17,20 +17,20 @@ function renderApp(App) {
   )
 }
 
-async function renderUnlockGate({ storeError }) {
+async function renderUnlockGate({ storeError, remote }) {
   const [{ UnlockGate }, { loadPersonalWraps, unlockPersonal }] = await Promise.all([
     import('./components/crypto/UnlockGate.jsx'),
     import('./boot/unlockFlow'),
   ])
 
   const meta = await readContainerMetaAsync()
-  const wraps = await loadPersonalWraps()
+  const wraps = remote?.wraps ?? await loadPersonalWraps()
   if (!wraps) return
 
   return new Promise(resolve => {
     const root = createRoot(rootElement())
     const handleUnlock = async ({ slot, secret }) => {
-      await unlockPersonal({ wraps, slot, secret })
+      await unlockPersonal({ wraps, slot, secret, expectedDekId: remote?.dekId ?? null })
       root.unmount()
       resolve()
     }

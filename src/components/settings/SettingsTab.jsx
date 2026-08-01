@@ -304,69 +304,67 @@ export function SettingsTab({ syncStatus }) {
             </AccordionItem>
           )}
 
-          {hasValidDates && hasClasses && (
-            <>
-              {!workMode && (
-                <AccordionItem value="grades" className="rounded-xl border border-border bg-card px-4">
-                  <AccordionTrigger className="text-sm font-semibold py-3">{t.gradeComponents}</AccordionTrigger>
-                  <AccordionContent className="pb-4 space-y-5">
-                    {classes.map(cls => (
-                      <div key={cls.id} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls.color }} />
-                          <span className="text-sm font-medium">{cls.name}</span>
-                        </div>
-                        <GradeConfigForm semesterId={activeSemesterId} cls={cls}
-                          components={grades[activeSemesterId]?.[cls.id]?.components ?? []} />
-                      </div>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-
-              <AccordionItem value="kanban" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.kanban}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <KanbanSettings semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="focus" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <FocusSettings />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="general" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.general}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <GeneralSettings />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="navbar" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.navbar}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <NavbarSettings />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="data" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <DataPanel syncStatus={syncStatus} />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="apps" className="rounded-xl border border-border bg-card px-4">
-                <AccordionTrigger className="text-sm font-semibold py-3">{t.apps}</AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <AppsGrid />
-                </AccordionContent>
-              </AccordionItem>
-            </>
+          {hasValidDates && hasClasses && !workMode && (
+            <AccordionItem value="grades" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.gradeComponents}</AccordionTrigger>
+              <AccordionContent className="pb-4 space-y-5">
+                {classes.map(cls => (
+                  <div key={cls.id} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls.color }} />
+                      <span className="text-sm font-medium">{cls.name}</span>
+                    </div>
+                    <GradeConfigForm semesterId={activeSemesterId} cls={cls}
+                      components={grades[activeSemesterId]?.[cls.id]?.components ?? []} />
+                  </div>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
           )}
+
+          {hasValidDates && (
+            <AccordionItem value="kanban" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.kanban}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <KanbanSettings semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          <AccordionItem value="focus" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <FocusSettings />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="general" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.general}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <GeneralSettings />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="navbar" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.navbar}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <NavbarSettings />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="data" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <DataPanel syncStatus={syncStatus} />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="apps" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.apps}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <AppsGrid />
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
 
         {hasValidDates && <DangerZone semesterId={activeSemesterId} />}

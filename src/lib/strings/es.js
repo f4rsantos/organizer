@@ -172,7 +172,7 @@ export const es = {
     firebaseStep1Title: 'Crear un proyecto de Firebase',
     firebaseStep1Desc: 'Ve a console.firebase.google.com → Añadir proyecto → dale un nombre → desactiva Google Analytics → Crear proyecto.',
     firebaseStep2Title: 'Activar Firestore',
-    firebaseStep2Desc: 'Ve a Build → Firestore Database → Crear base de datos → elige una región → Iniciar en modo producción → Crear. Luego en Reglas, reemplaza el contenido por: allow read, write: if true; y pulsa Publicar.',
+    firebaseStep2Desc: 'Ve a Build → Firestore Database → Crear base de datos → elige una región → Iniciar en modo producción → Crear. Luego abre la pestaña Reglas, reemplaza todo por las reglas de abajo y pulsa Publicar.',
     firebaseStep3Title: 'Obtener tu configuración',
     firebaseStep3Desc: 'Ve a Configuración del proyecto (icono de engranaje) → Tus apps → Añadir app → Web → registra la app → copia el objeto firebaseConfig mostrado.',
     firebaseStep4Title: 'Pegar tu configuración',

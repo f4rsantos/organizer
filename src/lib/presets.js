@@ -1,3 +1,4 @@
+import { parseISO, isValid } from 'date-fns'
 import { fetchPresetFromFirebase, fetchPresetMetaFromFirebase } from './presetsFirebase'
 import { nanoid } from '@/lib/ids'
 import { selectSemesterGPA } from '@/store/selectors'
@@ -20,12 +21,6 @@ const AFTER_SUMMER_MAP = {
   's2':   's1',
 }
 
-const GENERIC_FOR_KEY = {
-  '1a1s': 's1', '2a1s': 's1', '3a1s': 's1',
-  '1a2s': 's2', '2a2s': 's2', '3a2s': 's2',
-  'summer': 's2',
-}
-
 export const PRESET_GROUPS = {
   EI: ['1a1s', '1a2s', '2a1s', '2a2s', '3a1s', '3a2s'],
   generic: ['s1', 's2'],
@@ -44,20 +39,7 @@ export async function fetchPreset(key, setPresetUpdatedAt) {
   const remote = await fetchPresetFromFirebase(key)
   if (!remote?.data) throw new Error(`preset-${key} not found`)
   setPresetUpdatedAt?.(key, remote.updatedAt)
-
-  const data = { ...remote.data }
-
-  const genericKey = GENERIC_FOR_KEY[key]
-  if (genericKey && !data.startDate?.trim()) {
-    const generic = await fetchPresetFromFirebase(genericKey)
-    if (generic?.data) {
-      data.startDate = generic.data.startDate ?? ''
-      data.endDate = generic.data.endDate ?? ''
-      if (!data.holidays?.length) data.holidays = generic.data.holidays ?? []
-    }
-  }
-
-  return data
+  return { ...remote.data }
 }
 
 export async function checkPresetExists(key) {
@@ -65,13 +47,30 @@ export async function checkPresetExists(key) {
   return !!meta
 }
 
+function assertPresetDates(data, presetKey) {
+  const start = data.startDate?.trim()
+  const end = data.endDate?.trim()
+  if (!start || !end) throw new Error(`preset-${presetKey} missing dates`)
+
+  const parsedStart = parseISO(start)
+  const parsedEnd = parseISO(end)
+  if (!isValid(parsedStart) || !isValid(parsedEnd)) {
+    throw new Error(`preset-${presetKey} invalid dates`)
+  }
+  if (parsedStart > parsedEnd) throw new Error(`preset-${presetKey} end before start`)
+
+  return { start, end }
+}
+
 export function applyPreset(data, actions, presetKey, previousPresetKey) {
   const { addSemester } = actions
 
+  const { start, end } = assertPresetDates(data, presetKey)
+
   const semData = {
     name: data.name ?? presetKey,
-    startDate: data.startDate ?? '',
-    endDate: data.endDate ?? '',
+    startDate: start,
+    endDate: end,
     presetKey,
   }
   if (presetKey === 'summer' && previousPresetKey) semData.previousPresetKey = previousPresetKey
@@ -91,14 +90,21 @@ export async function transitionSemester(oldSemId, nextKey, carry, actions) {
   const oldSem = stateBefore.semesters.find(s => s.id === oldSemId)
   const oldGPA = selectSemesterGPA(oldSemId, stateBefore)
 
+  const { start } = assertPresetDates(data, nextKey)
+
   const previousPresetKey = nextKey === 'summer' ? (oldSem?.presetKey ?? null) : null
   const newSemId = applyPreset(data, actions, nextKey, previousPresetKey)
 
-  const fromDate = data.startDate || new Date().toISOString().slice(0, 10)
-  reassignSemesterData(oldSemId, newSemId, carry, fromDate)
-  advanceCourseAvg(oldGPA, countsTowardCourseAvg(oldSem?.presetKey))
-  deleteSemester(oldSemId)
-  setActiveSemester(newSemId)
+  try {
+    reassignSemesterData(oldSemId, newSemId, carry, start)
+    advanceCourseAvg(oldGPA, countsTowardCourseAvg(oldSem?.presetKey))
+    deleteSemester(oldSemId)
+    setActiveSemester(newSemId)
+  } catch (err) {
+    deleteSemester(newSemId)
+    setActiveSemester(oldSemId)
+    throw err
+  }
 
   return newSemId
 }

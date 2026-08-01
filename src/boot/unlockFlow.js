@@ -1,12 +1,10 @@
 import { loadFirebaseConfig } from '../lib/firebaseConfig'
 import { unlockWithSecret } from '../lib/crypto/encryptionService'
-import { getEncMode, loadLocalWraps, hasAnySlot, MODE_SYNC } from '../lib/crypto'
+import { getEncMode, loadLocalWraps, hasAnySlot, MODE_OFF, MODE_SYNC } from '../lib/crypto'
 
 export async function loadPersonalWraps() {
   const local = loadLocalWraps()
   if (hasAnySlot(local)) return local
-
-  if (getEncMode() !== MODE_SYNC) return null
 
   const config = loadFirebaseConfig()
   if (!config) return null
@@ -19,7 +17,14 @@ export async function loadPersonalWraps() {
   }
 }
 
-export async function unlockPersonal({ wraps, slot, secret }) {
+export async function unlockPersonal({ wraps, slot, secret, expectedDekId = null }) {
   if (!wraps) throw new Error('wrap-slot-missing')
-  return unlockWithSecret({ wraps, slot, secret, mode: getEncMode() })
+  const mode = getEncMode()
+  return unlockWithSecret({
+    wraps,
+    slot,
+    secret,
+    expectedDekId,
+    mode: mode === MODE_OFF ? MODE_SYNC : mode,
+  })
 }
