@@ -51,7 +51,7 @@ function NewerVersionBanner() {
   const [visible, setVisible] = useState(hasNewerVersionWarning)
   if (!visible) return null
   return (
-    <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-3 bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100 px-4 py-2 text-xs">
+    <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-3 bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100 py-2 text-xs px-4-safe pt-2-safe">
       <span>{t.newerVersionWarning}</span>
       <button className="shrink-0 font-medium underline" onClick={() => setVisible(false)}>×</button>
     </div>
@@ -68,7 +68,7 @@ function CollabErrorToast() {
   }, [lastError, clearCollabError])
   if (!lastError) return null
   return (
-    <div className="fixed bottom-24 md:bottom-6 inset-x-0 z-50 flex justify-center px-4">
+    <div className="fixed bottom-above-tab-bar inset-x-0 z-50 flex justify-center px-4-safe">
       <div className="flex items-center gap-3 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-xs shadow-lg max-w-sm">
         <span className="flex-1">{lastError.message}</span>
         <button className="shrink-0 font-medium" onClick={clearCollabError}>×</button>
@@ -81,7 +81,7 @@ function SyncLockedBanner({ onOpenSettings }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   return (
-    <div className="fixed bottom-24 md:bottom-6 inset-x-0 z-50 flex justify-center px-4">
+    <div className="fixed bottom-above-tab-bar inset-x-0 z-50 flex justify-center px-4-safe">
       <button onClick={onOpenSettings}
         className="flex w-full max-w-sm items-center gap-3 rounded-lg bg-destructive px-4 py-2 text-left text-xs text-destructive-foreground shadow-lg">
         <span className="flex-1">{t.encRemoteAlreadyEncrypted}</span>
@@ -219,7 +219,7 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
-  if (!hydrated) return <AppShell><div className="min-h-screen" /></AppShell>
+  if (!hydrated) return <AppShell><div className="min-h-dvh" /></AppShell>
 
   if (!onboardingDone) return <AppShell><Onboarding onDone={completeOnboarding} /></AppShell>
 
@@ -228,9 +228,9 @@ export default function App() {
   const mobileSide = navbarMobilePosition === 'side'
   return (
     <AppShell>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-dvh overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative flex-1 overflow-hidden md:pb-0', mobileSide ? 'pb-0' : 'pb-20')}>
+        <div className={cn('relative flex-1 overflow-hidden md:pb-0', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component

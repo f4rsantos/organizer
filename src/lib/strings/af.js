@@ -52,4 +52,10 @@ export const af = {
     obNext: 'Volgende', obBack: 'Terug', obFinish: 'Klaar', obSkip: 'Slaan oor',
     welcomeTitle: 'Welkom by organiseerder',
     chunkLoadError: 'Hierdie deel kon nie gelaai word nie.', chunkRetry: 'Probeer weer',
+    carryOverTitle: 'Dra oor',
+    carryKanbanCards: 'Kanban-kaarte',
+    carryUpcomingTasks: 'Komende take',
+    carryUpcomingEvents: 'Komende gebeurtenisse',
+    carryOverAlwaysKept: 'Notas en instellings word altyd behou.',
+    carryOverDiscardWarning: 'Alles anders van hierdie semester word uitgevee.',
 }

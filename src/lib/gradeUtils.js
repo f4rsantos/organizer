@@ -46,6 +46,14 @@ export function ectsWeightedAverage(classes) {
   return roundPT(weighted / totalEcts)
 }
 
+export function foldSemesterIntoAvg(previousAvg, numSemesters, gpa) {
+  if (gpa == null) return previousAvg
+  const count = numSemesters ?? 0
+  const prev = previousAvg ?? 0
+  if (count <= 0 || prev <= 0) return roundPT(gpa)
+  return roundPT((prev * count + gpa) / (count + 1))
+}
+
 export function formatGrade(value) {
   if (value === null || value === undefined) return '—'
   return value.toFixed(1)

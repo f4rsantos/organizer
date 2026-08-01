@@ -274,7 +274,7 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>{t.repeatEvery}</Label>
+                    <Label>{t.repeatEvery(form.recurrence.freq)}</Label>
                     <Input type="number" min="1" value={localInterval}
                       onChange={e => setLocalInterval(e.target.value)}
                       onBlur={handleIntervalBlur}

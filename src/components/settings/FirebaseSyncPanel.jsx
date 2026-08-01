@@ -358,8 +358,8 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
-      <div className="flex min-h-screen flex-col items-center justify-center py-16 px-8">
+    <div className="fixed inset-0 z-50 bg-background overflow-y-auto p-safe">
+      <div className="flex min-h-dvh flex-col items-center justify-center py-16 px-8">
         <div className="w-full max-w-xs space-y-8">
           <div className="flex items-start justify-between gap-4">
             <h2 className="text-xl font-semibold tracking-tight">{t.firebaseSetupTitle}</h2>

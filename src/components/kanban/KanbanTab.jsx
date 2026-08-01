@@ -29,7 +29,7 @@ export function KanbanTab() {
   }, [hydrated, noneMode, localBoard, ensureBoard])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen p-4 pt-6 gap-4">
+    <div className="flex flex-col h-tab-pane p-4 pt-6 gap-4">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold">{t.kanban}</h1>
         <div className="flex gap-2">

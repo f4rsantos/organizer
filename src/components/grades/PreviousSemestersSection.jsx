@@ -1,6 +1,6 @@
 import { useStore } from "@/store/useStore";
 import { useStrings } from "@/lib/strings";
-import { roundPT, formatGrade } from "@/lib/gradeUtils";
+import { foldSemesterIntoAvg, formatGrade } from "@/lib/gradeUtils";
 import { GradeInput } from "./GradeInput";
 import { Input } from "@/components/ui/input";
 import { selectSemesterGPA } from "@/store/selectors";
@@ -29,16 +29,10 @@ export function PreviousSemestersSection() {
   const previousAvg = courseAvg.previousAvg ?? 0;
   const numSemesters = courseAvg.numSemesters ?? 0;
 
-  let finalAvg = null;
-  if (currentSemGPA !== null && (previousAvg > 0 || numSemesters > 0)) {
-    if (numSemesters > 0 && previousAvg > 0) {
-      finalAvg = roundPT(
-        (previousAvg * numSemesters + currentSemGPA) / (numSemesters + 1),
-      );
-    } else if (currentSemGPA) {
-      finalAvg = currentSemGPA;
-    }
-  }
+  const finalAvg =
+    currentSemGPA !== null && (previousAvg > 0 || numSemesters > 0)
+      ? foldSemesterIntoAvg(previousAvg, numSemesters, currentSemGPA)
+      : null;
 
   return (
     <div className="space-y-4">

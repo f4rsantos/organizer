@@ -37,6 +37,14 @@ function contrastText(hex) {
   return relativeLuminance(hex) > 0.45 ? '#1a1a1a' : '#f5f5f5'
 }
 
+function syncThemeColorMeta(root) {
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) return
+  const resolved = getComputedStyle(document.body).backgroundColor
+  if (resolved) meta.setAttribute('content', resolved)
+  root.style.colorScheme = root.classList.contains('dark') ? 'dark' : 'light'
+}
+
 export function useTheme() {
   const theme = useStore(s => s.theme)
   const setTheme = useStore(s => s.setTheme)
@@ -99,6 +107,8 @@ export function useTheme() {
         root.style.removeProperty('--muted')
         root.style.removeProperty('--muted-foreground')
       }
+
+      syncThemeColorMeta(root)
     }
 
     applyTheme()

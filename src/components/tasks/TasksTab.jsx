@@ -131,7 +131,7 @@ export function TasksTab() {
   if (!weeklyView) {
     const otherGroup = groups.find(g => g.cls.id === 'other')
     return (
-      <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen p-4 pt-8 gap-4">
+      <div className="flex flex-col h-tab-pane p-4 pt-8 gap-4">
         <div className="flex items-center justify-between shrink-0">
           <h1 className="text-lg font-semibold">{t.tasks}</h1>
           <AddTaskButton semesterId={activeSemesterId} classes={[]} weekCount={1} currentWeek={1} startDate={null} className="h-9 w-9 rounded-full" />
@@ -158,7 +158,7 @@ export function TasksTab() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen select-none">
+    <div className="flex flex-col h-tab-pane select-none">
       <div className="shrink-0 px-4 md:px-6 pt-8 md:pt-12 md:pb-3">
         <TaskAlertsPanel tasks={semesterTasks} classNameById={classNameById} />
       </div>

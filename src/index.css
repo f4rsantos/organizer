@@ -86,10 +86,13 @@
     }
     body {
         @apply bg-background text-foreground;
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
     }
     html {
         @apply font-sans;
         transition: background-color 300ms ease, color 300ms ease;
+        -webkit-text-size-adjust: 100%;
     }
     * {
         scrollbar-width: thin;
@@ -117,6 +120,60 @@
     .dark input[type="time"]::-webkit-calendar-picker-indicator,
     .dark input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(1);
+    }
+}
+
+@layer utilities {
+    .pt-safe {
+        padding-top: env(safe-area-inset-top);
+    }
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .pl-safe {
+        padding-left: env(safe-area-inset-left);
+    }
+    .pr-safe {
+        padding-right: env(safe-area-inset-right);
+    }
+    .px-safe {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+    .px-4-safe {
+        padding-left: calc(1rem + env(safe-area-inset-left));
+        padding-right: calc(1rem + env(safe-area-inset-right));
+    }
+    .pt-2-safe {
+        padding-top: calc(0.5rem + env(safe-area-inset-top));
+    }
+    .p-safe {
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+            env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .pb-tab-bar {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+    @media (width >= 48rem) {
+        .pb-tab-bar {
+            padding-bottom: 0;
+        }
+    }
+    .bottom-above-tab-bar {
+        bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+    @media (width >= 48rem) {
+        .bottom-above-tab-bar {
+            bottom: 1.5rem;
+        }
+    }
+    .h-tab-pane {
+        height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
+    }
+    @media (width >= 48rem) {
+        .h-tab-pane {
+            height: 100dvh;
+        }
     }
 }
 

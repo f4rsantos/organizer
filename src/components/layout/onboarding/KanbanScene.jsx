@@ -1,9 +1,8 @@
 import { TourFrame } from './TourScene'
 
-const COLUMN_FALLBACKS = ['To Do', 'In Progress', 'Done']
-
-export function KanbanPanel({ columns }) {
-  const labels = (columns?.length >= 3 ? columns.slice(0, 3) : COLUMN_FALLBACKS)
+export function KanbanPanel({ columns, t }) {
+  const fallbacks = [t?.kanbanColTodo ?? 'To Do', t?.kanbanColInProgress ?? 'In Progress', t?.kanbanColDone ?? 'Done']
+  const labels = (columns?.length >= 3 ? columns.slice(0, 3) : fallbacks)
 
   return (
     <TourFrame>

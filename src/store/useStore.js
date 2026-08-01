@@ -5,6 +5,8 @@ import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
 import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
 import { sortByOrder } from '@/lib/utils'
+import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
+import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -221,8 +223,31 @@ export const useStore = create((set, _get) => ({
     holidays: (s.holidays ?? []).filter(h => h.semesterId !== id),
     kanban: Object.fromEntries(Object.entries(s.kanban).filter(([k]) => k !== id)),
     grades: Object.fromEntries(Object.entries(s.grades).filter(([k]) => k !== id)),
+    dismissedNextSemester: Object.fromEntries(
+      Object.entries(s.dismissedNextSemester ?? {}).filter(([k]) => k !== id)
+    ),
   })),
   setActiveSemester: id => set(s => persist({ ...s, activeSemesterId: id })),
+  reassignSemesterData: (oldId, newId, carry, fromDate) => set(s => {
+    const classIdByOldId = buildClassIdMap(s.classes, oldId, newId)
+    const opts = { oldSemesterId: oldId, newSemesterId: newId, fromDate, carry, classIdByOldId }
+    return persist({
+      ...s,
+      tasks: remapCarriedTasks(s.tasks, opts),
+      events: remapCarriedEvents(s.events ?? [], opts),
+    })
+  }),
+  advanceCourseAvg: (gpa, countsTowardAvg) => set(s => {
+    if (!countsTowardAvg) return s
+    const { previousAvg, numSemesters } = s.courseAvg ?? { previousAvg: null, numSemesters: 0 }
+    return persist({
+      ...s,
+      courseAvg: {
+        previousAvg: foldSemesterIntoAvg(previousAvg, numSemesters, gpa),
+        numSemesters: (numSemesters ?? 0) + 1,
+      },
+    })
+  }),
 
   // --- Classes ---
   addClass: data => set(s => persist({ ...s, classes: [...s.classes, { id: nanoid(), ects: 6, ...data }] })),

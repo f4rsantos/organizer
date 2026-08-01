@@ -12,7 +12,7 @@ export function GuidesOverlay({ open, onClose }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-background">
+    <div className="fixed inset-0 z-50 bg-background p-safe">
       <GuidesPage onClose={onClose} />
     </div>
   )

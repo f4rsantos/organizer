@@ -246,7 +246,7 @@ export function NotesTab() {
   const mosaicNotes = useMemo(() => filtered.slice().sort(noteOrder), [filtered])
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-5rem)] md:h-screen">
+    <div className="flex flex-col md:flex-row h-tab-pane">
       <aside className={cn('w-full shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex-col',
         mosaic ? 'md:w-auto md:flex-1' : 'md:w-72',
         selected ? (mosaic ? 'hidden' : 'hidden md:flex') : 'flex')}>

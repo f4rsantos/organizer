@@ -6,8 +6,8 @@ export function UnlockGate({ lang = 'en', hint, storeError, onUnlock }) {
   const t = useStrings(lang)
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="flex min-h-screen flex-col items-center justify-center px-8 py-16">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background p-safe">
+      <div className="flex min-h-dvh flex-col items-center justify-center px-8 py-16">
         <div className="w-full max-w-xs space-y-6">
           <div className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />

@@ -1,5 +1,6 @@
 import { fetchPresetFromFirebase, fetchPresetMetaFromFirebase } from './presetsFirebase'
 import { nanoid } from '@/lib/ids'
+import { selectSemesterGPA } from '@/store/selectors'
 
 const NEXT_KEY_MAP = {
   '1a1s': '1a2s',
@@ -35,6 +36,10 @@ export function getNextPresetKey(currentKey, previousKey) {
   return NEXT_KEY_MAP[currentKey] ?? null
 }
 
+export function countsTowardCourseAvg(presetKey) {
+  return presetKey !== 'summer'
+}
+
 export async function fetchPreset(key, setPresetUpdatedAt) {
   const remote = await fetchPresetFromFirebase(key)
   if (!remote?.data) throw new Error(`preset-${key} not found`)
@@ -43,12 +48,12 @@ export async function fetchPreset(key, setPresetUpdatedAt) {
   const data = { ...remote.data }
 
   const genericKey = GENERIC_FOR_KEY[key]
-  if (genericKey && !data.startDate) {
+  if (genericKey && !data.startDate?.trim()) {
     const generic = await fetchPresetFromFirebase(genericKey)
     if (generic?.data) {
       data.startDate = generic.data.startDate ?? ''
       data.endDate = generic.data.endDate ?? ''
-      data.holidays = generic.data.holidays ?? []
+      if (!data.holidays?.length) data.holidays = generic.data.holidays ?? []
     }
   }
 
@@ -73,6 +78,29 @@ export function applyPreset(data, actions, presetKey, previousPresetKey) {
   const semId = addSemester(semData)
 
   _populateSemester(semId, data, actions)
+
+  return semId
+}
+
+export async function transitionSemester(oldSemId, nextKey, carry, actions) {
+  const { getState, setPresetUpdatedAt, reassignSemesterData, advanceCourseAvg, deleteSemester, setActiveSemester } = actions
+
+  const data = await fetchPreset(nextKey, setPresetUpdatedAt)
+
+  const stateBefore = getState()
+  const oldSem = stateBefore.semesters.find(s => s.id === oldSemId)
+  const oldGPA = selectSemesterGPA(oldSemId, stateBefore)
+
+  const previousPresetKey = nextKey === 'summer' ? (oldSem?.presetKey ?? null) : null
+  const newSemId = applyPreset(data, actions, nextKey, previousPresetKey)
+
+  const fromDate = data.startDate || new Date().toISOString().slice(0, 10)
+  reassignSemesterData(oldSemId, newSemId, carry, fromDate)
+  advanceCourseAvg(oldGPA, countsTowardCourseAvg(oldSem?.presetKey))
+  deleteSemester(oldSemId)
+  setActiveSemester(newSemId)
+
+  return newSemId
 }
 
 export function updatePreset(semId, data, actions) {
