@@ -7,6 +7,7 @@ import { useStrings } from '@/lib/strings'
 import { markCollabRulesEnabled } from '@/lib/firebase'
 import { deleteTeam, leaveTeam } from '@/lib/collab/firebase'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { RulesBox } from '@/components/settings/RulesBox'
 
 const RULES_SNIPPET = `rules_version = '2';
 service cloud.firestore {
@@ -43,10 +44,7 @@ function CollabGuideModal({ open, onOpenChange, onEnable }) {
             <li>{t.collabGuideStep3}</li>
             <li>{t.collabGuideStep4}</li>
           </ol>
-          <div className="rounded-lg border border-border bg-secondary/40 p-3">
-            <p className="text-xs font-medium mb-2">{t.collabGuideRulesLabel}</p>
-            <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
-          </div>
+          <RulesBox label={t.collabGuideRulesLabel} snippet={RULES_SNIPPET} />
           <div className="rounded-lg border border-border bg-secondary/40 p-3">
             <p className="text-xs font-medium mb-1">{t.collabGuideChecklistTitle}</p>
             <p className="text-xs text-muted-foreground">{t.collabGuideChecklistBody}</p>

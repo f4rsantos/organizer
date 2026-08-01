@@ -62,6 +62,7 @@ export function NextSemesterDialog() {
       })
     } catch {
       setError(t.presetError)
+    } finally {
       setLoading(false)
     }
   }
@@ -101,7 +102,7 @@ export function NextSemesterDialog() {
           <Button onClick={handleTransition} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.loadNextSemester}
           </Button>
-          <Button variant="ghost" disabled={loading} onClick={() => dismissNextSemester(activeSemesterId)}>
+          <Button variant="ghost" disabled={loading && !error} onClick={() => dismissNextSemester(activeSemesterId)}>
             {t.dismissNextSemester}
           </Button>
         </div>

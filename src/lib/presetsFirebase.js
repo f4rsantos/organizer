@@ -10,6 +10,16 @@ const PRESETS_FIREBASE_CONFIG = {
   appId: import.meta.env.VITE_PRESETS_FIREBASE_APP_ID,
 }
 
+const PRESET_TIMEOUT_MS = 10000
+
+function withTimeout(promise) {
+  let timer = null
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('preset-fetch-timeout')), PRESET_TIMEOUT_MS)
+  })
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer))
+}
+
 function getPresetsApp() {
   if (!PRESETS_FIREBASE_CONFIG.projectId) return null
   const existing = getApps().find(a => a.name === 'presets')
@@ -18,17 +28,13 @@ function getPresetsApp() {
 }
 
 export async function fetchPresetFromFirebase(key) {
-  try {
-    const app = getPresetsApp()
-    if (!app) return null
-    const db = getFirestore(app)
-    const snap = await getDoc(doc(db, 'presets', key))
-    if (!snap.exists()) return null
-    const { updatedAt = 0, ...rest } = snap.data()
-    return { updatedAt, data: rest }
-  } catch {
-    return null
-  }
+  const app = getPresetsApp()
+  if (!app) return null
+  const db = getFirestore(app)
+  const snap = await withTimeout(getDoc(doc(db, 'presets', key)))
+  if (!snap.exists()) return null
+  const { updatedAt = 0, ...rest } = snap.data()
+  return { updatedAt, data: rest }
 }
 
 export async function fetchPresetMetaFromFirebase(key) {
@@ -36,7 +42,7 @@ export async function fetchPresetMetaFromFirebase(key) {
     const app = getPresetsApp()
     if (!app) return null
     const db = getFirestore(app)
-    const snap = await getDoc(doc(db, 'presets', key))
+    const snap = await withTimeout(getDoc(doc(db, 'presets', key)))
     if (!snap.exists()) return null
     const d = snap.data()
     return { key: d.key ?? key, updatedAt: d.updatedAt ?? 0 }
@@ -50,7 +56,7 @@ export async function fetchAllPresetMetaFromFirebase() {
     const app = getPresetsApp()
     if (!app) return []
     const db = getFirestore(app)
-    const snaps = await getDocs(collection(db, 'presets'))
+    const snaps = await withTimeout(getDocs(collection(db, 'presets')))
     return snaps.docs.map(d => {
       const data = d.data()
       return { key: d.id, updatedAt: data.updatedAt ?? 0, name: data.name ?? d.id }

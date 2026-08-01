@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/presetsFirebase', () => ({
   fetchPresetFromFirebase: vi.fn(async key => {
-    if (key === 'summer') return { updatedAt: 1, data: { name: 'Verão', startDate: '', classes: [{ name: 'Análise' }] } }
-    if (key === 's2') return { updatedAt: 1, data: { startDate: '2026-07-01', endDate: '2026-09-15', holidays: [{ name: 'H', startDate: '2026-08-01', endDate: '2026-08-02' }] } }
+    if (key === 'summer') return { updatedAt: 1, data: { name: 'Verão', startDate: '2026-07-01', endDate: '2026-09-15', classes: [{ name: 'Análise' }], holidays: [{ name: 'H', startDate: '2026-08-01', endDate: '2026-08-02' }] } }
+    if (key === 's2') return { updatedAt: 1, data: { startDate: '2026-09-20', endDate: '2027-01-30' } }
+    if (key === 'no-dates') return { updatedAt: 1, data: { name: 'Sem datas', classes: [{ name: 'X' }] } }
     return null
   }),
   fetchPresetMetaFromFirebase: vi.fn(async () => ({ updatedAt: 1 })),
@@ -71,5 +72,43 @@ describe('transitionSemester end to end', () => {
     })
 
     expect(useStore.getState().courseAvg).toEqual({ previousAvg: 14, numSemesters: 3 })
+  })
+
+  it('does not count a semester whose classes all have zero ects', async () => {
+    const store = useStore.getState()
+    const oldId = store.addSemester({ name: '2a2s', presetKey: '2a2s', startDate: '2026-02-09', endDate: '2026-06-03' })
+    store.addClass({ semesterId: oldId, name: 'Análise', ects: 0 })
+    store.addClass({ semesterId: oldId, name: 'Física', ects: 0 })
+    const ids = useStore.getState().classes.map(c => c.id)
+    ids.forEach(id => store.setGradeComponents(oldId, id, [{ id: 'c1', name: 'E', weight: 1, grade: 18 }]))
+
+    await transitionSemester(oldId, 'summer', { kanban: true, tasks: true, events: true }, {
+      getState: useStore.getState,
+      getClasses: () => useStore.getState().classes,
+      ...store,
+    })
+
+    expect(useStore.getState().courseAvg).toEqual({ previousAvg: 14, numSemesters: 3 })
+  })
+
+  it('leaves the old semester untouched when the preset has no dates', async () => {
+    const store = useStore.getState()
+    const oldId = store.addSemester({ name: '2a2s', presetKey: '2a2s', startDate: '2026-02-09', endDate: '2026-06-03' })
+    store.addClass({ semesterId: oldId, name: 'Análise', ects: 6 })
+    store.addTask({ semesterId: oldId, title: 'stay put', weekEnd: '2026-10-01' })
+
+    await expect(transitionSemester(oldId, 'no-dates', { kanban: true, tasks: true, events: true }, {
+      getState: useStore.getState,
+      getClasses: () => useStore.getState().classes,
+      ...store,
+    })).rejects.toThrow('preset-no-dates missing dates')
+
+    const s = useStore.getState()
+    expect(s.semesters).toHaveLength(1)
+    expect(s.semesters[0].id).toBe(oldId)
+    expect(s.activeSemesterId).toBe(oldId)
+    expect(s.tasks.map(t => t.title)).toEqual(['stay put'])
+    expect(s.tasks[0].semesterId).toBe(oldId)
+    expect(s.courseAvg).toEqual({ previousAvg: 14, numSemesters: 3 })
   })
 })

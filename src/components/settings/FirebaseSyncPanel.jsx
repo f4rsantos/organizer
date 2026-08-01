@@ -18,6 +18,7 @@ import { EnableEncryptionDialog } from '@/components/crypto/EnableEncryptionDial
 import { KeyManagementPanel } from '@/components/crypto/KeyManagementPanel'
 import { PlaintextSyncWarning } from '@/components/crypto/PlaintextSyncWarning'
 import { SecretPrompt } from '@/components/crypto/SecretPrompt'
+import { RulesBox } from '@/components/settings/RulesBox'
 
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStep3', 'firebaseStep4']
 
@@ -52,7 +53,7 @@ service cloud.firestore {
   }
 }`
 
-function SetupStep({ titleKey, t, active, done, onClick }) {
+function SetupStep({ titleKey, t, active, done, onClick, children }) {
   return (
     <div className={`flex gap-3 transition-opacity cursor-default ${active || done ? 'opacity-100' : 'opacity-35'} ${done ? 'cursor-pointer' : ''}`}
       onClick={onClick}>
@@ -62,10 +63,13 @@ function SetupStep({ titleKey, t, active, done, onClick }) {
           : <CircleDashed className={`h-4 w-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
         }
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 min-w-0">
         <p className="text-sm font-medium leading-snug">{t[titleKey + 'Title']}</p>
         {active && (
-          <p className="text-xs text-muted-foreground leading-relaxed">{t[titleKey + 'Desc']}</p>
+          <>
+            <p className="text-xs text-muted-foreground leading-relaxed">{t[titleKey + 'Desc']}</p>
+            {children}
+          </>
         )}
       </div>
     </div>
@@ -79,10 +83,7 @@ function UnauthenticatedWarning({ t }) {
       <div className="space-y-1.5">
         <p className="text-xs font-medium text-destructive">{t.firebaseOpenRulesWarningTitle}</p>
         <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseOpenRulesWarningDesc}</p>
-        <div className="rounded-lg border border-border bg-secondary/40 p-3">
-          <p className="text-xs font-medium mb-2">{t.firebaseRulesTemplateLink}</p>
-          <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
-        </div>
+        <RulesBox label={t.firebaseRulesTemplateLink} snippet={RULES_SNIPPET} />
       </div>
     </div>
   )
@@ -164,7 +165,13 @@ function EncryptionSection({ config, t, remote, onRemoteChange }) {
     )
   }
 
-  if (remote?.encrypted) return null
+  if (remote?.encrypted) {
+    return (
+      <p className="text-xs text-destructive leading-relaxed">
+        {remote?.hasWraps ? t.encRemoteAlreadyEncrypted : t.encRemoteUnrecoverable}
+      </p>
+    )
+  }
 
   return <PlaintextSyncWarning t={t} onEnable={() => setEnabling(true)} />
 }
@@ -202,10 +209,14 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
   useEffect(() => {
     let cancelled = false
     inspectRemoteState(config)
-      .then(info => { if (!cancelled) setRemote(info) })
+      .then(info => {
+        if (cancelled) return
+        setRemote(info)
+        setUnlocked(isUnlocked())
+      })
       .catch(() => { if (!cancelled) setRemote(null) })
     return () => { cancelled = true }
-  }, [config])
+  }, [config, syncStatus])
 
   const needsRemoteUnlock = Boolean(
     remote?.encrypted && remote?.hasWraps && !unlocked,
@@ -228,6 +239,9 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
       </div>
       {syncStatus === 'remote-newer' && (
         <p className="text-xs text-destructive leading-relaxed">{t.firebaseRemoteNewer}</p>
+      )}
+      {syncStatus === 'key-required' && !needsRemoteUnlock && (
+        <p className="text-xs text-destructive leading-relaxed">{t.encRemoteAlreadyEncrypted}</p>
       )}
       <p className="text-xs text-muted-foreground font-mono">{config.projectId}</p>
 
@@ -380,7 +394,9 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
                   {STEPS.map((key, i) => (
                     <SetupStep key={key} titleKey={key} t={t}
                       active={i === step} done={i < step}
-                      onClick={() => i < step && setStep(i)} />
+                      onClick={() => i < step && setStep(i)}>
+                      {i === 1 && <RulesBox label={t.firebaseRulesTemplateLink} snippet={RULES_SNIPPET} />}
+                    </SetupStep>
                   ))}
                 </div>
 
@@ -403,10 +419,6 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
                           ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />{t.firebaseSyncing}</>
                           : t.firebaseSave}
                       </Button>
-                      <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                        <p className="text-xs font-medium mb-2">{t.firebaseRulesTemplateLink}</p>
-                        <pre className="text-[11px] leading-relaxed whitespace-pre-wrap">{RULES_SNIPPET}</pre>
-                      </div>
                     </div>
                   )
                 }

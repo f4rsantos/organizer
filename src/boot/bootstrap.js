@@ -35,11 +35,31 @@ async function hydrateFromFirebase() {
   }
 }
 
+async function remoteNeedsUnlock() {
+  const config = loadFirebaseConfig()
+  if (!config) return null
+
+  try {
+    const { inspectRemoteState } = await import('../lib/firebase')
+    const remote = await Promise.race([
+      inspectRemoteState(config),
+      new Promise(resolve => setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS)),
+    ])
+    return remote?.encrypted && remote?.hasWraps ? remote : null
+  } catch {
+    return null
+  }
+}
+
 export async function runBootstrap() {
   const mode = getEncMode()
   const locked = await hasEncryptedSnapshotAsync()
 
   if (mode === MODE_OFF && !locked) {
+    const remote = await remoteNeedsUnlock()
+    if (remote) {
+      return { mode, dek: null, needsUnlock: true, storeError: null, remote }
+    }
     await importFromUrl()
     await hydrateFromFirebase()
     return { mode, dek: null, needsUnlock: false, storeError: null }

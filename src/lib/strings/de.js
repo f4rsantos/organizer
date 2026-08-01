@@ -172,7 +172,7 @@ export const de = {
     firebaseStep1Title: 'Firebase-Projekt erstellen',
     firebaseStep1Desc: 'Gehe zu console.firebase.google.com → Projekt hinzufügen → gib ihm einen Namen → Google Analytics deaktivieren → Projekt erstellen.',
     firebaseStep2Title: 'Firestore aktivieren',
-    firebaseStep2Desc: 'Gehe zu Build → Firestore Database → Datenbank erstellen → wähle eine Region → Im Produktionsmodus starten → Erstellen. Dann zu Regeln, ersetze den Inhalt durch: allow read, write: if true; und klicke Veröffentlichen.',
+    firebaseStep2Desc: 'Gehe zu Build → Firestore Database → Datenbank erstellen → wähle eine Region → Im Produktionsmodus starten → Erstellen. Öffne dann den Tab Regeln, ersetze alles durch die Regeln unten und klicke auf Veröffentlichen.',
     firebaseStep3Title: 'Deine Konfiguration holen',
     firebaseStep3Desc: 'Gehe zu Projekteinstellungen (Zahnrad) → Deine Apps → App hinzufügen → Web → App registrieren → kopiere das angezeigte firebaseConfig-Objekt.',
     firebaseStep4Title: 'Deine Konfiguration einfügen',

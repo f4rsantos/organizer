@@ -238,7 +238,7 @@ export const useStore = create((set, _get) => ({
     })
   }),
   advanceCourseAvg: (gpa, countsTowardAvg) => set(s => {
-    if (!countsTowardAvg) return s
+    if (!countsTowardAvg || gpa == null) return s
     const { previousAvg, numSemesters } = s.courseAvg ?? { previousAvg: null, numSemesters: 0 }
     return persist({
       ...s,

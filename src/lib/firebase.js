@@ -166,7 +166,7 @@ async function writeStateDoc(config, payload) {
 
 function describeStateDoc(data) {
   if (!data) {
-    return { exists: false, encrypted: false, hasWraps: false, wraps: null, dekId: null, meta: null }
+    return { exists: false, encrypted: false, hasWraps: false, wraps: null, dekId: null, meta: null, encMode: null }
   }
   const container = isContainer(data)
   return {
@@ -176,6 +176,7 @@ function describeStateDoc(data) {
     wraps: data?.wraps ?? null,
     dekId: data?.dekId ?? null,
     meta: container ? data.meta ?? null : null,
+    encMode: data?.encMode ?? null,
     legacy: !container,
   }
 }

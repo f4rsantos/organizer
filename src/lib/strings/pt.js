@@ -172,7 +172,7 @@ export const pt = {
     firebaseStep1Title: 'Criar um projeto Firebase',
     firebaseStep1Desc: 'Vai a console.firebase.google.com → Adicionar projeto → dá um nome → desativa o Google Analytics → Criar projeto.',
     firebaseStep2Title: 'Ativar o Firestore',
-    firebaseStep2Desc: 'Vai a Criar → Firestore Database → Criar base de dados → escolhe uma região → Iniciar em modo de produção → Criar. Depois vai a Regras, substitui o conteúdo por: allow read, write: if true; e clica em Publicar.',
+    firebaseStep2Desc: 'Vai a Criar → Firestore Database → Criar base de dados → escolhe uma região → Iniciar em modo de produção → Criar. Depois abre o separador Regras, substitui tudo pelas regras abaixo e clica em Publicar.',
     firebaseStep3Title: 'Obter a configuração',
     firebaseStep3Desc: 'Vai às Definições do projeto (ícone de engrenagem) → As tuas apps → Adicionar app → Web → regista a app → copia o objeto firebaseConfig mostrado.',
     firebaseStep4Title: 'Cola a configuração',
