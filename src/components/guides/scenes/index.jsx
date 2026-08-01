@@ -19,7 +19,7 @@ import { CollabScene } from './CollabScene'
 // topic; they take label props, so each is wrapped to read from `t`.
 export const GUIDE_SCENES = {
   tasks: ({ t }) => <TasksPanel groupLabels={[t.tasks, t.other]} />,
-  kanban: ({ columns }) => <KanbanPanel columns={columns} />,
+  kanban: ({ columns, t }) => <KanbanPanel columns={columns} t={t} />,
   grades: GradesScene,
   calendar: ({ t }) => <CalendarPanel views={[t.viewDay, t.viewWeek, t.viewMonth, t.viewYear]} weekdays={t.weekdaysShort?.map(d => d[0])} />,
   focus: ({ t }) => (

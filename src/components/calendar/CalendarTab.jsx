@@ -164,7 +164,7 @@ export function CalendarTab() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-screen select-none relative">
+    <div className="flex flex-col h-tab-pane select-none relative">
       <CalendarEventProviders onEvents={handleProviderEvents} />
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 shrink-0">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} disabled={!canPrev}>

@@ -60,7 +60,7 @@ export function TabBar({ activeTab, onTabChange }) {
   const showLabel = labelMode !== 'icons'
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center md:hidden">
-      <div className="flex w-full border-t border-border bg-background/90 backdrop-blur-sm">
+      <div className="flex w-full border-t border-border bg-background/90 backdrop-blur-sm pb-safe px-safe">
         {primary.map(({ id, label, icon: Icon, isAdd }) => (
           isAdd
             ? <NavAddButton key={id} variant="bottom" labelMode={labelMode} />
@@ -83,7 +83,7 @@ export function TabBar({ activeTab, onTabChange }) {
 
 export function SideBar({ activeTab, onTabChange, open, onToggle, mobileSide = false }) {
   const { primary, folders, labelMode } = useNavTabs()
-  const vis = mobileSide ? 'flex' : 'hidden md:flex'
+  const vis = mobileSide ? 'flex pt-safe pb-safe pl-safe' : 'hidden md:flex'
 
   if (!open) {
     return (

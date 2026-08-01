@@ -24,7 +24,7 @@ export function GradesTab() {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] md:h-screen overflow-y-auto">
+    <div className="h-tab-pane overflow-y-auto">
     <div className="space-y-4 p-4 pt-6 pb-8">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{t.grades}</h1>

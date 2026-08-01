@@ -7,7 +7,7 @@ export function StandbyOverlay() {
   const panes = (standby?.panes ?? ['wheel-time', 'calendar', 'tasks-by-category']).slice(0, count)
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex">
+    <div className="fixed inset-0 z-[100] bg-background flex p-safe">
       {panes.map((entry, i) => (
         <div key={i} className="flex-1 flex items-center justify-center border-r border-border/40 last:border-r-0 p-4 overflow-hidden">
           {Array.isArray(entry)

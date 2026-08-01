@@ -3,18 +3,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { PRESET_GROUPS, checkPresetExists, fetchPreset, applyPreset } from '@/lib/presets'
-
-const YEAR_LABEL = {
-  en: { '1a': '1st Year', '2a': '2nd Year', '3a': '3rd Year', s: 'General' },
-  pt: { '1a': '1º Ano',   '2a': '2º Ano',   '3a': '3º Ano',   s: 'Geral'   },
-}
-const SEM_LABEL = {
-  en: { '1s': '1st Sem', '2s': '2nd Sem', s1: '1st Sem', s2: '2nd Sem' },
-  pt: { '1s': '1º Sem',  '2s': '2º Sem',  s1: '1º Sem',  s2: '2º Sem'  },
-}
-
-function yearKey(k) { return k === 's1' || k === 's2' ? 's' : k.slice(0, 2) }
-function semKey(k)  { return k === 's1' ? 's1' : k === 's2' ? 's2' : k.slice(2) }
+import { presetYearLabel, presetSemLabel } from '@/lib/presetLabels'
 
 function PresetCard({ presetKey, available, checked, loading, onSelect, lang }) {
   const isAvail   = available[presetKey] ?? false
@@ -22,8 +11,8 @@ function PresetCard({ presetKey, available, checked, loading, onSelect, lang }) 
   const busy      = !!loading && !isLoading
   const faded     = checked && !isAvail
 
-  const year = (YEAR_LABEL[lang] ?? YEAR_LABEL.en)[yearKey(presetKey)]
-  const sem  = (SEM_LABEL[lang]  ?? SEM_LABEL.en)[semKey(presetKey)]
+  const year = presetYearLabel(presetKey, lang)
+  const sem  = presetSemLabel(presetKey, lang)
 
   return (
     <button
@@ -97,7 +86,7 @@ export function PresetPicker({ onBack, onLoaded }) {
   const cardProps = { available, checked, loading, onSelect: handleSelect, lang }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-10 px-8 py-16">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-10 px-8 py-16">
       <div className="w-full max-w-xs space-y-8">
 
         <button onClick={onBack}
