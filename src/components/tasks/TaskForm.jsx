@@ -29,6 +29,7 @@ export function TaskForm({
   initialData = null,
   onSubmitTask,
   submitLabel,
+  defaultEisenhower = null,
 }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -146,6 +147,7 @@ export function TaskForm({
     if (!rawTitle.trim()) return
     const finalForm = rawTitle !== form.title ? parseTitle(rawTitle) : form
     const payload = { semesterId, ...finalForm, dueDate: finalForm.dueDate || null }
+    if (defaultEisenhower && !initialData) payload.eisenhower = defaultEisenhower
     if (onSubmitTask) onSubmitTask(payload)
     else addTask(payload)
     onDone?.()

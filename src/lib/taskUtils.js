@@ -1,6 +1,7 @@
 import { isTaskInWeek } from './semesterUtils'
 
 export const FREE_BOARD_ID = '__free__'
+export const EISENHOWER_DISMISSED = 'dismissed'
 
 export function boardIdForTask(task) {
   return task?.semesterId ?? FREE_BOARD_ID
@@ -43,15 +44,37 @@ export function completionRatio(tasks) {
   return tasks.filter(t => t.done).length / tasks.length
 }
 
-export function resolveKanbanPlacement(task, prevTask, state, firstColumnIdFor) {
-  if (!task.views?.kanban || !task.weekStart || !task.weekEnd) return task.kanban ?? null
+export function resolveKanbanPlacement(task, prevTask, state, firstColumnIdFor, currentWeek = null) {
   const autoAdd = state.settings?.kanbanAutoAddToFirstColumn ?? false
-  if (!task.kanban?.columnId) {
-    return autoAdd ? { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) } : (task.kanban ?? null)
+  const views = task.views ?? {}
+
+  if (!views.kanban) {
+    const inCurrentWeek = Number.isFinite(currentWeek)
+      && Number.isFinite(task.weekStart) && Number.isFinite(task.weekEnd)
+      && isTaskInWeek(task, currentWeek)
+    if (autoAdd && inCurrentWeek && !task.done) {
+      return {
+        views: { ...views, kanban: true },
+        kanban: { columnId: firstColumnIdFor(state, boardIdForTask(task)), order: 0, checklist: [] },
+      }
+    }
+    return { views, kanban: task.kanban ?? null }
   }
+
+  if (!task.weekStart || !task.weekEnd) return { views, kanban: task.kanban ?? null }
+
+  if (!task.kanban?.columnId) {
+    return {
+      views,
+      kanban: autoAdd
+        ? { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) }
+        : (task.kanban ?? null),
+    }
+  }
+
   const boardChanged = prevTask && boardIdForTask(prevTask) !== boardIdForTask(task)
   if (boardChanged && autoAdd) {
-    return { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) }
+    return { views, kanban: { ...task.kanban, columnId: firstColumnIdFor(state, boardIdForTask(task)) } }
   }
-  return task.kanban
+  return { views, kanban: task.kanban }
 }
