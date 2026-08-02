@@ -26,6 +26,28 @@ const NOTES_EDITOR_KEYS = [
   'notesMathEnable', 'notesMathEnableDesc',
 ]
 
+const POMODORO_KEYS = [
+  'pomodoroMode', 'pomodoroModeDesc', 'pomodoroResetPeriod',
+  'pomodoroResetDay', 'pomodoroResetWeek', 'pomodoroResetMonth', 'pomodoroResetSemester',
+  'pomodoroTrackPeriodStats', 'pomodoroShowAbandoned', 'pomodoroShowPeriodPomodoros', 'pomodoroShowOverlay',
+  'pomodoroStatsTitle', 'pomodoroTotal', 'pomodoroAbandoned', 'pomodoroFocusTime',
+  'pomodoroPeriodTotal', 'pomodoroPeriodFocus', 'pomodoroVsSinceLast', 'pomodoroAllTime',
+  'pomodoroTotalTimeLabel', 'pomodoroClose', 'pomodoroEraseStats',
+  'pomodoroEraseStatsTitle', 'pomodoroEraseStatsDesc', 'pomodoroGraceCancel',
+  'pomodoroStreakTitle', 'pomodoroCurrentStreak', 'pomodoroBestStreak',
+  'pomodoroTrendTitle', 'pomodoroTrendNoData', 'pomodoroCopySummary', 'pomodoroCopiedSummary',
+  'focusNotifTitle', 'focusNotifBreakBody', 'focusNotifFocusBody',
+  'tasksNotifTitle', 'taskReminderTitle',
+]
+
+const EISENHOWER_KEYS = [
+  'eisenhower', 'eisenhowerEnable', 'eisenhowerEnableDesc',
+  'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate', 'eisenhowerEliminate',
+  'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
+  'eisenhowerAddTask', 'eisenhowerCustomize', 'eisenhowerResetDefaults',
+  'eisenhowerCleanDone', 'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc',
+]
+
 function shapeOf(value) {
   if (typeof value === 'function') return 'function'
   if (Array.isArray(value)) return 'array'
@@ -74,6 +96,40 @@ describe('every locale keeps the English value shape', () => {
       expect(mismatched).toEqual([])
     })
   })
+})
+
+describe('pomodoro and eisenhower strings are defined everywhere', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .forEach(([name, strings]) => {
+      it(`${name} defines every pomodoro and eisenhower key`, () => {
+        const missing = [...POMODORO_KEYS, ...EISENHOWER_KEYS]
+          .filter(key => typeof strings[key] !== 'string' || !strings[key].trim())
+        expect(missing).toEqual([])
+      })
+    })
+})
+
+const SHARED_WITH_ENGLISH = new Set([
+  'pomodoro', 'pomodoroInsightsPerDaySuffix', 'pomodoroStreakDaySuffix',
+  'eisenhowerCustomize', 'eisenhowerAddTask', 'eisenhowerCleanDone',
+  'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc', 'eisenhowerEnable',
+  'eisenhowerEnableDesc', 'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate',
+  'eisenhowerEliminate', 'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
+  'eisenhowerResetDefaults', 'taskReminderTitle',
+])
+
+describe('pomodoro and eisenhower strings are actually translated', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .forEach(([name, strings]) => {
+      it(`${name} does not copy English verbatim`, () => {
+        const copied = [...POMODORO_KEYS, ...EISENHOWER_KEYS]
+          .filter(key => !SHARED_WITH_ENGLISH.has(key))
+          .filter(key => typeof en[key] === 'string' && en[key] === strings[key])
+        expect(copied).toEqual([])
+      })
+    })
 })
 
 describe('notes editor strings are translated everywhere', () => {

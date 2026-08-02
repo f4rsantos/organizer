@@ -1,5 +1,6 @@
 import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
+import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 
 export const CURRENT_VERSION = 6
 export const FREE_BOARD_ID = '__free__'
@@ -324,6 +325,12 @@ function normalizeRecurrence(recurrence) {
   }
 }
 
+function normalizeEisenhower(eisenhower) {
+  if (eisenhower === EISENHOWER_DISMISSED) return EISENHOWER_DISMISSED
+  if (!eisenhower || typeof eisenhower !== 'object') return null
+  return { urgent: Boolean(eisenhower.urgent), important: Boolean(eisenhower.important) }
+}
+
 function normalizeTask(task) {
   if (!task || typeof task !== 'object') return null
   const views = task.views && typeof task.views === 'object' ? task.views : {}
@@ -345,12 +352,7 @@ function normalizeTask(task) {
     recurrenceExceptions: task.recurrenceExceptions && typeof task.recurrenceExceptions === 'object'
       ? task.recurrenceExceptions
       : {},
-    eisenhower: task.eisenhower && typeof task.eisenhower === 'object'
-      ? {
-          urgent: Boolean(task.eisenhower.urgent),
-          important: Boolean(task.eisenhower.important),
-        }
-      : null,
+    eisenhower: normalizeEisenhower(task.eisenhower),
   }
 }
 
@@ -364,6 +366,7 @@ function normalizeSettings(settings) {
   if (!['none', 'all', 'card'].includes(s.kanbanChecklistPreviewMode)) {
     s.kanbanChecklistPreviewMode = 'none'
   }
+  if (typeof s.kanbanAutoAddToFirstColumn !== 'boolean') s.kanbanAutoAddToFirstColumn = false
   if (!['list', 'mosaic'].includes(s.notesViewMode)) s.notesViewMode = 'list'
   if (typeof s.notesMathEnabled !== 'boolean') s.notesMathEnabled = false
   if (typeof s.speechInputEnabled !== 'boolean') s.speechInputEnabled = false

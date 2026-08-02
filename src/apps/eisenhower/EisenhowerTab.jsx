@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core'
-import { Menu, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Circle, CircleCheck, Menu, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useWeekContext } from '@/hooks/useWeekContext'
+import { useCollabActions } from '@/hooks/useCollabActions'
 import { TaskForm } from '@/components/tasks/TaskForm'
+import { EISENHOWER_DISMISSED } from '@/lib/taskUtils'
+import { fireConfetti } from '@/lib/confetti'
 import { cn } from '@/lib/utils'
 
 const PRIORITY_DOT = {
@@ -42,12 +46,16 @@ function isPastTask(task) {
   return due < cutoff
 }
 
-function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete }) {
+function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete, onToggleDone }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   const interactive = !!(onEdit || onDelete)
+  const userId = useStore(s => s.collab?.userId)
+  const isDone = task?.sharedMeta?.remote
+    ? !!task.doneForAll || !!task?.doneBy?.[userId]
+    : !!task.done
 
   useEffect(() => {
     if (!menuOpen) return
@@ -55,7 +63,11 @@ function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete }) 
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [menuOpen])
 
   return (
@@ -64,14 +76,23 @@ function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete }) 
         'relative flex flex-col gap-2 rounded-xl border border-border bg-card p-3 text-xs select-none cursor-grab touch-none active:cursor-grabbing',
         'transition-shadow hover:shadow-md min-w-[140px] max-w-[200px]',
         isDragging && 'opacity-40 ring-2 ring-primary',
+        isDone && 'opacity-60',
         cls,
       )}>
       <div className="flex items-start gap-2">
+        {onToggleDone && (
+          <button type="button"
+            className="shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
+            onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}
+            onClick={onToggleDone}>
+            {isDone ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
+          </button>
+        )}
         {task.priority && (
           <span className={cn('h-2 w-2 rounded-full shrink-0 mt-1', PRIORITY_DOT[task.priority])} />
         )}
         {classColor && <span className="h-2 w-2 rounded-full shrink-0 mt-1" style={{ backgroundColor: classColor }} />}
-        <span className={cn('flex-1 font-medium leading-tight line-clamp-2', task.done && 'line-through text-muted-foreground')}>
+        <span className={cn('flex-1 font-medium leading-tight line-clamp-2', isDone && 'line-through text-muted-foreground')}>
           {task.title || 'Untitled'}
         </span>
         {interactive && (
@@ -109,7 +130,7 @@ function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete }) 
   )
 }
 
-function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask, onEditTask, onDeleteTask }) {
+function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask, onEditTask, onDeleteTask, onToggleDone }) {
   const { setNodeRef, isOver } = useDroppable({ id: quadrant.id })
   const label = customLabel || t[quadrant.labelKey]
   const isCustom = quadrant.tint?.startsWith('#')
@@ -135,7 +156,8 @@ function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask, onEdi
           {tasks.map(task => (
             <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color}
               onEdit={() => onEditTask(task)}
-              onDelete={() => onDeleteTask(task.id)} />
+              onDelete={() => onDeleteTask(task.id)}
+              onToggleDone={() => onToggleDone(task)} />
           ))}
         </div>
         {tasks.length === 0 && <p className="text-xs text-muted-foreground/40 py-6 text-center">{t.eisenhowerEmpty}</p>}
@@ -144,7 +166,7 @@ function Quadrant({ quadrant, tasks, classById, t, customLabel, onAddTask, onEdi
   )
 }
 
-function UnsortedTray({ tasks, classById, t, onEditTask, onDeleteTask }) {
+function UnsortedTray({ tasks, classById, t, onEditTask, onDeleteTask, onToggleDone }) {
   const { setNodeRef, isOver } = useDroppable({ id: UNSORTED_ID })
   return (
     <div ref={setNodeRef}
@@ -158,7 +180,8 @@ function UnsortedTray({ tasks, classById, t, onEditTask, onDeleteTask }) {
           {tasks.map(task => (
             <EisenhowerCard key={task.id} task={task} classColor={classById[task.classId]?.color} className="flex-shrink-0"
               onEdit={() => onEditTask(task)}
-              onDelete={() => onDeleteTask(task.id)} />
+              onDelete={() => onDeleteTask(task.id)}
+              onToggleDone={() => onToggleDone(task)} />
           ))}
         </div>
         {tasks.length === 0 && (
@@ -180,7 +203,13 @@ export function EisenhowerTab() {
   const setTaskEisenhower = useStore(s => s.setTaskEisenhower)
   const updateTask = useStore(s => s.updateTask)
   const deleteTask = useStore(s => s.deleteTask)
+  const toggleTask = useStore(s => s.toggleTask)
+  const toggleRecurringOccurrence = useStore(s => s.toggleRecurringOccurrence)
+  const clearEisenhowerDone = useStore(s => s.clearEisenhowerDone)
+  const { toggleSharedTask } = useCollabActions()
+  const [confirmClear, setConfirmClear] = useState(false)
   const customQuadrants = useStore(s => s.settings?.apps?.eisenhowerQuadrants) || EMPTY_OBJ
+  const userId = useStore(s => s.collab?.userId)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const tasks = useMergedTasks(activeSemesterId)
@@ -194,7 +223,27 @@ export function EisenhowerTab() {
     return acc
   }, {}), [allClasses])
 
-  const visibleTasks = useMemo(() => tasks.filter(task => !task.done && !isPastTask(task)), [tasks])
+  const visibleTasks = useMemo(
+    () => tasks.filter(task => task.eisenhower !== EISENHOWER_DISMISSED && !isPastTask(task)),
+    [tasks],
+  )
+  const hasDoneTasks = useMemo(() => visibleTasks.some(task => task.done), [visibleTasks])
+
+  const handleToggleDone = async task => {
+    const isDone = task?.sharedMeta?.remote
+      ? !!task.doneForAll || !!task?.doneBy?.[userId]
+      : !!task.done
+    if (!isDone) fireConfetti()
+    if (task?.sharedMeta?.remote) {
+      await toggleSharedTask({ teamId: task.sharedMeta.teamId, sharedTaskId: task.sharedMeta.sharedTaskId })
+      return
+    }
+    if (task.isRecurringOccurrence) {
+      toggleRecurringOccurrence(task.templateId, task.occurrenceDate)
+      return
+    }
+    toggleTask(task.id)
+  }
 
   const grouped = useMemo(() => {
     const map = { [UNSORTED_ID]: [], ...Object.fromEntries(DEFAULT_QUADRANTS.map(q => [q.id, []])) }
@@ -236,8 +285,11 @@ export function EisenhowerTab() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2 shrink-0">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2 shrink-0 flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{t.eisenhower}</h2>
+        <Button variant="outline" size="sm" disabled={!hasDoneTasks} onClick={() => setConfirmClear(true)}>
+          {t.eisenhowerCleanDone}
+        </Button>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 px-4 md:px-6 min-h-0 overflow-hidden">
@@ -251,14 +303,16 @@ export function EisenhowerTab() {
                 customLabel={custom?.name}
                 onAddTask={() => setAddingQuadrant(quadrant)}
                 onEditTask={setEditingTask}
-                onDeleteTask={deleteTask} />
+                onDeleteTask={deleteTask}
+                onToggleDone={handleToggleDone} />
             )
           })}
         </div>
         <div className="px-4 md:px-6 py-3 shrink-0">
           <UnsortedTray tasks={grouped[UNSORTED_ID]} classById={classById} t={t}
             onEditTask={setEditingTask}
-            onDeleteTask={deleteTask} />
+            onDeleteTask={deleteTask}
+            onToggleDone={handleToggleDone} />
         </div>
         <DragOverlay>
           {activeTask && (
@@ -268,6 +322,10 @@ export function EisenhowerTab() {
           )}
         </DragOverlay>
       </DndContext>
+
+      <ConfirmDialog open={confirmClear} onOpenChange={setConfirmClear}
+        title={t.eisenhowerCleanDoneTitle} description={t.eisenhowerCleanDoneDesc}
+        onConfirm={clearEisenhowerDone} />
 
       <Dialog open={!!addingQuadrant} onOpenChange={v => !v && setAddingQuadrant(null)}>
         <DialogContent className="max-w-sm">

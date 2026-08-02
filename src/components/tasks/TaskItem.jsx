@@ -110,7 +110,11 @@ export function TaskItem({ task }) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [menuOpen])
 
   const addToKanban = async () => {
@@ -220,8 +224,8 @@ export function TaskItem({ task }) {
           </div>
         </div>
 
-        {/* Mobile: hamburger menu */}
-        <div ref={menuRef} className="md:hidden flex items-center gap-1 shrink-0">
+        {/* Touch / narrow: hamburger menu */}
+        <div ref={menuRef} className="md:hidden touch:flex flex items-center gap-1 shrink-0">
           {menuOpen ? (
             <>
               {!alreadyInKanban && (
@@ -254,8 +258,8 @@ export function TaskItem({ task }) {
           )}
         </div>
 
-        {/* Desktop: hover-reveal buttons */}
-        <div className="hidden md:flex items-center gap-1 shrink-0">
+        {/* Pointer devices: hover-reveal buttons */}
+        <div className="hidden md:flex touch:hidden items-center gap-1 shrink-0">
           {!alreadyInKanban && (
             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
               title={t.addToKanban}

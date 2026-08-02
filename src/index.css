@@ -4,6 +4,7 @@
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant touch (@media (hover: none));
 
 :root {
     color-scheme: light;

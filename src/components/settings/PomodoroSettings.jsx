@@ -64,7 +64,7 @@ export function PomodoroSettings() {
         <button type="button" onClick={() => toggle('showOverlay')}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           {pom.showOverlay === true ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
-          <span>{t.pomodoroShowOverlay || 'Show global overlay over all tabs'}</span>
+          <span>{t.pomodoroShowOverlay}</span>
         </button>
 
         <button type="button" onClick={() => toggle('trackStats')}

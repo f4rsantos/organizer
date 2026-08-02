@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useFirebaseSync } from '@/hooks/useFirebaseSync'
 import { useCollabSync } from '@/hooks/useCollabSync'
@@ -30,6 +30,8 @@ import { useStrings } from '@/lib/strings'
 import { matchesShortcut, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
+const TRIPLE_TAP_WINDOW_MS = 450
+const SYNTHETIC_MOUSE_MS = 500
 
 const CORE_TABS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'notes', 'settings']
 
@@ -131,7 +133,10 @@ export default function App() {
   const onboardingDone = useStore(s => s.onboardingDone)
   const completeOnboarding = useStore(s => s.completeOnboarding)
   const pluginTabsKey = useStore(s => enabledPluginTabIds(s).join(','))
-  const tabs = [...CORE_TABS, ...(pluginTabsKey ? pluginTabsKey.split(',') : [])]
+  const tabs = useMemo(
+    () => [...CORE_TABS, ...(pluginTabsKey ? pluginTabsKey.split(',') : [])],
+    [pluginTabsKey],
+  )
   const [activeTab, setActiveTab] = useState(() => {
     const known = [...CORE_TABS, ...enabledPluginTabIds(useStore.getState())]
     const requested = new URLSearchParams(window.location.search).get('tab')
@@ -145,12 +150,10 @@ export default function App() {
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
   const requestedTab = useStore(s => s.activeTab)
   const clearRequestedTab = useStore(s => s.setActiveTab)
-  useEffect(() => {
-    if (requestedTab && tabs.includes(requestedTab)) {
-      setActiveTab(requestedTab)
-      clearRequestedTab(null)
-    }
-  }, [requestedTab, clearRequestedTab, tabs])
+  if (requestedTab && tabs.includes(requestedTab)) {
+    setActiveTab(requestedTab)
+    clearRequestedTab(null)
+  }
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showStorageWarning, setShowStorageWarning] = useState(false)
   const { status: syncStatus, pullIfStale } = useFirebaseSync()
@@ -180,27 +183,33 @@ export default function App() {
 
   useEffect(() => {
     if (!quickActionAppEnabled || !quickActionTripleTap) return
-    let clickCount = 0
-    let timeoutId = null
-    const handleTouchStart = (e) => {
-      const tag = e.target.tagName.toLowerCase()
-      if (['button', 'input', 'textarea', 'a', 'select'].includes(tag)) return
-      clickCount++
-      if (clickCount === 3) {
+    let taps = []
+    let lastTouch = 0
+
+    const registerTap = (e) => {
+      if (e.target.closest?.('button, input, textarea, a, select, [role="button"], [contenteditable]')) return
+      const now = Date.now()
+      taps = taps.filter(ts => now - ts < TRIPLE_TAP_WINDOW_MS)
+      taps.push(now)
+      if (taps.length >= 3) {
+        taps = []
         setSpotlightOpen(v => !v)
-        clickCount = 0
-        clearTimeout(timeoutId)
-      } else {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => { clickCount = 0 }, 500)
       }
     }
+    const handleTouchStart = (e) => {
+      lastTouch = Date.now()
+      registerTap(e)
+    }
+    const handleMouseDown = (e) => {
+      if (Date.now() - lastTouch < SYNTHETIC_MOUSE_MS) return
+      registerTap(e)
+    }
+
     window.addEventListener('touchstart', handleTouchStart)
-    window.addEventListener('mousedown', handleTouchStart)
+    window.addEventListener('mousedown', handleMouseDown)
     return () => {
       window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('mousedown', handleTouchStart)
-      clearTimeout(timeoutId)
+      window.removeEventListener('mousedown', handleMouseDown)
     }
   }, [quickActionAppEnabled, quickActionTripleTap])
 

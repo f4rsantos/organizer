@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { nanoid } from '@/lib/ids'
 import { saveState, forceSaveState } from './persist'
 import { CURRENT_VERSION, migrateState, normalizeState } from './migrations'
-import { FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
+import { EISENHOWER_DISMISSED, FREE_BOARD_ID, boardIdForTask, resolveKanbanPlacement } from '@/lib/taskUtils'
 import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
 import { sortByOrder } from '@/lib/utils'
 import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
@@ -24,6 +24,14 @@ function doneColumnIdFor(state, boardId) {
 }
 function firstColumnIdFor(state, boardId) {
   return sortedColumns(state, boardId)[0]?.id ?? null
+}
+
+function currentWeekOf(state) {
+  const mode = state.settings?.semesterMode ?? 'semesters'
+  const semester = mode === 'none'
+    ? null
+    : (state.semesters?.find(x => x.id === state.activeSemesterId) ?? null)
+  return getWeekContext({ mode, semester }).currentWeek
 }
 
 function mergeStateOnHydrate(diskState, s) {
@@ -116,6 +124,7 @@ function buildInitialState() {
       taskSpanMode: 'single',
       kanbanShowChecklistInline: false,
       kanbanChecklistPreviewMode: 'none',
+      kanbanAutoAddToFirstColumn: false,
       notesViewMode: 'list',
       notesMathEnabled: false,
       speechInputEnabled: false,
@@ -272,11 +281,19 @@ export const useStore = create((set, _get) => ({
       eisenhower: null,
       ...data,
     }
-    newTask.kanban = resolveKanbanPlacement(newTask, null, s, firstColumnIdFor)
+    const placement = resolveKanbanPlacement(newTask, null, s, firstColumnIdFor, currentWeekOf(s))
+    newTask.views = placement.views
+    newTask.kanban = placement.kanban
     return persist({ ...s, tasks: [...s.tasks, newTask] })
   }),
   setTaskEisenhower: (id, quadrant) => set(s => persist({
     ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, eisenhower: quadrant } : t),
+  })),
+  clearEisenhowerDone: () => set(s => persist({
+    ...s,
+    tasks: s.tasks.map(t => (t.done && t.eisenhower !== EISENHOWER_DISMISSED
+      ? { ...t, eisenhower: EISENHOWER_DISMISSED }
+      : t)),
   })),
   toggleTask: id => set(s => persist({
     ...s,
@@ -307,7 +324,8 @@ export const useStore = create((set, _get) => ({
     tasks: s.tasks.map(t => {
       if (t.id !== id) return t
       const updated = { ...t, ...data }
-      return { ...updated, kanban: resolveKanbanPlacement(updated, t, s, firstColumnIdFor) }
+      const placement = resolveKanbanPlacement(updated, t, s, firstColumnIdFor, currentWeekOf(s))
+      return { ...updated, views: placement.views, kanban: placement.kanban }
     }),
   })),
   dismissTaskAlert: (taskId, date) => set(s => {

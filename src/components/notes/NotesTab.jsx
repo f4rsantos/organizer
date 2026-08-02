@@ -49,7 +49,7 @@ function NoteRow({ n, selected, onSelect, t }) {
           ? 'bg-primary/15'
           : 'hover:bg-accent/50'
       )}>
-        <button className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground touch-none shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
+        <button className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground touch-none shrink-0 opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity mt-0.5"
           {...attributes} {...listeners}>
           <GripVertical className="h-3.5 w-3.5" />
         </button>
@@ -95,7 +95,7 @@ function FolderNode({ folder, depth, tree, notesByFolder, selectedId, onSelect, 
     <div ref={setSortableNodeRef} style={style} className={cn(sortableIsDragging && 'opacity-40')}>
       <div ref={setNodeRef} className={cn('rounded-lg', isOver && 'ring-2 ring-primary/40 bg-primary/5')}>
         <div className="group flex items-center gap-1 px-1 py-1.5 text-xs text-muted-foreground" style={{ paddingLeft: depth * 16 }}>
-          <button className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          <button className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"
             {...sortableAttributes} {...sortableListeners}>
             <GripVertical className="h-3.5 w-3.5" />
           </button>
@@ -115,9 +115,9 @@ function FolderNode({ folder, depth, tree, notesByFolder, selectedId, onSelect, 
               <button onClick={() => setOpen(v => !v)} className="flex-1 truncate text-left font-medium hover:text-foreground transition-colors"
                 onDoubleClick={() => { setName(folder.name); setEditing(true) }}>{folder.name}</button>
               <button onClick={() => { setName(folder.name); setEditing(true) }} title={t.notesRenameFolder}
-                className="text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-3 w-3" /></button>
+                className="text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"><Pencil className="h-3 w-3" /></button>
               <button onClick={() => onDelete(folder.id)} title={t.notesDeleteFolder}
-                className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
             </>
           )}
         </div>

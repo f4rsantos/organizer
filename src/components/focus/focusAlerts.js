@@ -1,7 +1,7 @@
+import { useStrings as stringsFor } from '@/lib/strings'
+
 const NOTIFICATION_MODES = new Set(['notification', 'both'])
 const VIBRATION_MODES = new Set(['vibration', 'both'])
-const TASK_REMINDER_TITLE_EN = 'Task Reminder'
-const TASK_REMINDER_TITLE_PT = 'Lembrete de tarefa'
 const TASK_REMINDER_TAG_PREFIX = 'organiser-task-scheduled:'
 
 async function playPingWithHowler() {
@@ -39,11 +39,9 @@ function showBrowserNotification({ phase, lang }) {
   if (typeof window === 'undefined' || !('Notification' in window)) return
   if (Notification.permission !== 'granted') return
 
-  const isPt = lang === 'pt'
-  const title = isPt ? 'Organizador Focus' : 'Organiser Focus'
-  const body = phase === 'break'
-    ? (isPt ? 'Hora da pausa pomodoro.' : 'Time for your pomodoro break.')
-    : (isPt ? 'De volta ao foco.' : 'Back to focus.')
+  const t = stringsFor(lang)
+  const title = t.focusNotifTitle
+  const body = phase === 'break' ? t.focusNotifBreakBody : t.focusNotifFocusBody
 
   try {
     new Notification(title, {
@@ -84,8 +82,7 @@ export function triggerTaskDueNotification({ lang, title, body }) {
 
   try {
     void playPingWithHowler()
-    const isPt = lang === 'pt'
-    new Notification(isPt ? 'Organizador Tarefas' : 'Organiser Tasks', {
+    new Notification(stringsFor(lang).tasksNotifTitle, {
       body: body ? `${title} - ${body}` : title,
       icon: `${import.meta.env.BASE_URL}favicon.svg`,
       badge: `${import.meta.env.BASE_URL}favicon.svg`,
@@ -109,7 +106,7 @@ export function supportsOfflineTaskReminderScheduling() {
 }
 
 function getTaskReminderTitle(lang) {
-  return lang === 'pt' ? TASK_REMINDER_TITLE_PT : TASK_REMINDER_TITLE_EN
+  return stringsFor(lang).taskReminderTitle
 }
 
 async function ensureNotificationPermission() {
