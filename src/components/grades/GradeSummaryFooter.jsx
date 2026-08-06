@@ -1,12 +1,13 @@
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { selectSemesterGPA } from '@/store/selectors'
-import { formatGrade } from '@/lib/gradeUtils'
+import { formatGrade, passThresholdOf } from '@/lib/gradeUtils'
 
 export function GradeSummaryFooter({ semId }) {
   const semesters = useStore(s => s.semesters)
   const allClasses = useStore(s => s.classes)
   const grades = useStore(s => s.grades)
+  const passThreshold = useStore(s => passThresholdOf(s.settings))
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
@@ -18,7 +19,7 @@ export function GradeSummaryFooter({ semId }) {
   const totalEcts = classes.reduce((sum, cls) => {
     const data = semGrades[cls.id]
     const avg = data?.components?.length > 0 ? null : data?.finalGrade
-    const passing = (data?.finalGrade ?? avg) >= 9.5
+    const passing = (data?.finalGrade ?? avg) >= passThreshold
     return passing ? sum + (cls.ects ?? 6) : sum
   }, 0)
 
@@ -26,7 +27,7 @@ export function GradeSummaryFooter({ semId }) {
     <div className="rounded-xl bg-secondary/60 p-4 flex items-center justify-between">
       <div>
         <p className="text-xs text-muted-foreground">{t.semesterAvg}</p>
-        <p className={`text-2xl font-semibold tabular-nums ${gpa !== null && gpa < 9.5 ? 'text-destructive' : 'text-primary'}`}>
+        <p className={`text-2xl font-semibold tabular-nums ${gpa !== null && gpa < passThreshold ? 'text-destructive' : 'text-primary'}`}>
           {formatGrade(gpa)}
         </p>
       </div>

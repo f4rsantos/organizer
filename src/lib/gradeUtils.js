@@ -1,3 +1,16 @@
+export const DEFAULT_GRADE_SCALE = 20
+export const DEFAULT_PASS_THRESHOLD = 9.5
+
+export function gradeScaleOf(settings) {
+  const value = Number(settings?.gradeScale)
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_GRADE_SCALE
+}
+
+export function passThresholdOf(settings) {
+  const value = Number(settings?.passThreshold)
+  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_PASS_THRESHOLD
+}
+
 export function roundPT(value) {
   return Math.round(value * 10) / 10
 }

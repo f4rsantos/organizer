@@ -58,4 +58,8 @@ export const af = {
     carryUpcomingEvents: 'Komende gebeurtenisse',
     carryOverAlwaysKept: 'Notas en instellings word altyd behou.',
     carryOverDiscardWarning: 'Alles anders van hierdie semester word uitgevee.',
+    gradeScaleLabel: 'banana',
+    gradeScaleDesc: 'banana',
+    passingGradeLabel: 'banana',
+    passingGradeDesc: 'banana',
 }

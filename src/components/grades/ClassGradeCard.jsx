@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { accumulatedScore, formatGrade } from '@/lib/gradeUtils'
+import { accumulatedScore, formatGrade, passThresholdOf } from '@/lib/gradeUtils'
 import { GradeComponentRow } from './GradeComponentRow'
 import { NeededGradePanel } from './NeededGradePanel'
 import { useGradeHandlers } from './useGradeHandlers'
@@ -11,6 +11,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
   const setGradeComponents = useStore(s => s.setGradeComponents)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const passThreshold = useStore(s => passThresholdOf(s.settings))
   const components = gradeData?.components ?? []
   const score = accumulatedScore(components)
   const { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade } =
@@ -23,7 +24,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
           <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cls.color }} />
           <span className="font-medium flex-1">{cls.name}</span>
           <Badge variant="secondary" className="text-xs">{cls.ects} ECTS</Badge>
-          <span className={`text-lg font-semibold tabular-nums ${score !== null && score < 9.5 ? 'text-destructive' : 'text-primary'}`}>
+          <span className={`text-lg font-semibold tabular-nums ${score !== null && score < passThreshold ? 'text-destructive' : 'text-primary'}`}>
             {formatGrade(score)}
           </span>
         </div>
