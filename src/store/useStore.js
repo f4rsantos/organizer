@@ -120,6 +120,7 @@ function buildInitialState() {
     grades: {},
     settings: {
       defaultWeekRangeSpan: 1,
+      gradeScale: 20,
       passThreshold: 9.5,
       taskSpanMode: 'single',
       kanbanShowChecklistInline: false,

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { SemesterDatesForm } from './SemesterDatesForm'
 import { ClassesForm } from './ClassesForm'
 import { GradeConfigForm } from './GradeConfigForm'
+import { GradeScaleSettings } from './GradeScaleSettings'
 import { FirebaseSyncButton } from './FirebaseSyncPanel'
 import { EncryptionButton } from '@/components/crypto/EncryptionSettings'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
@@ -308,6 +309,7 @@ export function SettingsTab({ syncStatus }) {
             <AccordionItem value="grades" className="rounded-xl border border-border bg-card px-4">
               <AccordionTrigger className="text-sm font-semibold py-3">{t.gradeComponents}</AccordionTrigger>
               <AccordionContent className="pb-4 space-y-5">
+                <GradeScaleSettings />
                 {classes.map(cls => (
                   <div key={cls.id} className="space-y-2">
                     <div className="flex items-center gap-2">

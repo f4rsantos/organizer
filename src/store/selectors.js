@@ -24,9 +24,9 @@ export function selectClassAverage(gradeData) {
   return weightedAverage(gradeData.components)
 }
 
-export function selectNeededGrade(gradeData) {
+export function selectNeededGrade(gradeData, passThreshold = 9.5) {
   if (!gradeData?.components) return null
-  return neededGrade(gradeData.components, gradeData.targetGrade ?? 9.5)
+  return neededGrade(gradeData.components, gradeData.targetGrade ?? passThreshold)
 }
 
 export function selectSemesterGPA(semId, state) {

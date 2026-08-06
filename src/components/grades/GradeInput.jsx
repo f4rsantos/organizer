@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { useStore } from '@/store/useStore'
+import { gradeScaleOf } from '@/lib/gradeUtils'
 
 export function GradeInput({ value, onChange, className }) {
+  const scale = useStore(s => gradeScaleOf(s.settings))
   const [raw, setRaw] = useState(null)
   const focused = raw !== null
   const display = focused
@@ -16,7 +19,7 @@ export function GradeInput({ value, onChange, className }) {
 
   return (
     <Input
-      type="number" min={0} max={20} step={0.1}
+      type="number" min={0} max={scale} step={0.1}
       placeholder="—"
       className={className}
       value={display}

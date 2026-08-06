@@ -38,20 +38,17 @@ export function KanbanSettings({ semesterId, columns }) {
         </Select>
       </div>
 
-      <button type="button" onClick={() => updateSettings({ kanbanAutoAddToFirstColumn: !autoAddToFirstColumn })}
-        className="w-full rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50">
-        <span className="flex items-center justify-between gap-2">
-          <span>
-            <span className="block text-sm text-foreground">{t.kanbanAutoAddLabel}</span>
-            <span className="block text-xs text-muted-foreground">{t.kanbanAutoAddDesc}</span>
-          </span>
-          <span className="text-muted-foreground shrink-0">
-            {autoAddToFirstColumn
-              ? <CircleCheck className="h-4 w-4 text-primary" />
-              : <Circle className="h-4 w-4" />}
-          </span>
-        </span>
-      </button>
+      <div className="space-y-1.5">
+        <Label>{t.kanbanAutoAddLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.kanbanAutoAddDesc}</p>
+        <button type="button" onClick={() => updateSettings({ kanbanAutoAddToFirstColumn: !autoAddToFirstColumn })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {autoAddToFirstColumn
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {autoAddToFirstColumn ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
 
       <div className="space-y-1.5">
         <Label>{t.kanbanColumns}</Label>
