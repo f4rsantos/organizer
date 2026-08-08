@@ -35,11 +35,33 @@ export function countsTowardCourseAvg(presetKey) {
   return presetKey !== 'summer'
 }
 
+// EI presets carry classes/tasks/grades but no calendar dates — those live on the
+// matching generic preset (`s1` for a 1st semester, `s2` for a 2nd).
+export function dateSourceKey(key) {
+  const match = /^\da([12])s$/.exec(key)
+  return match ? `s${match[1]}` : null
+}
+
+async function fetchPresetDates(key, setPresetUpdatedAt) {
+  const sourceKey = dateSourceKey(key)
+  if (!sourceKey) return null
+  const source = await fetchPresetFromFirebase(sourceKey)
+  if (!source?.data?.startDate || !source?.data?.endDate) return null
+  setPresetUpdatedAt?.(sourceKey, source.updatedAt)
+  return { startDate: source.data.startDate, endDate: source.data.endDate }
+}
+
 export async function fetchPreset(key, setPresetUpdatedAt) {
   const remote = await fetchPresetFromFirebase(key)
   if (!remote?.data) throw new Error(`preset-${key} not found`)
   setPresetUpdatedAt?.(key, remote.updatedAt)
-  return { ...remote.data }
+
+  const data = { ...remote.data }
+  if (!data.startDate || !data.endDate) {
+    const dates = await fetchPresetDates(key, setPresetUpdatedAt)
+    if (dates) Object.assign(data, dates)
+  }
+  return data
 }
 
 export async function checkPresetExists(key) {
@@ -47,9 +69,16 @@ export async function checkPresetExists(key) {
   return !!meta
 }
 
+// Firestore may hand back a Timestamp instead of an ISO string.
+function toDateString(value) {
+  if (typeof value === 'string') return value.trim()
+  const date = typeof value?.toDate === 'function' ? value.toDate() : value
+  return date instanceof Date && isValid(date) ? date.toISOString().slice(0, 10) : undefined
+}
+
 function assertPresetDates(data, presetKey) {
-  const start = data.startDate?.trim()
-  const end = data.endDate?.trim()
+  const start = toDateString(data.startDate)
+  const end = toDateString(data.endDate)
   if (!start || !end) throw new Error(`preset-${presetKey} missing dates`)
 
   const parsedStart = parseISO(start)
