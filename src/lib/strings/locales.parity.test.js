@@ -48,6 +48,31 @@ const EISENHOWER_KEYS = [
   'eisenhowerCleanDone', 'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc',
 ]
 
+const GOALS_KEYS = [
+  'goals', 'goalsEnable', 'goalsEnableDesc', 'goalsEmpty',
+  'goalAdd', 'goalEdit', 'goalTitleLabel', 'goalTitlePlaceholder',
+  'goalCadenceLabel', 'goalCadenceDesc',
+  'goalCadenceDaily', 'goalCadence2Days', 'goalCadence3Days', 'goalCadenceWeekly', 'goalCadenceMonthly',
+  'goalCadenceCustom', 'goalWeekdaysLabel', 'goalWeekdaysDesc', 'goalRestDay',
+  'goalRequireNote', 'goalRequireNoteDesc', 'goalColor',
+  'goalClickPrompt', 'goalDoneForNow', 'goalNotePrompt', 'goalNotePlaceholder',
+  'goalSeeProgress', 'goalUndoToday', 'goalDelete', 'goalDeleteTitle', 'goalDeleteDesc',
+  'goalCurrentStreak', 'goalBestStreak', 'goalTotalCheckIns', 'goalCompletionRate', 'goalNotesTitle',
+  'goalToneLabel', 'goalToneDesc', 'goalTonePurpose', 'goalToneWarm', 'goalToneUpbeat',
+  'goalToneGame', 'goalToneRandom', 'goalToneCustom', 'goalToneCustomPlaceholder',
+  'goalTargetLabel', 'goalTargetDesc', 'goalTargetEndless', 'goalTargetCount', 'goalTargetDate',
+  'goalTargetCountPlaceholder', 'goalTargetReached',
+]
+
+const GOAL_TONE_KEYS = ['purpose', 'warm', 'upbeat', 'game']
+const GOAL_MILESTONE_KEYS = ['day1', 'early', 'week', 'month', 'daily', 'rescue']
+
+const REMINDER_KEYS = [
+  'defaultTabLabel', 'defaultTabDesc', 'defaultTabLast',
+  'taskReminderOffsetsLabel', 'taskReminderOffsetsDesc',
+  'taskReminderTimeLabel', 'taskReminderTimeDesc', 'taskReminderAddOffset',
+]
+
 function shapeOf(value) {
   if (typeof value === 'function') return 'function'
   if (Array.isArray(value)) return 'array'
@@ -117,6 +142,7 @@ const SHARED_WITH_ENGLISH = new Set([
   'eisenhowerEnableDesc', 'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate',
   'eisenhowerEliminate', 'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
   'eisenhowerResetDefaults', 'taskReminderTitle',
+  'goalColor', 'goalNotesTitle',
 ])
 
 describe('pomodoro and eisenhower strings are actually translated', () => {
@@ -130,6 +156,50 @@ describe('pomodoro and eisenhower strings are actually translated', () => {
         expect(copied).toEqual([])
       })
     })
+})
+
+describe('goals and reminder strings are defined everywhere', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .forEach(([name, strings]) => {
+      it(`${name} defines every goals and reminder key`, () => {
+        const missing = [...GOALS_KEYS, ...REMINDER_KEYS]
+          .filter(key => typeof strings[key] !== 'string' || !strings[key].trim())
+        expect(missing).toEqual([])
+      })
+    })
+})
+
+describe('goals and reminder strings are actually translated', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .filter(([name]) => name !== 'pirate')
+    .forEach(([name, strings]) => {
+      it(`${name} does not copy English verbatim`, () => {
+        const copied = [...GOALS_KEYS, ...REMINDER_KEYS]
+          .filter(key => !SHARED_WITH_ENGLISH.has(key))
+          .filter(key => typeof en[key] === 'string' && en[key] === strings[key])
+        expect(copied).toEqual([])
+      })
+    })
+})
+
+describe('goal encouragement messages are complete everywhere', () => {
+  Object.entries({ en, ...LOCALES }).forEach(([name, strings]) => {
+    it(`${name} defines every tone and milestone`, () => {
+      const missing = []
+      for (const tone of GOAL_TONE_KEYS) {
+        const set = strings.goalMessages?.[tone]
+        if (!set) { missing.push(tone); continue }
+        for (const milestone of GOAL_MILESTONE_KEYS) {
+          if (typeof set[milestone] !== 'string' || !set[milestone].trim()) {
+            missing.push(`${tone}.${milestone}`)
+          }
+        }
+      }
+      expect(missing).toEqual([])
+    })
+  })
 })
 
 describe('notes editor strings are translated everywhere', () => {

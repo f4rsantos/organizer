@@ -80,6 +80,15 @@ export const pirate = {
         'Scrolls import from Markdown and plain text, and export as Markdown, plain text, web page, Word, or print to PDF. Canvas scrolls fer quill work need cloud sync hoisted, since drawins be large and be stowed remotely. The canvas has a quill and eraser, five widths and five colours, one o\' which follows yer ship colours. The eraser removes a whole stroke rather than part o\' one.',
       ],
     },
+    goals: {
+      title: 'Quests',
+      summary: 'Keep a long voyage afoot, one strike at a time.',
+      body: [
+        'A quest be somethin\' ye mean to keep doin\', not finish once an\' be done. Every quest shows a lone grey button awaitin\' yer fist, an\' strikin\' it marks the present stretch as kept, sets off a wee celebration, an\' tells ye how long yer run has held.',
+        'When ye chart a new quest ye pick how often it wants strikin\', from every day to once a moon, an\' whether ye care to scrawl a line in the log each time. Log entries earn their keep when ye mind how it went, not merely that it went at all.',
+        'Yer history builds into a calendar below. It starts as a single ring an\' spreads outward, breakin\' to a fresh row come Monday an\' a fresh block come the new moon, so early days stay readable an\' long runs pull back on their own. The buttons up top let ye read the log, scratch the present mark, or scuttle the quest entire.',
+      ],
+    },
     eisenhower: {
       title: 'Eisenhower matrix',
       summary: 'Sort chores by urgency against import.',

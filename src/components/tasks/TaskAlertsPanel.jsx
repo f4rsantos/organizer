@@ -12,55 +12,18 @@ import {
   supportsOfflineTaskReminderScheduling,
   triggerTaskDueNotification,
 } from '@/components/focus/focusAlerts'
+import {
+  dueDateToKey,
+  dueOffsetReminders,
+  nextDateKey,
+  toDateFromKey,
+  toDateKey,
+  toMinutes,
+  upcomingScheduledReminders,
+} from '@/lib/taskReminders'
 
-function toDateKey(date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function dueDateToKey(dueDate) {
-  if (!dueDate) return null
-
-  if (dueDate instanceof Date && !Number.isNaN(dueDate.getTime())) {
-    return toDateKey(dueDate)
-  }
-
-  if (typeof dueDate === 'string') {
-    const trimmed = dueDate.trim()
-    if (!trimmed) return null
-
-    // Supports plain date input (`YYYY-MM-DD`) and ISO timestamps.
-    const first10 = trimmed.slice(0, 10)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(first10)) return first10
-
-    const parsed = new Date(trimmed)
-    if (!Number.isNaN(parsed.getTime())) return toDateKey(parsed)
-  }
-
-  return null
-}
-
-function toDateFromKey(dateKey) {
-  if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null
-  const parsed = new Date(`${dateKey}T00:00:00`)
-  if (Number.isNaN(parsed.getTime())) return null
-  return parsed
-}
-
-function nextDateKey(date) {
-  const next = new Date(date)
-  next.setDate(next.getDate() + 1)
-  return toDateKey(next)
-}
-
-function toMinutes(time) {
-  if (!time || typeof time !== 'string' || !time.includes(':')) return null
-  const [h, m] = time.split(':').map(Number)
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return null
-  return h * 60 + m
-}
+const DEFAULT_OFFSETS = [0]
+const MAX_SCHEDULED_REMINDERS = 30
 
 function canShowAlert(state, nowMinutes) {
   if (!state || state.hidden !== true) return true
@@ -75,6 +38,8 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const taskAlertMode = useStore(s => s.settings?.taskAlertMode ?? 'none')
   const taskAlertNextDayTime = useStore(s => s.settings?.taskAlertNextDayTime ?? '18:00')
   const taskAlertStates = useStore(s => s.taskAlertStates ?? {})
+  const reminderOffsets = useStore(s => s.settings?.taskReminderOffsets) ?? DEFAULT_OFFSETS
+  const reminderOffsetTime = useStore(s => s.settings?.taskReminderTime ?? '09:00')
   const dismissTaskAlert = useStore(s => s.dismissTaskAlert)
   const setTaskAlertReminder = useStore(s => s.setTaskAlertReminder)
   const lang = useStore(s => s.lang ?? 'en')
@@ -108,6 +73,33 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const showNotification = taskAlertMode === 'notification' || taskAlertMode === 'both'
   const supportsOfflineSchedule = supportsOfflineTaskReminderScheduling()
 
+  const isTaskDone = task => (task?.sharedMeta?.remote
+    ? !!task.doneForAll || !!task?.doneBy?.[userId]
+    : !!task.done)
+
+  const nowMs = today.getTime()
+
+  const leadReminders = useMemo(() => {
+    if (taskAlertMode === 'none') return []
+    return dueOffsetReminders({
+      tasks,
+      offsets: reminderOffsets,
+      time: reminderOffsetTime,
+      now: nowMs,
+      alertStates: taskAlertStates,
+      isDone: isTaskDone,
+    })
+      .filter(moment => moment.dueKey !== todayKey)
+      .map(moment => {
+        const task = (tasks ?? []).find(x => x?.id === moment.taskId)
+        return {
+          ...moment,
+          className: task?.classId ? (classNameById?.[task.classId] ?? 'Other') : 'Other',
+        }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, reminderOffsets, reminderOffsetTime, taskAlertStates, taskAlertMode, todayKey, nowMs, userId])
+
   useEffect(() => {
     if (!showNotification || supportsOfflineSchedule) return
 
@@ -123,6 +115,20 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
       })
     })
   }, [dueToday, showNotification, supportsOfflineSchedule, todayKey, lang])
+
+  useEffect(() => {
+    if (!showNotification) return
+
+    leadReminders.forEach(moment => {
+      if (notifiedRef.current.has(moment.stateKey)) return
+      notifiedRef.current.add(moment.stateKey)
+      triggerTaskDueNotification({
+        lang,
+        title: moment.taskName,
+        body: t.taskReminderIn(moment.offset),
+      })
+    })
+  }, [leadReminders, showNotification, lang, t])
 
   useEffect(() => {
     if (!showNotification || !supportsOfflineSchedule) {
@@ -174,17 +180,36 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
         }
       })
       .filter(Boolean)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .slice(0, 10)
+
+    const leadScheduled = upcomingScheduledReminders({
+      tasks,
+      offsets: reminderOffsets,
+      time: reminderOffsetTime,
+      now,
+      isDone: isTaskDone,
+      limit: MAX_SCHEDULED_REMINDERS,
+    }).map(moment => ({
+      tag: moment.tag,
+      taskName: moment.taskName,
+      timestamp: moment.timestamp,
+    }))
+
+    const byTag = new Map()
+    for (const reminder of [...reminders, ...leadScheduled]) {
+      if (!byTag.has(reminder.tag)) byTag.set(reminder.tag, reminder)
+    }
 
     reconcileScheduledTaskReminders({
       lang,
-      reminders,
-      maxReminders: 10,
+      reminders: [...byTag.values()].sort((a, b) => a.timestamp - b.timestamp),
+      maxReminders: MAX_SCHEDULED_REMINDERS,
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     tasks,
     taskAlertStates,
+    reminderOffsets,
+    reminderOffsetTime,
     showNotification,
     supportsOfflineSchedule,
     todayKey,
@@ -194,9 +219,11 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
     userId,
   ])
 
-  if (!showInApp || dueToday.length === 0) return null
+  if (!showInApp || (dueToday.length === 0 && leadReminders.length === 0)) return null
 
   const handleHide = taskId => dismissTaskAlert(taskId, todayKey)
+
+  const handleHideLead = moment => dismissTaskAlert(moment.taskId, `${moment.dueKey}:o${moment.offset}`)
 
   const handleRemindAt = taskId => {
     const time = reminderTime || timeByTask[taskId]
@@ -215,15 +242,37 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   }
 
   return (
-    <div className="rounded-xl border border-amber-300/50 bg-amber-50/70 p-3 space-y-2 dark:border-amber-500/30 dark:bg-amber-950/25">
-      <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+    <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+      <div className="flex items-center gap-2 text-muted-foreground">
         <BellRing className="h-4 w-4" />
-        <span className="text-sm font-medium">{t.taskDueTodayTitle(dueToday.length)}</span>
+        <span className="text-sm font-medium">{t.taskDueTodayTitle(dueToday.length + leadReminders.length)}</span>
       </div>
 
       <div className="space-y-2">
+        {leadReminders.map(moment => (
+          <div key={moment.stateKey} className="rounded-lg border border-border bg-background/80 p-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{moment.taskName}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {moment.className} · {t.taskReminderIn(moment.offset)}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => handleHideLead(moment)}
+                title={t.taskAlertHide}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+
         {dueToday.map(({ task, className }) => (
-          <div key={task.id} className="rounded-lg border border-amber-300/40 bg-background/80 p-2.5 dark:border-amber-600/30">
+          <div key={task.id} className="rounded-lg border border-border bg-background/80 p-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{task.title}</p>

@@ -80,6 +80,15 @@ export const af = {
         'banana',
       ],
     },
+    goals: {
+      title: 'banana',
+      summary: 'banana',
+      body: [
+        'banana',
+        'banana',
+        'banana',
+      ],
+    },
     eisenhower: {
       title: 'banana',
       summary: 'banana',

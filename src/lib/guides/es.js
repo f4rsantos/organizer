@@ -80,6 +80,15 @@ export const es = {
         'Las notas se importan desde Markdown y texto plano, y se exportan como Markdown, texto plano, página web, Word, o impresión a PDF. Las notas de escritura a mano en Canvas necesitan la sincronización en la nube activada, ya que los dibujos son grandes y se guardan de forma remota. El Canvas tiene un lápiz y una goma, cinco grosores y cinco colores, uno de los cuales sigue tu tema. La goma borra un trazo entero en vez de solo una parte.',
       ],
     },
+    goals: {
+      title: 'Objetivos',
+      summary: 'Mantén un hábito a largo plazo, un clic cada vez.',
+      body: [
+        'Un objetivo es algo que quieres seguir haciendo en lugar de terminar una sola vez. Cada objetivo muestra un único botón gris esperando a ser pulsado: al pulsarlo marcas el periodo actual como hecho, salta una pequeña celebración y ves cuánto dura tu racha.',
+        'Al crear un objetivo eliges con qué frecuencia hay que pulsarlo, desde cada día hasta cada mes, y si quieres anotar unas palabras cada vez. Las notas merecen la pena cuando te importa cómo fue, y no solo que ocurriera.',
+        'Tu historial se convierte en un calendario debajo. Empieza como un solo círculo y crece hacia fuera, saltando de línea cada lunes y abriendo un bloque nuevo cada mes, de modo que los primeros días siguen siendo legibles y las rachas largas se alejan solas. Los botones de la cabecera permiten repasar el progreso, deshacer el clic actual o eliminar el objetivo.',
+      ],
+    },
     eisenhower: {
       title: 'Matriz de Eisenhower',
       summary: 'Ordena tareas por urgencia frente a importancia.',
