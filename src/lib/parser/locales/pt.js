@@ -99,6 +99,10 @@ export const pt = {
     partilhar: { type: 'mut', action: 'share' },
     partilha: { type: 'mut', action: 'share' },
     compartilhar: { type: 'mut', action: 'share' },
+    desfazer: { type: 'mut', action: 'undo' },
+    desfaz: { type: 'mut', action: 'undo' },
+    anular: { type: 'mut', action: 'undo' },
+    anula: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['com'],
@@ -119,5 +123,9 @@ export const pt = {
     note: ['nota', 'notas', 'apontamento', 'apontamentos'],
     folder: ['pasta', 'pastas', 'diretorio', 'diretório'],
     addWords: ['adicionar', 'adiciona', 'adicione', 'criar', 'cria', 'crie', 'nova', 'novo'],
+  },
+  goalWords: {
+    goal: ['objetivo', 'objetivos', 'meta', 'metas', 'habito', 'hábito'],
+    note: ['com a nota', 'com nota', 'nota'],
   },
 }

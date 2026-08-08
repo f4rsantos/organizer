@@ -22,6 +22,7 @@ const WORD_GROUPS = {
   focusWords: ['start', 'stop', 'reset', 'skip', 'break', 'focus', 'minuteUnits', 'hourUnits'],
   gradeWords: ['grade', 'addComponent', 'weight', 'forWords'],
   noteWords: ['note', 'folder', 'addWords'],
+  goalWords: ['goal', 'note'],
   priorityWords: ['1', '2', '3'],
   prepositions: ['with', 'for', 'on', 'in', 'to'],
 }

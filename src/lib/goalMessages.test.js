@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { en } from './strings/en.js'
-import { goalMessage, milestoneFor, pickTone, GOAL_TONES } from './goalMessages.js'
+import { goalMessage, messageSeed, milestoneFor, pickTone, GOAL_TONES } from './goalMessages.js'
 
 describe('milestoneFor', () => {
   it('picks day1 on the very first check-in', () => {
@@ -61,5 +61,39 @@ describe('goalMessage', () => {
       expect(typeof msg).toBe('string')
       expect(msg.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('messageSeed', () => {
+  it('is stable for the same goal and period', () => {
+    expect(messageSeed('g1', '2026-08-08')).toBe(messageSeed('g1', '2026-08-08'))
+  })
+
+  it('differs across periods and across goals', () => {
+    expect(messageSeed('g1', '2026-08-08')).not.toBe(messageSeed('g1', '2026-08-09'))
+    expect(messageSeed('g1', '2026-08-08')).not.toBe(messageSeed('g2', '2026-08-08'))
+  })
+
+  it('returns a non-negative integer', () => {
+    const seed = messageSeed('g1', '2026-08-08')
+    expect(Number.isInteger(seed)).toBe(true)
+    expect(seed).toBeGreaterThanOrEqual(0)
+  })
+
+  it('handles missing arguments', () => {
+    expect(Number.isInteger(messageSeed())).toBe(true)
+  })
+
+  it('keeps a random-tone message fixed for the whole period', () => {
+    const args = { t: en, tone: 'random', streak: 3, total: 3 }
+    const first = goalMessage({ ...args, seed: messageSeed('g1', '2026-08-08') })
+    const again = goalMessage({ ...args, seed: messageSeed('g1', '2026-08-08') })
+    expect(again).toBe(first)
+  })
+
+  it('spreads tones across goals rather than collapsing to one', () => {
+    const seen = new Set()
+    for (let i = 0; i < 20; i += 1) seen.add(pickTone('random', messageSeed(`g${i}`, '2026-08-08')))
+    expect(seen.size).toBeGreaterThan(1)
   })
 })

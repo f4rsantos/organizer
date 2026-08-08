@@ -83,6 +83,10 @@ export const en = {
     'move to': { type: 'mut', action: 'move' },
     share: { type: 'mut', action: 'share' },
     'share with': { type: 'mut', action: 'share' },
+    undo: { type: 'mut', action: 'undo' },
+    uncheck: { type: 'mut', action: 'undo' },
+    'un-complete': { type: 'mut', action: 'undo' },
+    'mark as undone': { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['with'],
@@ -103,5 +107,9 @@ export const en = {
     note: ['note'],
     folder: ['folder'],
     addWords: ['add', 'new', 'create'],
+  },
+  goalWords: {
+    goal: ['goal', 'habit', 'streak'],
+    note: ['with a note', 'with note', 'note'],
   },
 }

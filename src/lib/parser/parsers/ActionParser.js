@@ -48,7 +48,7 @@ export class ActionParser extends Parser {
     }
 
     if (allowMutation) {
-      const mutTrie = new Trie()
+      const mutTrie = new Trie({ fuzzy: true })
       for (const [phrase, value] of Object.entries(getMutationVerbs(context.locale))) {
         mutTrie.addPhrase(phrase, value)
       }
@@ -61,7 +61,7 @@ export class ActionParser extends Parser {
           matchedTokens: m.matchedTokens,
           value: m.value,
           type: 'action',
-          confidence: 0.95
+          confidence: m.fuzzy ? 0.75 : 0.95
         })
       }
     }

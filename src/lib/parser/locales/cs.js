@@ -100,6 +100,12 @@ export const cs = {
     presun: { type: 'mut', action: 'move' },
     sdílej: { type: 'mut', action: 'share' },
     sdilej: { type: 'mut', action: 'share' },
+    vrátit: { type: 'mut', action: 'undo' },
+    vratit: { type: 'mut', action: 'undo' },
+    zrušit: { type: 'mut', action: 'undo' },
+    zrusit: { type: 'mut', action: 'undo' },
+    odškrtni: { type: 'mut', action: 'undo' },
+    odskrtni: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['s', 'se'],
@@ -122,5 +128,9 @@ export const cs = {
     note: ['poznámka', 'poznamka', 'poznámku', 'poznamku', 'poznámky', 'poznamky'],
     folder: ['složka', 'slozka', 'složku', 'slozku', 'adresář', 'adresar'],
     addWords: ['přidej', 'pridej', 'přidat', 'pridat', 'vytvoř', 'vytvor', 'vytvořit', 'vytvorit', 'nová', 'nova', 'nový', 'novy'],
+  },
+  goalWords: {
+    goal: ['cíl', 'cil', 'cíle', 'cile', 'návyk', 'navyk'],
+    note: ['s poznámkou', 's poznamkou', 'poznámka', 'poznamka'],
   },
 }

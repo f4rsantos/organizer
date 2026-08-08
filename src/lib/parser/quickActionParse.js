@@ -6,6 +6,7 @@ import { parseFocusCommand } from './parsers/FocusParser.js'
 import { parseGradeCommand } from './parsers/GradeParser.js'
 import { parseNoteCommand } from './parsers/NoteParser.js'
 import { getMutationVerbs } from './parsers/ActionParser.js'
+import { mergeWordGroups } from './wordMatch.js'
 
 const entityParser = new EntityParser()
 
@@ -119,6 +120,43 @@ function consumeKeywords(tokens, words) {
   return found
 }
 
+function splitGoalNote(text, noteWords) {
+  const raw = (text ?? '').trim()
+  if (!raw) return { query: '', note: '' }
+
+  for (const w of noteWords ?? []) {
+    const colonRe = new RegExp(`(?:^|\\s)${escapeRe(w)}\\s*:\\s*`, 'i')
+    const colonHit = raw.match(colonRe)
+    if (colonHit) {
+      return {
+        query: raw.slice(0, colonHit.index).trim(),
+        note: raw.slice(colonHit.index + colonHit[0].length).trim(),
+      }
+    }
+  }
+
+  for (const w of noteWords ?? []) {
+    const phraseRe = new RegExp(`(?:^|\\s)${escapeRe(w)}(?:\\s+|$)`, 'i')
+    const hit = raw.match(phraseRe)
+    if (hit && hit.index > 0) {
+      return {
+        query: raw.slice(0, hit.index).trim(),
+        note: raw.slice(hit.index + hit[0].length).trim(),
+      }
+    }
+  }
+
+  const dashHit = raw.match(/\s+[-–—]\s+/)
+  if (dashHit) {
+    return {
+      query: raw.slice(0, dashHit.index).trim(),
+      note: raw.slice(dashHit.index + dashHit[0].length).trim(),
+    }
+  }
+
+  return { query: raw, note: '' }
+}
+
 // "ppt 1, 2, 3" is three PPTs, but "ppt 1, video 2, text 3" is three different things, so a
 // prefix is only carried onto items that are bare enumerators.
 const BARE_ENUMERATOR_RE = /^(?:\d{1,3}|[a-z]|[ivxlcdm]{1,4})[.)\-º°ª]?$/i
@@ -218,8 +256,20 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
   const eventWordsPlural = asWordList(t.quickActionEventWordsPlural, ['calendar events', 'events'])
   const cardWordsPlural = asWordList(t.quickActionCardWordsPlural, ['kanban cards', 'cards'])
 
-  for (const tokens of clauses) {
+  const goalWords = mergeWordGroups('goalWords', resolvedLocale)
+
+  for (let tokens of clauses) {
     const mutationLed = startsWithMutationVerb(tokens, resolvedLocale)
+
+    let goalNote = ''
+    if (mutationLed) {
+      const clauseText = tokens.map(tok => tok.original).join(' ')
+      const split = splitGoalNote(clauseText, goalWords.note)
+      if (split.note) {
+        goalNote = split.note
+        tokens = tokenize(split.query).map((tok, i) => ({ ...tok, index: i }))
+      }
+    }
 
     const isPluralCard = !mutationLed && consumeKeywords(tokens, cardWordsPlural)
     const isPluralEvent = !mutationLed && consumeKeywords(tokens, eventWordsPlural)
@@ -337,10 +387,16 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
           consumeKeywords(tokens, taskWords)
           consumeKeywords(tokens, eventWords)
           consumeKeywords(tokens, cardWords)
+
+          consumeKeywords(tokens, articleWords)
+          const goalScoped = consumeKeywords(tokens, goalWords.goal)
+
           results.push({
             kind: 'mutation',
             action: parsed.action.action,
             query: getUnconsumedText(tokens),
+            note: goalNote,
+            goalScoped,
             columnId: columnMatch?.columnId ?? null,
             teamId: teamMatch?.teamId ?? null
           })

@@ -14,7 +14,7 @@ import {
   isCheckedIn,
   isRescue,
 } from '@/lib/goals'
-import { goalMessage } from '@/lib/goalMessages'
+import { goalMessage, messageSeed } from '@/lib/goalMessages'
 import { GoalCheckInButton } from './GoalCheckInButton'
 import { cellSizeFor, GOAL_WHEEL_SIZE } from './cellSize'
 import { GoalFormDialog } from './GoalFormDialog'
@@ -37,7 +37,6 @@ export function GoalsTab() {
   const [noteOpen, setNoteOpen] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [celebration, setCelebration] = useState(null)
   const [phase, setPhase] = useState('idle')
   const [justFilled, setJustFilled] = useState(false)
 
@@ -52,25 +51,23 @@ export function GoalsTab() {
   const animating = phase !== 'idle'
   const wheelPct = done && (!animating || justFilled) ? 1 : 0
 
+  const celebrationMessage = (() => {
+    if (!goal || !done) return ''
+    const streak = goalStreak(goal, now)
+    return goalMessage({
+      t,
+      tone: goal.tone ?? 'warm',
+      customMessage: goal.customMessage,
+      streak: streak.current,
+      total: streak.total,
+      rescued: isRescue(goal, now),
+      seed: messageSeed(goal.id, periodKey),
+    })
+  })()
+
   const commitCheckIn = note => {
     if (!goal || !periodKey) return
-    const rescued = isRescue(goal, now)
     checkInGoal(goal.id, periodKey, note)
-
-    const nextGoal = { ...goal, checkIns: { ...(goal.checkIns ?? {}), [periodKey]: { at: 0, note } } }
-    const next = goalStreak(nextGoal, now)
-    setCelebration({
-      goalId: goal.id,
-      message: goalMessage({
-        t,
-        tone: goal.tone ?? 'warm',
-        customMessage: goal.customMessage,
-        streak: next.current,
-        total: next.total,
-        rescued,
-        seed: next.total,
-      }),
-    })
 
     setPhase('filling')
     window.requestAnimationFrame(() => {
@@ -95,7 +92,6 @@ export function GoalsTab() {
   const handleUndo = () => {
     if (!goal || !periodKey) return
     undoGoalCheckIn(goal.id, periodKey)
-    setCelebration(null)
     setJustFilled(false)
     setPhase('idle')
     setShowHistory(false)
@@ -176,7 +172,7 @@ export function GoalsTab() {
           </div>
         ) : showHistory ? (
           <GoalHistory goal={goal} periods={periods} completion={completion}
-            message={done && celebration?.goalId === goal.id ? celebration.message : ''} t={t} />
+            message={celebrationMessage} t={t} />
         ) : (
           <div className="h-full flex flex-col items-center justify-center gap-3 pb-6">
             <div
@@ -193,8 +189,8 @@ export function GoalsTab() {
                 onClick={handleCheckIn}
               />
             </div>
-            {done && phase !== 'flying' && celebration?.goalId === goal.id && celebration.message && (
-              <p className="text-sm font-medium text-center">{celebration.message}</p>
+            {phase !== 'flying' && celebrationMessage && (
+              <p className="text-sm font-medium text-center">{celebrationMessage}</p>
             )}
           </div>
         )}

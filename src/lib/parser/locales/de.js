@@ -83,6 +83,10 @@ export const de = {
     verschiebe: { type: 'mut', action: 'move' },
     teilen: { type: 'mut', action: 'share' },
     teile: { type: 'mut', action: 'share' },
+    rückgängig: { type: 'mut', action: 'undo' },
+    rueckgaengig: { type: 'mut', action: 'undo' },
+    widerrufen: { type: 'mut', action: 'undo' },
+    widerrufe: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['mit'],
@@ -103,5 +107,9 @@ export const de = {
     note: ['notiz', 'notizen'],
     folder: ['ordner', 'verzeichnis'],
     addWords: ['hinzufügen', 'hinzufuegen', 'füge', 'fuege', 'erstelle', 'erstellen', 'neue', 'neuer', 'neues'],
+  },
+  goalWords: {
+    goal: ['ziel', 'ziele', 'gewohnheit', 'gewohnheiten'],
+    note: ['mit der notiz', 'mit notiz', 'notiz'],
   },
 }
