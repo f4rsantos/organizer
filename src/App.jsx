@@ -138,9 +138,12 @@ export default function App() {
     [pluginTabsKey],
   )
   const [activeTab, setActiveTab] = useState(() => {
-    const known = [...CORE_TABS, ...enabledPluginTabIds(useStore.getState())]
+    const state = useStore.getState()
+    const known = [...CORE_TABS, ...enabledPluginTabIds(state)]
     const requested = new URLSearchParams(window.location.search).get('tab')
     if (known.includes(requested)) return requested
+    const preferred = state.settings?.defaultTab ?? 'last'
+    if (preferred !== 'last' && known.includes(preferred)) return preferred
     const remembered = readLastTab()
     return known.includes(remembered) ? remembered : 'tasks'
   })

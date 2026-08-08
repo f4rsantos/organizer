@@ -65,6 +65,11 @@ function mergeStateOnHydrate(diskState, s) {
   const diskFolderIds = new Set(diskNoteFolders.map(f => f.id))
   const mergedNoteFolders = [...diskNoteFolders, ...currentNoteFolders.filter(f => !diskFolderIds.has(f.id))]
 
+  const diskGoals = Array.isArray(diskState?.goals) ? diskState.goals : []
+  const currentGoals = Array.isArray(s?.goals) ? s.goals : []
+  const diskGoalIds = new Set(diskGoals.map(g => g.id))
+  const mergedGoals = [...diskGoals, ...currentGoals.filter(g => !diskGoalIds.has(g.id))]
+
   const diskKanban = diskState?.kanban && typeof diskState.kanban === 'object' ? diskState.kanban : {}
   const currentKanban = s?.kanban && typeof s.kanban === 'object' ? s.kanban : {}
   const mergedKanban = { ...currentKanban, ...diskKanban }
@@ -85,6 +90,7 @@ function mergeStateOnHydrate(diskState, s) {
     tasks: mergedTasks,
     notes: mergedNotes,
     noteFolders: mergedNoteFolders,
+    goals: mergedGoals,
     kanban: mergedKanban,
     collab: {
       userId: diskCollab.userId ?? currentCollab.userId,
@@ -116,6 +122,7 @@ function buildInitialState() {
     events: [],
     notes: [],
     noteFolders: [],
+    goals: [],
     kanban: {},
     grades: {},
     settings: {
@@ -134,7 +141,10 @@ function buildInitialState() {
       notesMathStepByStep: true,
       focusAlertMode: 'none',
       taskAlertMode: 'none',
+      taskReminderOffsets: [0],
+      taskReminderTime: '09:00',
       taskDefaultToCalendar: false,
+      defaultTab: 'last',
       focus: {
         useInterval: true, intervalMins: 25, intervalBreakMins: 5,
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],
@@ -154,7 +164,7 @@ function buildInitialState() {
       semesterMode: 'semesters',
       navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
       standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
-      apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false },
+      apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false, goals: false },
     },
     collab: {
       userId: null,
@@ -452,6 +462,49 @@ export const useStore = create((set, _get) => ({
       notes: (s.notes ?? []).map(n => n.folderId === id ? { ...n, folderId: parentId } : n),
     })
   }),
+
+  // --- Goals ---
+  addGoal: data => set(s => {
+    const now = Date.now()
+    return persist({
+      ...s,
+      goals: [...(s.goals ?? []), {
+        id: nanoid(),
+        title: '',
+        cadenceDays: 1,
+        weekdays: [],
+        requireNote: false,
+        color: null,
+        tone: 'warm',
+        customMessage: '',
+        targetKind: 'endless',
+        targetCount: null,
+        targetDate: null,
+        createdAt: now,
+        checkIns: {},
+        ...data,
+      }],
+    })
+  }),
+  updateGoal: (id, data) => set(s => persist({
+    ...s, goals: (s.goals ?? []).map(g => g.id === id ? { ...g, ...data } : g),
+  })),
+  deleteGoal: id => set(s => persist({ ...s, goals: (s.goals ?? []).filter(g => g.id !== id) })),
+  checkInGoal: (id, periodKey, note = '') => set(s => persist({
+    ...s,
+    goals: (s.goals ?? []).map(g => g.id === id
+      ? { ...g, checkIns: { ...(g.checkIns ?? {}), [periodKey]: { at: Date.now(), note } } }
+      : g),
+  })),
+  undoGoalCheckIn: (id, periodKey) => set(s => persist({
+    ...s,
+    goals: (s.goals ?? []).map(g => {
+      if (g.id !== id) return g
+      const checkIns = { ...(g.checkIns ?? {}) }
+      delete checkIns[periodKey]
+      return { ...g, checkIns }
+    }),
+  })),
 
   // --- Kanban (backed by unified tasks) ---
   addKanbanCard: (semId, card) => set(s => {

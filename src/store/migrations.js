@@ -182,7 +182,7 @@ export function plaintextToDoc(text) {
 
 function normalizeNavbar(navbar) {
   const n = navbar && typeof navbar === 'object' ? navbar : {}
-  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes'])
+  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'goals'])
   const order = (Array.isArray(n.order) ? n.order : []).filter(id => known.has(id))
   for (const id of DEFAULT_TAB_ORDER) if (!order.includes(id)) order.push(id)
   const hidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
@@ -235,6 +235,7 @@ function normalizeApps(apps, settings) {
     notes: a.notes === true,
     eisenhower: a.eisenhower === true,
     googleCalendar: a.googleCalendar === true,
+    goals: a.goals === true,
     quickAction: a.quickAction !== false,
     quickActionTripleTap: Boolean(a.quickActionTripleTap),
     quickActionShortcut: a.quickActionShortcut !== undefined ? a.quickActionShortcut : undefined,
@@ -356,6 +357,44 @@ function normalizeTask(task) {
   }
 }
 
+function normalizeReminderOffsets(offsets) {
+  if (!Array.isArray(offsets)) return [0]
+  const cleaned = offsets
+    .map(o => (Number.isFinite(o) ? Math.trunc(o) : null))
+    .filter(o => o !== null && o >= 0 && o <= 365)
+  return [...new Set(cleaned)].sort((a, b) => b - a).slice(0, 8)
+}
+
+function normalizeGoal(goal) {
+  if (!goal || typeof goal !== 'object') return null
+  if (typeof goal.id !== 'string') return null
+  const checkIns = goal.checkIns && typeof goal.checkIns === 'object' ? goal.checkIns : {}
+  const normalizedCheckIns = {}
+  for (const [key, value] of Object.entries(checkIns)) {
+    if (!value || typeof value !== 'object') continue
+    normalizedCheckIns[key] = {
+      at: Number.isFinite(value.at) ? value.at : 0,
+      note: typeof value.note === 'string' ? value.note : '',
+    }
+  }
+  return {
+    ...goal,
+    title: typeof goal.title === 'string' ? goal.title : '',
+    cadenceDays: [1, 2, 3, 7, 30, 'custom'].includes(goal.cadenceDays) ? goal.cadenceDays : 1,
+    weekdays: [...new Set((Array.isArray(goal.weekdays) ? goal.weekdays : [])
+      .filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b),
+    requireNote: goal.requireNote === true,
+    color: typeof goal.color === 'string' ? goal.color : null,
+    tone: ['purpose', 'warm', 'upbeat', 'game', 'random', 'custom'].includes(goal.tone) ? goal.tone : 'warm',
+    customMessage: typeof goal.customMessage === 'string' ? goal.customMessage : '',
+    targetKind: ['endless', 'count', 'date'].includes(goal.targetKind) ? goal.targetKind : 'endless',
+    targetCount: Number.isFinite(goal.targetCount) && goal.targetCount > 0 ? Math.trunc(goal.targetCount) : null,
+    targetDate: typeof goal.targetDate === 'string' ? goal.targetDate : null,
+    createdAt: Number.isFinite(goal.createdAt) ? goal.createdAt : Date.now(),
+    checkIns: normalizedCheckIns,
+  }
+}
+
 function normalizeSettings(settings) {
   const s = settings && typeof settings === 'object' ? settings : {}
   s.focus = { ...getDefaultFocusSettings(), ...(typeof s.focus === 'object' && s.focus ? s.focus : {}) }
@@ -379,6 +418,11 @@ function normalizeSettings(settings) {
   if (typeof s.taskAlertMode !== 'string') {
     s.taskAlertMode = s.taskAlertsEnabled ? 'in-app' : 'none'
   }
+  s.taskReminderOffsets = normalizeReminderOffsets(s.taskReminderOffsets)
+  if (typeof s.taskReminderTime !== 'string' || !/^\d{2}:\d{2}$/.test(s.taskReminderTime)) {
+    s.taskReminderTime = '09:00'
+  }
+  if (typeof s.defaultTab !== 'string') s.defaultTab = 'last'
   if (typeof s.collabEnabled !== 'boolean') s.collabEnabled = false
   if (!['semesters', 'none'].includes(s.semesterMode)) s.semesterMode = 'semesters'
   s.navbar = normalizeNavbar(s.navbar)
@@ -416,6 +460,7 @@ export function normalizeState(state) {
   state.events = (Array.isArray(state.events) ? state.events : []).map(normalizeEvent).filter(Boolean)
   state.notes = (Array.isArray(state.notes) ? state.notes : []).map(normalizeNote).filter(Boolean)
   state.noteFolders = (Array.isArray(state.noteFolders) ? state.noteFolders : []).map(normalizeNoteFolder).filter(Boolean)
+  state.goals = (Array.isArray(state.goals) ? state.goals : []).map(normalizeGoal).filter(Boolean)
   if (!state.kanban || typeof state.kanban !== 'object') state.kanban = {}
   if (!state.grades || typeof state.grades !== 'object') state.grades = {}
 

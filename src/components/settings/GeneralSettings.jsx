@@ -1,11 +1,16 @@
-import { Circle, CircleCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Circle, CircleCheck, Plus, X } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { requestBrowserNotificationPermission } from '@/components/focus/focusAlerts'
+import { getAppById, getAppTabs } from '@/apps/registry'
+
+const CORE_TAB_IDS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'notes', 'settings']
 
 function ColorSwatch({ label, value, onChange }) {
   return (
@@ -22,12 +27,46 @@ export function GeneralSettings() {
   const setSemesterMode = useStore(s => s.setSemesterMode)
   const workMode = useStore(s => s.settings?.workMode ?? false)
   const noneMode = (settings?.semesterMode ?? 'semesters') === 'none'
+  const state = useStore(s => s)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const taskAlertMode = settings.taskAlertMode ?? 'none'
   const taskAlertNextDayTime = settings.taskAlertNextDayTime ?? '18:00'
   const taskDefaultToCalendar = settings.taskDefaultToCalendar ?? false
   const speechInputEnabled = settings.speechInputEnabled ?? false
+  const defaultTab = settings.defaultTab ?? 'last'
+  const reminderOffsets = settings.taskReminderOffsets ?? [0]
+  const taskReminderTime = settings.taskReminderTime ?? '09:00'
+  const [newOffset, setNewOffset] = useState('')
+
+  const hideGrades = workMode || noneMode
+  const pluginTabIds = getAppTabs()
+    .filter(pt => getAppById(pt.id)?.isEnabled(state))
+    .map(pt => pt.id)
+  const customNames = settings?.navbar?.customNames ?? {}
+  const labelForTab = id => {
+    const labelKey = getAppById(id)?.labelKey ?? id
+    return customNames[id] || t[labelKey] || id
+  }
+  const defaultTabOptions = [
+    { value: 'last', label: t.defaultTabLast },
+    ...[...new Set([...CORE_TAB_IDS, ...pluginTabIds])]
+      .filter(id => !(hideGrades && id === 'grades'))
+      .filter(id => !CORE_TAB_IDS.includes(id) || id !== 'notes' || pluginTabIds.includes('notes'))
+      .map(id => ({ value: id, label: labelForTab(id) })),
+  ]
+
+  const addOffset = () => {
+    const parsed = Number(newOffset)
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 365) return
+    const next = [...new Set([...reminderOffsets, Math.trunc(parsed)])].sort((a, b) => b - a).slice(0, 8)
+    updateSettings({ taskReminderOffsets: next })
+    setNewOffset('')
+  }
+
+  const removeOffset = offset => {
+    updateSettings({ taskReminderOffsets: reminderOffsets.filter(o => o !== offset) })
+  }
 
   const spanOptions = [
     { value: 'single', label: t.spanSingle },
@@ -95,6 +134,21 @@ export function GeneralSettings() {
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4}>
             {spanOptions.map(o => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>{t.defaultTabLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.defaultTabDesc}</p>
+        <Select value={defaultTab} onValueChange={v => updateSettings({ defaultTab: v })} items={defaultTabOptions}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4}>
+            {defaultTabOptions.map(o => (
               <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
           </SelectContent>
@@ -175,6 +229,53 @@ export function GeneralSettings() {
             className="w-full"
           />
         </div>
+      )}
+
+      {taskAlertMode !== 'none' && (
+        <>
+          <div className="space-y-1.5">
+            <Label>{t.taskReminderOffsetsLabel}</Label>
+            <p className="text-xs text-muted-foreground">{t.taskReminderOffsetsDesc}</p>
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {reminderOffsets.map(offset => (
+                <span key={offset}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs">
+                  {t.taskReminderOffsetDays(offset)}
+                  <button type="button" onClick={() => removeOffset(offset)}
+                    className="text-muted-foreground hover:text-destructive transition-colors" title={t.delete}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Input
+                type="number"
+                min="0"
+                max="365"
+                value={newOffset}
+                onChange={e => setNewOffset(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addOffset()}
+                placeholder={t.taskReminderAddOffset}
+                className="h-8 w-32"
+              />
+              <Button variant="outline" size="sm" className="h-8" onClick={addOffset} disabled={newOffset === ''}>
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>{t.taskReminderTimeLabel}</Label>
+            <p className="text-xs text-muted-foreground">{t.taskReminderTimeDesc}</p>
+            <Input
+              type="time"
+              value={taskReminderTime}
+              onChange={e => updateSettings({ taskReminderTime: e.target.value || '09:00' })}
+              className="w-full"
+            />
+          </div>
+        </>
       )}
     </div>
   )
