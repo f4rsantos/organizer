@@ -13,6 +13,16 @@ export function milestoneFor({ streak, total, rescued }) {
   return 'daily'
 }
 
+export function messageSeed(goalKey, periodKey) {
+  const input = `${goalKey ?? ''}:${periodKey ?? ''}`
+  let hash = 0x811c9dc5
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
 export function pickTone(tone, seed) {
   if (tone !== TONE_RANDOM) return tone
   const index = Math.abs(Math.trunc(seed)) % GOAL_TONES.length

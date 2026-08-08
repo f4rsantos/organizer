@@ -97,6 +97,10 @@ export const fr = {
     déplace: { type: 'mut', action: 'move' },
     partager: { type: 'mut', action: 'share' },
     partage: { type: 'mut', action: 'share' },
+    annuler: { type: 'mut', action: 'undo' },
+    annule: { type: 'mut', action: 'undo' },
+    decocher: { type: 'mut', action: 'undo' },
+    décocher: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['avec'],
@@ -117,5 +121,9 @@ export const fr = {
     note: ['note', 'notes'],
     folder: ['dossier', 'dossiers', 'repertoire', 'répertoire'],
     addWords: ['ajouter', 'ajoute', 'creer', 'créer', 'cree', 'crée', 'nouveau', 'nouvelle'],
+  },
+  goalWords: {
+    goal: ['objectif', 'objectifs', 'habitude', 'habitudes'],
+    note: ['avec la note', 'avec note', 'note'],
   },
 }

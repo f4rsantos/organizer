@@ -160,6 +160,36 @@ describe.each(LANGS)('mutation verbs (%s)', lang => {
   })
 })
 
+const GOAL_COMPLETE = {
+  en: 'complete goal gym', pt: 'conclui objetivo gym', es: 'completar objetivo gym',
+  fr: 'terminer objectif gym', de: 'erledige ziel gym', cs: 'dokonči cíl gym',
+}
+
+const GOAL_UNDO = {
+  en: 'undo goal gym', pt: 'desfazer objetivo gym', es: 'deshacer objetivo gym',
+  fr: 'annuler objectif gym', de: 'rückgängig ziel gym', cs: 'vrátit cíl gym',
+}
+
+describe.each(LANGS)('goal mutations (%s)', lang => {
+  const opts = { now: NOW, lang, t: {}, classes: [], columns: [], teams: {}, apps: { goals: true } }
+
+  it('completes a goal and flags it as goal-scoped', () => {
+    const [item] = parseQuickAction(GOAL_COMPLETE[lang], opts)
+    expect(item.kind).toBe('mutation')
+    expect(item.action).toBe('complete')
+    expect(item.goalScoped).toBe(true)
+    expect(item.query).toBe('gym')
+  })
+
+  it('undoes a goal check-in', () => {
+    const [item] = parseQuickAction(GOAL_UNDO[lang], opts)
+    expect(item.kind).toBe('mutation')
+    expect(item.action).toBe('undo')
+    expect(item.goalScoped).toBe(true)
+    expect(item.query).toBe('gym')
+  })
+})
+
 const TEAM_SHARE = {
   en: 'share with study group',
   pt: 'partilhar com study group',

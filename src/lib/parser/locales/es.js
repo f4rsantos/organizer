@@ -92,6 +92,10 @@ export const es = {
     mueve: { type: 'mut', action: 'move' },
     compartir: { type: 'mut', action: 'share' },
     comparte: { type: 'mut', action: 'share' },
+    deshacer: { type: 'mut', action: 'undo' },
+    deshaz: { type: 'mut', action: 'undo' },
+    desmarcar: { type: 'mut', action: 'undo' },
+    desmarca: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['con'],
@@ -112,5 +116,9 @@ export const es = {
     note: ['nota', 'notas', 'apunte', 'apuntes'],
     folder: ['carpeta', 'carpetas', 'directorio'],
     addWords: ['anadir', 'añadir', 'anade', 'añade', 'agregar', 'agrega', 'crear', 'crea', 'nueva', 'nuevo'],
+  },
+  goalWords: {
+    goal: ['objetivo', 'objetivos', 'meta', 'metas', 'habito', 'hábito'],
+    note: ['con la nota', 'con nota', 'nota'],
   },
 }

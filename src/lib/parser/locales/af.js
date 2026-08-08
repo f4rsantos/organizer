@@ -83,6 +83,8 @@ export const af = {
     verwyder: { type: 'mut', action: 'delete' },
     skuif: { type: 'mut', action: 'move' },
     deel: { type: 'mut', action: 'share' },
+    ontdoen: { type: 'mut', action: 'undo' },
+    herstel: { type: 'mut', action: 'undo' },
   },
   prepositions: {
     with: ['met'],
@@ -103,5 +105,9 @@ export const af = {
     note: ['banana'],
     folder: ['banana'],
     addWords: ['banana'],
+  },
+  goalWords: {
+    goal: ['banana'],
+    note: ['banana'],
   },
 }

@@ -232,6 +232,94 @@ describe('grade commands', () => {
   })
 })
 
+describe('goal mutations', () => {
+  it('flags an explicit goal noun and leaves the note empty', () => {
+    const [item] = run('complete goal gym')
+    expect(item.kind).toBe('mutation')
+    expect(item.action).toBe('complete')
+    expect(item.query).toBe('gym')
+    expect(item.goalScoped).toBe(true)
+    expect(item.note).toBe('')
+  })
+
+  it('does not flag goalScoped without a goal noun', () => {
+    const [item] = run('complete gym')
+    expect(item.goalScoped).toBe(false)
+    expect(item.query).toBe('gym')
+  })
+
+  it('parses the undo verb', () => {
+    const [item] = run('undo goal gym')
+    expect(item.action).toBe('undo')
+    expect(item.query).toBe('gym')
+    expect(item.goalScoped).toBe(true)
+  })
+
+  it.each([
+    ['complete goal gym with note today was hard'],
+    ['complete goal gym note: today was hard'],
+    ['complete goal gym - today was hard'],
+  ])('captures the note from %s', (input) => {
+    const [item] = run(input)
+    expect(item.action).toBe('complete')
+    expect(item.query).toBe('gym')
+    // The note must survive intact — the date parser would otherwise consume "today".
+    expect(item.note).toBe('today was hard')
+  })
+
+  it('keeps a hyphenated title out of the note', () => {
+    const [item] = run('complete goal warm-up routine')
+    expect(item.query).toBe('warm-up routine')
+    expect(item.note).toBe('')
+  })
+
+  it('strips a determiner between the verb and the goal noun', () => {
+    const [item] = run('complete the goal gym')
+    expect(item.query).toBe('gym')
+    expect(item.goalScoped).toBe(true)
+  })
+
+  it('recognises goal verbs in a non-English locale', () => {
+    const [item] = run('conclui objetivo gym', { lang: 'pt' })
+    expect(item.kind).toBe('mutation')
+    expect(item.action).toBe('complete')
+    expect(item.goalScoped).toBe(true)
+    expect(item.query).toBe('gym')
+  })
+
+  it('parses undo in a non-English locale', () => {
+    const [item] = run('desfazer objetivo gym', { lang: 'pt' })
+    expect(item.action).toBe('undo')
+    expect(item.goalScoped).toBe(true)
+  })
+})
+
+describe('typo tolerance', () => {
+  it('resolves a misspelled mutation verb', () => {
+    const [item] = run('complte goal gym')
+    expect(item.kind).toBe('mutation')
+    expect(item.action).toBe('complete')
+    expect(item.query).toBe('gym')
+  })
+
+  it('resolves a misspelled delete verb', () => {
+    const [item] = run('delet gym')
+    expect(item.action).toBe('delete')
+    expect(item.query).toBe('gym')
+  })
+
+  it('does not fuzz a short verb into a different one', () => {
+    // "mark" is 4 chars and 3 edits from "move" — it must stay a completion.
+    expect(run('mark gym')[0].action).toBe('complete')
+  })
+
+  it('leaves a class name matched exactly, never fuzzily', () => {
+    // "calculs" is one edit from the class "calculus", but entity tries stay exact.
+    const [item] = run('add buy milk for calculs')
+    expect(item.classId).toBeNull()
+  })
+})
+
 describe('edge cases', () => {
   it('returns nothing for empty input', () => {
     expect(run('')).toEqual([])

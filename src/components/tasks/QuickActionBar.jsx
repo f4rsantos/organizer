@@ -11,6 +11,7 @@ import { nanoid } from "@/lib/ids";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
 import { useCollabActions } from "@/hooks/useCollabActions";
 import { sortByOrder } from "@/lib/utils";
+import { currentPeriodKey, isCheckedIn } from "@/lib/goals";
 
 function AutoTextarea({ value, onChange, onKeyDown, placeholder, ...props }) {
   const textareaRef = useRef(null);
@@ -100,6 +101,9 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
   const setGradeComponents = useStore((s) => s.setGradeComponents);
   const addNote = useStore((s) => s.addNote);
   const addNoteFolder = useStore((s) => s.addNoteFolder);
+  const goals = useStore((s) => s.goals ?? []);
+  const checkInGoal = useStore((s) => s.checkInGoal);
+  const undoGoalCheckIn = useStore((s) => s.undoGoalCheckIn);
 
   const runFocusCommand = (cmd) => {
     const running = focusSync?.status === "started";
@@ -275,6 +279,55 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
     return scored[0].task;
   };
 
+  const openForCheckIn = (goal, now) => {
+    const pk = currentPeriodKey(goal, now);
+    return pk !== null && !isCheckedIn(goal, pk);
+  };
+
+  const findBestGoal = (query) => {
+    if (!query) return null;
+    const qTokens = query.toLowerCase().trim().split(/\s+/);
+
+    const scored = goals
+      .map((g) => {
+        const titleTokens = (g.title || "").toLowerCase().split(/\s+/);
+        let matches = 0;
+        for (const qt of qTokens) {
+          if (titleTokens.includes(qt)) matches++;
+        }
+        return { goal: g, score: matches };
+      })
+      .filter((s) => s.score > 0);
+
+    if (scored.length === 0) return null;
+
+    const now = new Date();
+    scored.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      const aOpen = openForCheckIn(a.goal, now) ? 0 : 1;
+      const bOpen = openForCheckIn(b.goal, now) ? 0 : 1;
+      return aOpen - bOpen;
+    });
+
+    return scored[0].goal;
+  };
+
+  const runGoalMutation = (item, goal) => {
+    const now = new Date();
+    const periodKey = currentPeriodKey(goal, now);
+    if (periodKey === null) return;
+
+    if (item.action === "complete") {
+      if (isCheckedIn(goal, periodKey)) return;
+      checkInGoal(goal.id, periodKey, item.note ?? "");
+      return;
+    }
+
+    if (item.action === "undo") {
+      undoGoalCheckIn(goal.id, periodKey);
+    }
+  };
+
   const runParse = () => {
     if (!text.trim()) return;
     const items = parseQuickAction(text, {
@@ -310,8 +363,23 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
       }
 
       if (item.kind === "mutation") {
+        const goalsEnabled = apps.goals === true;
+        const goalOnly = item.action === "undo" || item.goalScoped;
+
+        if (goalsEnabled && goalOnly) {
+          const targetGoal = findBestGoal(item.query);
+          if (targetGoal) runGoalMutation(item, targetGoal);
+          continue;
+        }
+
         const targetTask = findBestTask(item.query);
-        if (!targetTask) continue;
+        if (!targetTask) {
+          if (goalsEnabled) {
+            const fallbackGoal = findBestGoal(item.query);
+            if (fallbackGoal) runGoalMutation(item, fallbackGoal);
+          }
+          continue;
+        }
 
         const remote = targetTask.sharedMeta?.remote ? targetTask.sharedMeta : null;
 
