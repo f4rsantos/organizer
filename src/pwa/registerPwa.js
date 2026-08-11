@@ -1,4 +1,7 @@
+import { isNativePlatform } from '@/lib/platform'
+
 function canRegisterPwa() {
+  if (isNativePlatform()) return false
   return import.meta.env.PROD && typeof window !== 'undefined' && 'serviceWorker' in navigator
 }
 

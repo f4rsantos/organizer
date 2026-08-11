@@ -390,7 +390,7 @@ export function resetPersistCacheForTests() {
   cachedContainer = null
 }
 
-export function getAppStorageBytes() {
+function getLocalStorageBytes() {
   try {
     let total = 0
     for (const key of Object.keys(localStorage)) {
@@ -399,6 +399,17 @@ export function getAppStorageBytes() {
     return total
   } catch {
     return 0
+  }
+}
+
+export async function getAppStorageBytes() {
+  const local = getLocalStorageBytes()
+  try {
+    const container = await readContainer()
+    if (container === null) return local
+    return local + JSON.stringify(container).length * 2
+  } catch {
+    return local
   }
 }
 

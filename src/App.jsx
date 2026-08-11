@@ -19,6 +19,8 @@ import { StorageWarningModal } from '@/components/common/StorageWarningModal'
 import { useTheme } from '@/hooks/useTheme'
 import { useStandby } from '@/hooks/useStandby'
 import { useAppBadge } from '@/hooks/useAppBadge'
+import { useWidgetSync } from '@/hooks/useWidgetSync'
+import { consumeLaunchTab } from '@/lib/widgets/bridge'
 import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
@@ -129,6 +131,7 @@ export default function App() {
   useCollabSync()
   useGoogleCalendarSync()
   useAppBadge()
+  useWidgetSync()
   const standbyActive = useStandby()
   const onboardingDone = useStore(s => s.onboardingDone)
   const completeOnboarding = useStore(s => s.completeOnboarding)
@@ -150,6 +153,11 @@ export default function App() {
   useEffect(() => {
     writeLastTab(activeTab)
   }, [activeTab])
+  useEffect(() => {
+    consumeLaunchTab().then(tab => {
+      if (tab) useStore.getState().setActiveTab(tab)
+    })
+  }, [])
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
   const requestedTab = useStore(s => s.activeTab)
   const clearRequestedTab = useStore(s => s.setActiveTab)
@@ -199,7 +207,7 @@ export default function App() {
         setSpotlightOpen(v => !v)
       }
     }
-    const handleTouchStart = (e) => {
+    const handleTouchEnd = (e) => {
       lastTouch = Date.now()
       registerTap(e)
     }
@@ -208,10 +216,10 @@ export default function App() {
       registerTap(e)
     }
 
-    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('touchend', handleTouchEnd)
     window.addEventListener('mousedown', handleMouseDown)
     return () => {
-      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
       window.removeEventListener('mousedown', handleMouseDown)
     }
   }, [quickActionAppEnabled, quickActionTripleTap])
@@ -221,14 +229,18 @@ export default function App() {
   }, [activeTab, pullIfStale])
 
   useEffect(() => {
-    const check = () => {
-      if (getAppStorageBytes() > STORAGE_LIMIT && !loadFirebaseConfig()) {
-        setShowStorageWarning(true)
-      }
+    let cancelled = false
+    const check = async () => {
+      if (loadFirebaseConfig()) return
+      const bytes = await getAppStorageBytes()
+      if (!cancelled && bytes > STORAGE_LIMIT) setShowStorageWarning(true)
     }
     check()
     const id = setInterval(check, 30_000)
-    return () => clearInterval(id)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [])
 
   if (!hydrated) return <AppShell><div className="min-h-dvh" /></AppShell>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_calendar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/widget_calendar_month"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_header"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/widget_calendar_prev"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:contentDescription="@string/widget_calendar_prev"
+            android:padding="5dp"
+            android:src="@drawable/ic_widget_chevron_left" />
+
+        <ImageView
+            android:id="@+id/widget_calendar_add"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/widget_add_event"
+            android:padding="5dp"
+            android:src="@drawable/ic_widget_add" />
+
+        <ImageView
+            android:id="@+id/widget_calendar_next"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="2dp"
+            android:contentDescription="@string/widget_calendar_next"
+            android:padding="5dp"
+            android:src="@drawable/ic_widget_chevron_right" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_calendar_weekdays"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="2dp" />
+
+    <LinearLayout
+        android:id="@+id/widget_calendar_grid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical" />
+</LinearLayout>

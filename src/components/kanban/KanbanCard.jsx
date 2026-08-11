@@ -19,19 +19,7 @@ import { fireConfetti } from "@/lib/confetti";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStrings } from "@/lib/strings";
 import { useCollabActions } from "@/hooks/useCollabActions";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ShareToTeamDialog } from "@/components/collab/ShareToTeamDialog";
 import { PRIORITY_COLORS as PRIORITY_DOT } from "@/lib/constants";
 
 export function KanbanCard({
@@ -225,7 +213,7 @@ export function KanbanCard({
           {...attributes}
           {...listeners}
           aria-hidden="true"
-          className="absolute left-1/4 top-0 h-full w-1/2 cursor-grab touch-none active:cursor-grabbing"
+          className="absolute left-1/4 top-0 z-0 h-full w-1/2 cursor-grab touch-none active:cursor-grabbing"
         />
         <div className="flex items-start gap-2">
           {card.priority && (
@@ -244,7 +232,7 @@ export function KanbanCard({
           >
             {card.title || "Untitled"}
           </p>
-          <div ref={menuRef} className="flex gap-1 shrink-0">
+          <div ref={menuRef} className="relative z-10 flex gap-1 shrink-0">
             {menuOpen ? (
               <>
                 {prevColumnId && (
@@ -407,32 +395,15 @@ export function KanbanCard({
         semId={semId}
         onSave={handleSave}
       />
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Share card</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Select value={shareTeamId} onValueChange={setShareTeamId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team.teamId} value={team.teamId}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex justify-end">
-              <Button disabled={!shareTeamId} onClick={handleShare}>
-                {t.confirm}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ShareToTeamDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title={t.collabShareCard}
+        teams={teams}
+        value={shareTeamId}
+        onValueChange={setShareTeamId}
+        onConfirm={handleShare}
+      />
     </>
   );
 }

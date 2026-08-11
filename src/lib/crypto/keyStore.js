@@ -11,6 +11,19 @@ const DEK_ID_BYTES = 8
 let dbPromise = null
 let cachedDek = null
 
+const dekListeners = new Set()
+
+export function subscribeDek(listener) {
+  dekListeners.add(listener)
+  return () => dekListeners.delete(listener)
+}
+
+function setDek(cryptoKey) {
+  const changed = cachedDek !== cryptoKey
+  cachedDek = cryptoKey
+  if (changed) for (const listener of dekListeners) listener(cachedDek)
+}
+
 function openDb() {
   if (dbPromise) return dbPromise
   dbPromise = new Promise((resolve, reject) => {
@@ -82,22 +95,22 @@ export function generateDekBytes() {
 export async function getDek() {
   if (cachedDek) return cachedDek
   const stored = await runTransaction('readonly', store => store.get(DEK_ID))
-  cachedDek = stored ?? null
+  setDek(stored ?? null)
   return cachedDek
 }
 
 export async function putDek(cryptoKey) {
   await runTransaction('readwrite', store => store.put(cryptoKey, DEK_ID))
-  cachedDek = cryptoKey
+  setDek(cryptoKey)
 }
 
 export async function clearDek() {
-  cachedDek = null
+  setDek(null)
   await runTransaction('readwrite', store => store.delete(DEK_ID))
 }
 
 export function setCachedDek(cryptoKey) {
-  cachedDek = cryptoKey
+  setDek(cryptoKey)
 }
 
 export function getCachedDek() {
@@ -107,7 +120,7 @@ export function getCachedDek() {
 export function closeDekStore() {
   const pending = dbPromise
   dbPromise = null
-  cachedDek = null
+  setDek(null)
   if (!pending) return Promise.resolve()
   return pending.then(db => db.close(), () => undefined)
 }

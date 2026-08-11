@@ -18,6 +18,7 @@ import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import { expandTasksForRange, expandEventsForRange } from '@/lib/recurrence'
+import { setProviderEvents } from '@/lib/widgets/extraEvents'
 import { nanoid } from '@/lib/ids'
 
 const VIEWS = ['day', 'week', 'month', 'year']
@@ -68,6 +69,10 @@ export function CalendarTab() {
   const handleProviderEvents = useCallback((id, events) => {
     setPluginEvents(prev => (prev[id] === events ? prev : { ...prev, [id]: events }))
   }, [])
+  const handleWidgetProviderEvents = useCallback((id, events) => {
+    handleProviderEvents(id, events)
+    setProviderEvents(id, events)
+  }, [handleProviderEvents])
   const providerEvents = useMemo(() => Object.values(pluginEvents).flat(), [pluginEvents])
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -165,7 +170,7 @@ export function CalendarTab() {
 
   return (
     <div className="flex flex-col h-tab-pane select-none relative">
-      <CalendarEventProviders onEvents={handleProviderEvents} />
+      <CalendarEventProviders onEvents={handleWidgetProviderEvents} />
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 shrink-0">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} disabled={!canPrev}>
           <ChevronLeft className="h-4 w-4" />
