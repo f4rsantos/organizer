@@ -39,6 +39,21 @@ export function groupTasksByClass(tasks, classes) {
   return Object.values(groups)
 }
 
+export function isTaskDone(task, userId) {
+  if (task?.sharedMeta?.remote) return !!task.doneForAll || !!task?.doneBy?.[userId]
+  return !!task?.done
+}
+
+export function splitCompletedTasks(tasks, userId) {
+  const pending = []
+  const completed = []
+  for (const task of tasks ?? []) {
+    if (isTaskDone(task, userId)) completed.push(task)
+    else pending.push(task)
+  }
+  return { pending, completed }
+}
+
 export function completionRatio(tasks) {
   if (tasks.length === 0) return 1
   return tasks.filter(t => t.done).length / tasks.length

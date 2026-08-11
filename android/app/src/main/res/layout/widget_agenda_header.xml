@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/agenda_day_label"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:paddingTop="9dp"
+    android:paddingBottom="2dp"
+    android:textAllCaps="true"
+    android:textColor="@color/widget_accent"
+    android:textSize="11sp"
+    android:textStyle="bold" />

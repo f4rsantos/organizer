@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_tasks_title">Aufgaben</string>
+    <string name="widget_tasks_empty">Alles erledigt. Genieß den Tag.</string>
+    <string name="widget_tasks_description">Heute fällige Aufgaben, zum Abhaken tippen.</string>
+    <string name="widget_task_toggle">Aufgabe umschalten</string>
+    <string name="widget_kanban_title">Kanban</string>
+    <string name="widget_kanban_empty">Noch kein Board.</string>
+    <string name="widget_kanban_description">Kartenanzahl pro Kanban-Spalte.</string>
+
+    <string name="widget_agenda_title">Agenda</string>
+    <string name="widget_agenda_empty">Alles frei. Zeit zum Ausruhen.</string>
+    <string name="widget_agenda_description">Kommende Termine und Fristen.</string>
+
+    <string name="widget_goals_title">Ziele</string>
+    <string name="widget_goals_empty">Heutige Ziele geschafft.</string>
+    <string name="widget_goals_description">Tägliche Ziele, zum Eintragen tippen.</string>
+    <string name="widget_goal_toggle">Ziel eintragen</string>
+
+    <string name="widget_summary_description">Überblick über Aufgaben, Termine und Ziele.</string>
+
+    <string name="widget_add_task">Aufgabe hinzufügen</string>
+    <string name="widget_today_label">Heute</string>
+    <string name="widget_tomorrow_label">Morgen</string>
+    <string name="widget_all_day">Ganztägig</string>
+    <string name="widget_day_pattern">EEE, d. MMM</string>
+    <string name="widget_due_pattern">d. MMM</string>
+    <string name="widget_days_overdue">%1$dd überfällig</string>
+    <string name="widget_streak">%1$d Tage in Folge</string>
+    <string name="widget_open_tasks">%1$d offen</string>
+    <string name="widget_overdue_count">%1$d überfällig</string>
+    <string name="widget_label_tasks">Aufgaben</string>
+    <string name="widget_label_events">Termine</string>
+    <string name="widget_label_goals">Ziele</string>
+
+    <string name="widget_calendar_title">Kalender</string>
+    <string name="widget_calendar_description">Monatsansicht der Termine und Fristen.</string>
+    <string name="widget_calendar_prev">Vorheriger Monat</string>
+    <string name="widget_calendar_next">Nächster Monat</string>
+    <string name="widget_summary_title">Überblick</string>
+
+    <string name="widget_preview_open">3 offen</string>
+    <string name="widget_preview_class">Mathe</string>
+    <string name="widget_preview_task_one">Bericht</string>
+    <string name="widget_preview_task_two">Lesen</string>
+    <string name="widget_preview_time">09:00</string>
+    <string name="widget_preview_event">Vorlesung</string>
+    <string name="widget_preview_goal_one">Sport</string>
+    <string name="widget_preview_goal_two">20 Min lesen</string>
+    <string name="widget_preview_progress">1/2</string>
+    <string name="widget_preview_col_todo">Zu tun</string>
+    <string name="widget_preview_col_doing">Läuft</string>
+    <string name="widget_preview_col_done">Fertig</string>
+    <string name="widget_preview_count_one">1</string>
+    <string name="widget_preview_count_two">2</string>
+    <string name="widget_preview_count_three">3</string>
+    <string name="widget_preview_count_five">5</string>
+    <string name="widget_group_other">Sonstiges</string>
+    <string name="widget_config_title">Überblick-Widget</string>
+    <string name="widget_config_desc">Wähle, was dieses Widget im kleinen Format zeigt.</string>
+    <string name="widget_config_save">Speichern</string>
+    <string name="widget_calendar_empty">Nichts geplant.</string>
+    <string name="widget_pomodoro_title">Pomodoro</string>
+    <string name="widget_pomodoro_empty">Noch keine Sitzungen. Starte eine.</string>
+    <string name="widget_pomodoro_abandoned">%1$d abgebrochen</string>
+    <string name="widget_pomodoro_minutes">%1$d Min fokussiert</string>
+    <string name="widget_pomodoro_hours">%1$dh %2$dm fokussiert</string>
+    <string name="widget_pomodoro_description">Pomodoro-Sitzungen und Fokuszeit.</string>
+    <string name="widget_pomodoro_toggle">Fokus starten oder pausieren</string>
+    <string name="widget_pomodoro_focus_phase">Fokus</string>
+    <string name="widget_pomodoro_break">Pause</string>
+    <plurals name="widget_pomodoro_count">
+        <item quantity="one">%1$d Pomodoro</item>
+        <item quantity="other">%1$d Pomodoros</item>
+    </plurals>
+    <string name="widget_add_event">Termin hinzufügen</string>
+</resources>

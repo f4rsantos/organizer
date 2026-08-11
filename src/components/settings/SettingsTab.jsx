@@ -18,6 +18,7 @@ import { EncryptionButton } from '@/components/crypto/EncryptionSettings'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
 import { DangerZone } from './DangerZone'
 import { GeneralSettings } from './GeneralSettings'
+import { WidgetSettings } from './WidgetSettings'
 import { NavbarSettings } from './NavbarSettings'
 import { AppsGrid } from './AppsGrid'
 import { KanbanSettings } from './KanbanSettings'
@@ -342,8 +343,9 @@ export function SettingsTab({ syncStatus }) {
 
           <AccordionItem value="general" className="rounded-xl border border-border bg-card px-4">
             <AccordionTrigger className="text-sm font-semibold py-3">{t.general}</AccordionTrigger>
-            <AccordionContent className="pb-4">
+            <AccordionContent className="pb-4 space-y-4">
               <GeneralSettings />
+              <WidgetSettings />
             </AccordionContent>
           </AccordionItem>
 

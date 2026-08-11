@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#0E1216</color>
+    <color name="widget_surface">#161B20</color>
+    <color name="widget_foreground">#E7E4E1</color>
+    <color name="widget_muted">#857F7A</color>
+    <color name="widget_overdue">#E08A5A</color>
+    <color name="widget_accent">#5E93CA</color>
+    <color name="widget_header">#E7E4E1</color>
+    <color name="widget_divider">#242A30</color>
+    <color name="widget_done">#5C5854</color>
+    <color name="widget_on_accent">#07090C</color>
+    <color name="widget_ring_track">#33FFFFFF</color>
+    <color name="widget_ring_done">#4ADE80</color>
+</resources>

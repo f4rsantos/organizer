@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.f4rsantos.organizer",
+  "appName": "Organizer",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

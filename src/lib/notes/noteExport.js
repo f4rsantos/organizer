@@ -25,6 +25,29 @@ function escapeHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const SAFE_HREF_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:']
+
+function safeHref(href) {
+  const trimmed = String(href ?? '').trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('#') || trimmed.startsWith('/')) return trimmed
+  try {
+    return SAFE_HREF_PROTOCOLS.includes(new URL(trimmed).protocol) ? trimmed : ''
+  } catch {
+    return ''
+  }
+}
+
+const SAFE_COLOR = /^#[0-9a-f]{3,8}$|^rgba?\([\d\s.,%]+\)$/i
+const SAFE_FONT_SIZE = /^[\d.]+(px|rem|em|%)$/
+
+function safeStyleValue(value, pattern) {
+  const trimmed = String(value ?? '').trim()
+  return pattern.test(trimmed) ? trimmed : ''
 }
 
 function marksToMarkdown(text, marks = []) {
@@ -34,7 +57,7 @@ function marksToMarkdown(text, marks = []) {
     else if (mark.type === 'italic') out = `*${out}*`
     else if (mark.type === 'strike') out = `~~${out}~~`
     else if (mark.type === 'code') out = `\`${out}\``
-    else if (mark.type === 'link') out = `[${out}](${mark.attrs?.href ?? ''})`
+    else if (mark.type === 'link') out = `[${out}](${safeHref(mark.attrs?.href)})`
   }
   return out
 }
@@ -130,11 +153,13 @@ function inlineToHtml(nodes = []) {
       else if (mark.type === 'italic') out = `<em>${out}</em>`
       else if (mark.type === 'strike') out = `<s>${out}</s>`
       else if (mark.type === 'code') out = `<code>${out}</code>`
-      else if (mark.type === 'link') out = `<a href="${escapeHtml(mark.attrs?.href ?? '')}">${out}</a>`
+      else if (mark.type === 'link') out = `<a href="${escapeHtml(safeHref(mark.attrs?.href))}">${out}</a>`
       else if (mark.type === 'textStyle') {
+        const color = safeStyleValue(mark.attrs?.color, SAFE_COLOR)
+        const fontSize = safeStyleValue(mark.attrs?.fontSize, SAFE_FONT_SIZE)
         const style = [
-          mark.attrs?.color ? `color:${mark.attrs.color}` : '',
-          mark.attrs?.fontSize ? `font-size:${mark.attrs.fontSize}` : '',
+          color ? `color:${color}` : '',
+          fontSize ? `font-size:${fontSize}` : '',
         ].filter(Boolean).join(';')
         if (style) out = `<span style="${style}">${out}</span>`
       }

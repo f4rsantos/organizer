@@ -13,6 +13,19 @@ dist-ssr
 *.local
 .graphify-out*
 graphify-out/
+docs
+
+# Capacitor / Android
+android/app/src/main/assets/public
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/capacitor-cordova-android-plugins
+*.keystore
+!debug.keystore
 
 # Editor directories and files
 .vscode/*

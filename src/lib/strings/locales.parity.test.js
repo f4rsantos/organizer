@@ -7,11 +7,12 @@ import { fr } from './fr.js'
 import { cs } from './cs.js'
 import { af } from './af.js'
 import { pirate } from './pirate.js'
+import { HIDDEN_LANG_CODES } from '../langs.js'
 
 const LOCALES = { pt, es, de, fr, cs, af, pirate }
 const REFERENCE = Object.keys(en).sort()
 
-const IN_TRANSLATION = new Set(['af'])
+const IN_TRANSLATION = new Set(HIDDEN_LANG_CODES)
 
 const NOTES_EDITOR_KEYS = [
   'notesBold', 'notesItalic', 'notesStrike',

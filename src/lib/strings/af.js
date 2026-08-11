@@ -97,6 +97,12 @@ export const af = {
     goalTargetReached: 'banana',
     goalTargetRemaining: () => 'banana',
     goalTargetDaysLeft: () => 'banana',
+    hideCompletedTasksLabel: 'banana',
+    hideCompletedTasksDesc: 'banana',
+    completedTasks: () => 'banana',
+    widgetsLabel: 'banana',
+    widgetsDesc: 'banana',
+    widgetsEncryptionWarning: 'banana',
     goalMessages: {
       purpose: { day1: 'banana', early: 'banana', week: 'banana', month: 'banana', daily: 'banana', rescue: 'banana' },
       warm: { day1: 'banana', early: 'banana', week: 'banana', month: 'banana', daily: 'banana', rescue: 'banana' },

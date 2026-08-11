@@ -116,11 +116,13 @@ export async function generateInvite({ config, teamId, ttlMs }) {
 export async function joinWithInvite({ config, teamId, token, userId }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
+  let teamName = null
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
     if (!snap.exists()) throw new Error('Team not found')
     const team = snap.data()
+    teamName = typeof team.name === 'string' ? team.name : null
     const invite = team?.invite
     const valid = await matchesTokenHash({
       token, salt: invite?.tokenSalt, tokenHash: invite?.tokenHash,
@@ -137,6 +139,7 @@ export async function joinWithInvite({ config, teamId, token, userId }) {
       serverUpdatedAt: serverTimestamp(),
     })
   })
+  return { teamName }
 }
 
 export async function leaveTeam({ config, teamId, userId }) {

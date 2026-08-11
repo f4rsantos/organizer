@@ -152,6 +152,10 @@
         padding: env(safe-area-inset-top) env(safe-area-inset-right)
             env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
+    .py-8-safe {
+        padding-top: calc(2rem + env(safe-area-inset-top));
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+    }
     .pb-tab-bar {
         padding-bottom: calc(5rem + env(safe-area-inset-bottom));
     }
