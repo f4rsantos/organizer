@@ -66,7 +66,7 @@ export function periodsBetween(goal, from, to) {
     const weekdays = normalizeWeekdays(goal?.weekdays)
     if (weekdays.length === 0) return []
     while (cursor <= end && guard < 3000) {
-      if (isSelectedWeekday(cursor, weekdays)) out.push({ key: toDayKey(cursor), start: cursor })
+      out.push({ key: toDayKey(cursor), start: cursor, rest: !isSelectedWeekday(cursor, weekdays) })
       cursor = addDays(cursor, 1)
       guard += 1
     }
@@ -74,7 +74,7 @@ export function periodsBetween(goal, from, to) {
   }
 
   while (cursor <= end && guard < 2000) {
-    out.push({ key: toDayKey(cursor), start: cursor })
+    out.push({ key: toDayKey(cursor), start: cursor, rest: false })
     cursor = nextPeriodStart(cursor, cadence)
     guard += 1
   }
@@ -108,16 +108,17 @@ export function goalPeriods(goal, now = new Date()) {
   if (!goal) return []
   const periods = periodsBetween(goal, anchorDateOf(goal), now)
   const currentKey = currentPeriodKey(goal, now)
+  const today = toDayKey(startOfDay(now))
   return periods.map(p => ({
     ...p,
-    done: isCheckedIn(goal, p.key),
-    current: p.key === currentKey,
-    note: goal.checkIns?.[p.key]?.note ?? '',
+    done: !p.rest && isCheckedIn(goal, p.key),
+    current: p.rest ? p.key === today : p.key === currentKey,
+    note: p.rest ? '' : (goal.checkIns?.[p.key]?.note ?? ''),
   }))
 }
 
 export function goalStreak(goal, now = new Date()) {
-  const periods = goalPeriods(goal, now)
+  const periods = goalPeriods(goal, now).filter(p => !p.rest)
   const total = periods.filter(p => p.done).length
 
   let best = 0
@@ -146,7 +147,7 @@ export function goalStreak(goal, now = new Date()) {
 }
 
 export function isRescue(goal, now = new Date()) {
-  const periods = goalPeriods(goal, now)
+  const periods = goalPeriods(goal, now).filter(p => !p.rest)
   if (periods.length < 2) return false
   const previous = periods[periods.length - 2]
   return !previous.done
@@ -187,7 +188,7 @@ export function goalCompletion(goal, now = new Date()) {
 }
 
 export function completionRate(goal, now = new Date()) {
-  const periods = goalPeriods(goal, now)
+  const periods = goalPeriods(goal, now).filter(p => !p.rest)
   const elapsed = periods.filter(p => !p.current).length
   if (elapsed === 0) return periods.some(p => p.done) ? 100 : 0
   const done = periods.filter(p => p.done && !p.current).length

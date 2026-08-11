@@ -8,7 +8,7 @@ export function GoalHistory({ goal, periods, completion, message, t }) {
   return (
     <div className="min-h-full flex flex-col items-center justify-center gap-4 py-4">
       <div className="w-full max-w-md flex justify-center">
-        <GoalCalendar periods={periods} color={goal.color} />
+        <GoalCalendar periods={periods} color={goal.color} restLabel={t.goalRestDay} />
       </div>
 
       {message && <p className="text-sm font-medium text-center">{message}</p>}

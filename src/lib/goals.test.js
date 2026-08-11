@@ -172,12 +172,25 @@ describe('custom weekday cadence', () => {
     checkIns,
   })
 
-  it('only produces periods on the selected weekdays', () => {
+  it('only produces active periods on the selected weekdays', () => {
+    const goal = customGoal([1, 3, 5])
+    const periods = goalPeriods(goal, new Date('2026-01-12T12:00:00'))
+    expect(periods.filter(p => !p.rest).map(p => p.key)).toEqual([
+      '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-12',
+    ])
+  })
+
+  it('marks unselected weekdays as rest periods', () => {
     const goal = customGoal([1, 3, 5])
     const periods = goalPeriods(goal, new Date('2026-01-12T12:00:00'))
     expect(periods.map(p => p.key)).toEqual([
-      '2026-01-05', '2026-01-07', '2026-01-09', '2026-01-12',
+      '2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08',
+      '2026-01-09', '2026-01-10', '2026-01-11', '2026-01-12',
     ])
+    expect(periods.filter(p => p.rest).map(p => p.key)).toEqual([
+      '2026-01-06', '2026-01-08', '2026-01-10', '2026-01-11',
+    ])
+    expect(periods.filter(p => p.rest).every(p => p.done === false)).toBe(true)
   })
 
   it('treats an unselected weekday as a rest day', () => {
