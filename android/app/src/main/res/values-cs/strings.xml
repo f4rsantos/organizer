@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_tasks_title">Úkoly</string>
+    <string name="widget_tasks_empty">Hotovo. Užij si den.</string>
+    <string name="widget_tasks_description">Dnešní úkoly, klepnutím dokončíš.</string>
+    <string name="widget_task_toggle">Přepnout úkol</string>
+    <string name="widget_kanban_title">Kanban</string>
+    <string name="widget_kanban_empty">Zatím žádná nástěnka.</string>
+    <string name="widget_kanban_description">Počet karet podle sloupce Kanbanu.</string>
+
+    <string name="widget_agenda_title">Agenda</string>
+    <string name="widget_agenda_empty">Volno. Čas na odpočinek.</string>
+    <string name="widget_agenda_description">Nadcházející události a termíny.</string>
+
+    <string name="widget_goals_title">Cíle</string>
+    <string name="widget_goals_empty">Dnešní cíle splněny.</string>
+    <string name="widget_goals_description">Denní cíle, klepnutím zaznamenáš.</string>
+    <string name="widget_goal_toggle">Zaznamenat cíl</string>
+
+    <string name="widget_summary_description">Přehled úkolů, událostí a cílů.</string>
+
+    <string name="widget_add_task">Přidat úkol</string>
+    <string name="widget_today_label">Dnes</string>
+    <string name="widget_tomorrow_label">Zítra</string>
+    <string name="widget_all_day">Celý den</string>
+    <string name="widget_day_pattern">EEE d. MMM</string>
+    <string name="widget_due_pattern">d. MMM</string>
+    <string name="widget_days_overdue">%1$dd po termínu</string>
+    <string name="widget_streak">%1$d dní v řadě</string>
+    <string name="widget_open_tasks">%1$d otevřených</string>
+    <string name="widget_overdue_count">%1$d po termínu</string>
+    <string name="widget_label_tasks">Úkoly</string>
+    <string name="widget_label_events">Události</string>
+    <string name="widget_label_goals">Cíle</string>
+
+    <string name="widget_calendar_title">Kalendář</string>
+    <string name="widget_calendar_description">Měsíční přehled událostí a termínů.</string>
+    <string name="widget_calendar_prev">Předchozí měsíc</string>
+    <string name="widget_calendar_next">Další měsíc</string>
+    <string name="widget_summary_title">Přehled</string>
+
+    <string name="widget_preview_open">3 otevřených</string>
+    <string name="widget_preview_class">Matematika</string>
+    <string name="widget_preview_task_one">Zpráva</string>
+    <string name="widget_preview_task_two">Čtení</string>
+    <string name="widget_preview_time">09:00</string>
+    <string name="widget_preview_event">Přednáška</string>
+    <string name="widget_preview_goal_one">Cvičení</string>
+    <string name="widget_preview_goal_two">Číst 20 min</string>
+    <string name="widget_preview_progress">1/2</string>
+    <string name="widget_preview_col_todo">Udělat</string>
+    <string name="widget_preview_col_doing">Probíhá</string>
+    <string name="widget_preview_col_done">Hotovo</string>
+    <string name="widget_preview_count_one">1</string>
+    <string name="widget_preview_count_two">2</string>
+    <string name="widget_preview_count_three">3</string>
+    <string name="widget_preview_count_five">5</string>
+    <string name="widget_group_other">Ostatní</string>
+    <string name="widget_config_title">Widget přehledu</string>
+    <string name="widget_config_desc">Vyber, co widget zobrazí v malé velikosti.</string>
+    <string name="widget_config_save">Uložit</string>
+    <string name="widget_calendar_empty">Nic naplánováno.</string>
+    <string name="widget_pomodoro_title">Pomodoro</string>
+    <string name="widget_pomodoro_empty">Zatím žádné relace. Začni jednu.</string>
+    <string name="widget_pomodoro_abandoned">%1$d opuštěno</string>
+    <string name="widget_pomodoro_minutes">%1$d min soustředění</string>
+    <string name="widget_pomodoro_hours">%1$dh %2$dm soustředění</string>
+    <string name="widget_pomodoro_description">Pomodoro relace a čas soustředění.</string>
+    <string name="widget_pomodoro_toggle">Spustit nebo pozastavit</string>
+    <string name="widget_pomodoro_focus_phase">Soustředění</string>
+    <string name="widget_pomodoro_break">Pauza</string>
+    <plurals name="widget_pomodoro_count">
+        <item quantity="one">%1$d Pomodoro</item>
+        <item quantity="other">%1$d Pomodor</item>
+    </plurals>
+    <string name="widget_add_event">Přidat událost</string>
+</resources>

@@ -14,6 +14,7 @@ export function useCollabSync() {
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
   const clearCollabRuntimeTeam = useStore(s => s.clearCollabRuntimeTeam)
   const removeCollabMembership = useStore(s => s.removeCollabMembership)
+  const updateCollabMembership = useStore(s => s.updateCollabMembership)
 
   const userId = useMemo(() => collab?.userId ?? null, [collab?.userId])
 
@@ -59,6 +60,11 @@ export function useCollabSync() {
           removeCollabMembership(teamId)
           return
         }
+        if (typeof team.name === 'string' && team.name) {
+          const stored = useStore.getState().collab?.memberships
+            ?.find(m => m.teamId === teamId)?.teamName
+          if (stored !== team.name) updateCollabMembership(teamId, { teamName: team.name })
+        }
         if (team.locked) {
           setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'key-required' })
           return
@@ -80,5 +86,5 @@ export function useCollabSync() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, membershipsKey, userId, setCollabRuntimeTeam, clearCollabRuntimeTeam, removeCollabMembership])
+  }, [enabled, membershipsKey, userId, setCollabRuntimeTeam, clearCollabRuntimeTeam, removeCollabMembership, updateCollabMembership])
 }

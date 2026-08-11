@@ -15,6 +15,11 @@ describe('markdown export', () => {
     expect(docToMarkdown(doc([{ type: 'heading', attrs: { level: 2 }, content: [t('Title')] }]))).toBe('## Title')
   })
 
+  it('drops a javascript href from a link', () => {
+    const node = para(t('x', [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }]))
+    expect(docToMarkdown(doc([node]))).toBe('[x]()')
+  })
+
   it('writes bold and italic', () => {
     const node = para(t('a', [{ type: 'bold' }]), t('b', [{ type: 'italic' }]))
     expect(docToMarkdown(doc([node]))).toBe('**a***b*')
@@ -102,6 +107,27 @@ describe('html export', () => {
   it('carries inline colour through', () => {
     const node = para(t('red', [{ type: 'textStyle', attrs: { color: '#ff0000' } }]))
     expect(docToHtml(doc([node]), 'x')).toContain('color:#ff0000')
+  })
+
+  it('escapes quotes so an href cannot break out of its attribute', () => {
+    const node = para(t('x', [{ type: 'link', attrs: { href: 'https://a.test/"onmouseover="alert(1)' } }]))
+    const html = docToHtml(doc([node]), 'x')
+    expect(html).not.toContain('onmouseover="alert(1)"')
+    expect(html).toContain('&quot;')
+  })
+
+  it('drops javascript hrefs', () => {
+    const node = para(t('x', [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }]))
+    expect(docToHtml(doc([node]), 'x')).toContain('href=""')
+  })
+
+  it('drops a style value that is not a colour', () => {
+    const node = para(t('x', [{ type: 'textStyle', attrs: { color: 'red;background:url(javascript:alert(1))' } }]))
+    expect(docToHtml(doc([node]), 'x')).not.toContain('javascript')
+  })
+
+  it('escapes quotes in the title', () => {
+    expect(docToHtml(doc([]), '"><img src=x>')).not.toContain('<img src=x>')
   })
 })
 

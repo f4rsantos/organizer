@@ -6,13 +6,30 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const BASE_PATH = '/organizer/'
+const IS_NATIVE = process.env.BUILD_TARGET === 'native'
+const BASE_PATH = IS_NATIVE ? './' : '/organizer/'
+const MANIFEST_SCOPE = IS_NATIVE ? '.' : BASE_PATH
+
+const ANALYTICS_BLOCK = /\s*<!-- Google tag \(gtag\.js\) -->[\s\S]*?<\/script>\s*<script>[\s\S]*?<\/script>/
+
+function stripAnalytics() {
+  return {
+    name: 'strip-analytics',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'pre',
+      handler: html => (IS_NATIVE ? html.replace(ANALYTICS_BLOCK, '\n  ') : html),
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    stripAnalytics(),
     VitePWA({
+      disable: IS_NATIVE,
       registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
@@ -23,8 +40,8 @@ export default defineConfig({
         theme_color: '#f7f6f4',
         background_color: '#f7f6f4',
         display: 'standalone',
-        start_url: BASE_PATH,
-        scope: BASE_PATH,
+        start_url: MANIFEST_SCOPE,
+        scope: MANIFEST_SCOPE,
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

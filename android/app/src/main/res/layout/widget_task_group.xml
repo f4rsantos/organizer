@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="9dp"
+    android:paddingBottom="1dp">
+
+    <ImageView
+        android:id="@+id/task_group_ring"
+        android:layout_width="11dp"
+        android:layout_height="11dp"
+        android:layout_marginEnd="5dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/task_group_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAllCaps="true"
+        android:textColor="@color/widget_muted"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -5,6 +5,7 @@ import {
   getEncMode, setEncMode,
   wasEncryptionEverEnabled, MODE_OFF, MODE_LOCAL, MODE_SYNC,
 } from './keyState'
+import { clearProjection } from '@/lib/widgets/bridge'
 
 const STORE_TIMEOUT_MS = 4000
 
@@ -101,6 +102,7 @@ export async function disableEncryption() {
     setCachedDek(null)
   }
   setEncMode(MODE_OFF)
+  await clearProjection()
 }
 
 export { MODE_OFF, MODE_LOCAL, MODE_SYNC, SLOT_PASSPHRASE, SLOT_RECOVERY_CODE, wasEncryptionEverEnabled }

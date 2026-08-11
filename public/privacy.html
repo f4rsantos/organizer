@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organizer — Privacy Policy</title>
+    <meta name="description" content="Privacy policy for Organizer." />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f6f4;
+        --fg: #1c1b19;
+        --muted: #5b574f;
+        --rule: #dcd8d1;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #181715;
+          --fg: #ece9e4;
+          --muted: #a29c93;
+          --rule: #33302c;
+        }
+      }
+      body {
+        margin: 0 auto;
+        padding: 3rem 1.25rem 6rem;
+        max-width: 46rem;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 2.25rem 0 0.5rem;
+      }
+      p,
+      li {
+        color: var(--fg);
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin: 0 0 2rem;
+      }
+      ul {
+        padding-left: 1.15rem;
+      }
+      li {
+        margin: 0.35rem 0;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid var(--rule);
+        margin: 2.5rem 0;
+      }
+      a {
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Organizer · last updated 11 August 2026</p>
+
+    <h2>1. Scope</h2>
+    <p>
+      This policy describes how Organizer, an academic planning application,
+      handles data on the Android app and on the companion website at
+      <code>f4rsantos.github.io/organizer</code>. Organizer is a local-first
+      application. It does not operate a server that stores user content, does
+      not maintain user accounts, and has no ability to access the content you
+      create.
+    </p>
+
+    <h2>2. Data collected by the Android app</h2>
+    <p>
+      The Android app collects no data. It contains no analytics, no advertising
+      software, no crash reporting, and no tracking mechanisms of any kind.
+    </p>
+
+    <h2>3. Data collected by the website</h2>
+    <p>
+      The website uses Google Analytics, configured to operate anonymously, to
+      record an aggregate count of page views and the approximate country of
+      origin of visitors. This is the only data collected on the website, and it
+      is not included in the Android app. Specifically:
+    </p>
+    <ul>
+      <li>
+        No cookies are set and no persistent identifier is stored on the
+        visitor's device. Analytics storage is disabled, so visitors are not
+        recognized across sessions.
+      </li>
+      <li>IP addresses are anonymized before processing.</li>
+      <li>
+        Google Signals and ad personalization are disabled. No data is used to
+        build advertising profiles.
+      </li>
+    </ul>
+    <p>
+      The resulting data is not linked to any individual and cannot be used to
+      identify a visitor.
+    </p>
+
+    <h2>4. Storage and retention of user content</h2>
+    <p>
+      Content is stored locally on the user's device and is not transmitted
+      unless the user enables sync as described in Section 5. This content is
+      retained until the user deletes it, clears app data, or uninstalls the
+      app. The user is responsible for exporting a backup before uninstalling if
+      retention of the data is desired.
+    </p>
+
+    <h2>5. Optional sync to user-controlled infrastructure</h2>
+    <p>
+      Sync is disabled by default. If a user enables sync, the user must supply
+      their own Firebase project, using their own Google account, database, and
+      billing arrangement. In this configuration, data is transmitted to
+      infrastructure controlled by the user, not by us. We do not receive this
+      data and have no access to it. The user is the data controller for that
+      Firebase project and is responsible for its security, including the
+      Firestore rules applied to it. The database must not be left publicly
+      readable; the in-app setup guide describes the required configuration.
+    </p>
+
+    <h2>6. Encryption</h2>
+    <p>
+      Organizer offers optional end-to-end encryption. When enabled, data is
+      encrypted on the user's device before it is stored or synced, using a key
+      derived from the user's passphrase. This key is non-extractable and does
+      not leave the device. If a user loses both their passphrase and their
+      recovery code, the corresponding encrypted data cannot be recovered by us
+      or by any other party.
+    </p>
+
+    <h2>7. Home screen widgets</h2>
+    <p>
+      If a user adds a home screen widget, the content it displays, such as task
+      titles and due dates, is copied to standard Android app storage so that it
+      can be shown while the app is closed. Android widgets cannot read
+      encrypted data, so this copy is stored unencrypted on the device
+      regardless of whether encryption is otherwise enabled. This copy is not
+      transmitted and remains on the device. It is deleted when the user locks
+      the app, disables encryption, or removes the widget. A user who does not
+      want an unencrypted copy of their data to exist should not add widgets.
+    </p>
+
+    <h2>8. Share links</h2>
+    <p>
+      A share link created within the app contains the shared content in
+      encrypted form, encoded into the link itself. Any person in possession of
+      the link is able to decrypt and read that content. Share links should be
+      treated as sensitive and disclosed only to intended recipients.
+    </p>
+
+    <h2>9. Permissions</h2>
+    <ul>
+      <li>
+        <strong>Notifications:</strong> optional. Used for focus timer alerts
+        and task due reminders, generated on the device.
+      </li>
+      <li><strong>Vibration:</strong> optional. Used for timer alerts.</li>
+      <li>
+        <strong>Internet:</strong> used only if the user enables sync to their
+        own Firebase project as described in Section 5.
+      </li>
+    </ul>
+
+    <h2>10. User rights</h2>
+    <p>
+      Because we hold no data about any user, there is no data for us to
+      provide, correct, or delete on a user's behalf. A user may export all of
+      their data from Settings at any time. Clearing app data or uninstalling
+      the app removes all locally stored content completely.
+    </p>
+
+    <h2>11. Changes to this policy</h2>
+    <p>
+      If this policy is revised, the date at the top of this page will be
+      updated. Material changes will be noted in the app's release notes.
+    </p>
+
+    <h2>12. Contact</h2>
+    <p>
+      Questions regarding this policy may be directed to
+      <a href="mailto:f4rsantos@gmail.com">f4rsantos@gmail.com</a>.
+    </p>
+  </body>
+</html>

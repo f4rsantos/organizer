@@ -3,7 +3,7 @@ import { Circle, CircleCheck, Kanban, Menu, Pencil, Share2, Trash2 } from 'lucid
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
 import { useStore } from '@/store/useStore'
 import { cn, sortByOrder } from '@/lib/utils'
 import { useStrings } from '@/lib/strings'
@@ -12,6 +12,7 @@ import { TaskForm } from './TaskForm'
 import { useCollabActions } from '@/hooks/useCollabActions'
 import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
 import { useWeekContext } from '@/hooks/useWeekContext'
+import { useCompactActions } from '@/hooks/useCompactActions'
 import { PRIORITY_COLORS } from '@/lib/constants'
 
 const FREE_BOARD_ID = '__free__'
@@ -49,6 +50,7 @@ export function TaskItem({ task }) {
     [allClasses, task.semesterId],
   )
   const weekCtx = useWeekContext()
+  const compactActions = useCompactActions()
   const noneMode = weekCtx.mode === 'none'
   const semester = useMemo(
     () => semesters.find(s => s.id === task.semesterId) ?? null,
@@ -224,64 +226,64 @@ export function TaskItem({ task }) {
           </div>
         </div>
 
-        {/* Touch / narrow: hamburger menu */}
-        <div ref={menuRef} className="md:hidden touch:flex flex items-center gap-1 shrink-0">
-          {menuOpen ? (
-            <>
-              {!alreadyInKanban && (
+        {compactActions ? (
+          <div ref={menuRef} className="flex items-center gap-1 shrink-0">
+            {menuOpen ? (
+              <>
+                {!alreadyInKanban && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    title={t.addToKanban}
+                    onClick={() => { addToKanban(); setMenuOpen(false) }}>
+                    <Kanban className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  title={t.addToKanban}
-                  onClick={() => { addToKanban(); setMenuOpen(false) }}>
-                  <Kanban className="h-3.5 w-3.5" />
+                  onClick={() => { setEditOpen(true); setMenuOpen(false) }}>
+                  <Pencil className="h-3.5 w-3.5" />
                 </Button>
-              )}
+                {!isShared && teams.length > 0 && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onClick={() => { openShare(); setMenuOpen(false) }}>
+                    <Share2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  onClick={() => { handleDelete(); setMenuOpen(false) }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            ) : (
               <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                onClick={() => { setEditOpen(true); setMenuOpen(false) }}>
-                <Pencil className="h-3.5 w-3.5" />
+                onClick={() => setMenuOpen(true)}>
+                <Menu className="h-3.5 w-3.5" />
               </Button>
-              {!isShared && teams.length > 0 && (
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => { openShare(); setMenuOpen(false) }}>
-                  <Share2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                onClick={() => { handleDelete(); setMenuOpen(false) }}>
-                <Trash2 className="h-3.5 w-3.5" />
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 shrink-0">
+            {!alreadyInKanban && (
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                title={t.addToKanban}
+                onClick={addToKanban}>
+                <Kanban className="h-3.5 w-3.5" />
               </Button>
-            </>
-          ) : (
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              onClick={() => setMenuOpen(true)}>
-              <Menu className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-
-        {/* Pointer devices: hover-reveal buttons */}
-        <div className="hidden md:flex touch:hidden items-center gap-1 shrink-0">
-          {!alreadyInKanban && (
+            )}
             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-              title={t.addToKanban}
-              onClick={addToKanban}>
-              <Kanban className="h-3.5 w-3.5" />
+              onClick={() => setEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
-          )}
-          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-            onClick={() => setEditOpen(true)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          {!isShared && teams.length > 0 && (
-            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-              onClick={openShare}>
-              <Share2 className="h-3.5 w-3.5" />
+            {!isShared && teams.length > 0 && (
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                onClick={openShare}>
+                <Share2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+              onClick={handleDelete}>
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
-          )}
-          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-            onClick={handleDelete}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -307,28 +309,15 @@ export function TaskItem({ task }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Share task</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Select value={shareTeamId} onValueChange={setShareTeamId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map(team => (
-                  <SelectItem key={team.teamId} value={team.teamId}>{team.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex justify-end">
-              <Button disabled={!shareTeamId} onClick={handleShare}>{t.confirm}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ShareToTeamDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title={t.collabShareTask}
+        teams={teams}
+        value={shareTeamId}
+        onValueChange={setShareTeamId}
+        onConfirm={handleShare}
+      />
     </>
   )
 }
