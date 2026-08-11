@@ -26,12 +26,35 @@ function firstColumnIdFor(state, boardId) {
   return sortedColumns(state, boardId)[0]?.id ?? null
 }
 
+function applyTaskDone(state, id, resolveDone) {
+  return {
+    ...state,
+    tasks: state.tasks.map(t => {
+      if (t.id !== id) return t
+      const done = resolveDone(t)
+      if (done === t.done) return t
+      if (!t.kanban) return { ...t, done }
+      const boardId = boardIdForTask(t)
+      const targetCol = done ? doneColumnIdFor(state, boardId) : firstColumnIdFor(state, boardId)
+      return { ...t, done, kanban: { ...t.kanban, columnId: targetCol ?? t.kanban.columnId } }
+    }),
+  }
+}
+
 function currentWeekOf(state) {
   const mode = state.settings?.semesterMode ?? 'semesters'
   const semester = mode === 'none'
     ? null
     : (state.semesters?.find(x => x.id === state.activeSemesterId) ?? null)
   return getWeekContext({ mode, semester }).currentWeek
+}
+
+function unionApps(localApps, remoteApps) {
+  const merged = { ...(localApps ?? {}) }
+  for (const [id, on] of Object.entries(remoteApps ?? {})) {
+    merged[id] = merged[id] === true || on === true
+  }
+  return merged
 }
 
 function mergeStateOnHydrate(diskState, s) {
@@ -144,6 +167,7 @@ function buildInitialState() {
       taskReminderOffsets: [0],
       taskReminderTime: '09:00',
       taskDefaultToCalendar: false,
+      hideCompletedTasks: false,
       defaultTab: 'last',
       focus: {
         useInterval: true, intervalMins: 25, intervalBreakMins: 5,
@@ -306,17 +330,8 @@ export const useStore = create((set, _get) => ({
       ? { ...t, eisenhower: EISENHOWER_DISMISSED }
       : t)),
   })),
-  toggleTask: id => set(s => persist({
-    ...s,
-    tasks: s.tasks.map(t => {
-      if (t.id !== id) return t
-      const done = !t.done
-      if (!t.kanban) return { ...t, done }
-      const boardId = boardIdForTask(t)
-      const targetCol = done ? doneColumnIdFor(s, boardId) : firstColumnIdFor(s, boardId)
-      return { ...t, done, kanban: { ...t.kanban, columnId: targetCol ?? t.kanban.columnId } }
-    }),
-  })),
+  toggleTask: id => set(s => persist(applyTaskDone(s, id, task => !task.done))),
+  setTaskDone: (id, done) => set(s => persist(applyTaskDone(s, id, () => done))),
   toggleRecurringOccurrence: (templateId, dateISO) => set(s => persist({
     ...s,
     tasks: s.tasks.map(t => {
@@ -795,7 +810,7 @@ export const useStore = create((set, _get) => ({
     const remoteMemberships = next.collab?.memberships ?? []
     const remoteTeamIds = new Set(remoteMemberships.map(m => m.teamId))
     const settings = preferLocalSettings && s.hydrated
-      ? { ...next.settings, ...s.settings }
+      ? { ...next.settings, ...s.settings, apps: unionApps(s.settings?.apps, next.settings?.apps) }
       : next.settings
     return persist({
       ...next,

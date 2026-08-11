@@ -98,7 +98,7 @@ export function Onboarding({ onDone }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8 max-w-md mx-auto w-full">
+    <div className="flex min-h-dvh flex-col px-6 py-8-safe max-w-md mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex gap-1.5">
           {steps.map((_, i) => (

@@ -1,5 +1,5 @@
 import { useStore } from '@/store/useStore'
-import { LANGS } from '@/lib/langs'
+import { LANGS, visibleLangs } from '@/lib/langs'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -17,7 +17,7 @@ export function LangToggle() {
         <SelectValue>{current.short}</SelectValue>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
-        {LANGS.map(l => (
+        {visibleLangs().map(l => (
           <SelectItem key={l.code} value={l.code}>
             <span className="font-semibold text-muted-foreground">{l.short}</span>
             <span>{l.label}</span>

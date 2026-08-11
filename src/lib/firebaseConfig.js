@@ -1,4 +1,4 @@
-import { readJson } from './safeStorage'
+import { readJson, writeJson } from './safeStorage'
 
 const CONFIG_KEY ='f4rsantos.github.io/organizer:firebase'
 
@@ -7,9 +7,13 @@ export function loadFirebaseConfig() {
 }
 
 export function saveFirebaseConfig(config) {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config))
+  return writeJson(CONFIG_KEY, config)
 }
 
 export function clearFirebaseConfig() {
-  localStorage.removeItem(CONFIG_KEY)
+  try {
+    localStorage.removeItem(CONFIG_KEY)
+  } catch {
+    return
+  }
 }

@@ -33,6 +33,7 @@ export function GeneralSettings() {
   const taskAlertMode = settings.taskAlertMode ?? 'none'
   const taskAlertNextDayTime = settings.taskAlertNextDayTime ?? '18:00'
   const taskDefaultToCalendar = settings.taskDefaultToCalendar ?? false
+  const hideCompletedTasks = settings.hideCompletedTasks ?? false
   const speechInputEnabled = settings.speechInputEnabled ?? false
   const defaultTab = settings.defaultTab ?? 'last'
   const reminderOffsets = settings.taskReminderOffsets ?? [0]
@@ -164,6 +165,18 @@ export function GeneralSettings() {
             ? <CircleCheck className="h-4 w-4 text-primary" />
             : <Circle className="h-4 w-4" />}
           {taskDefaultToCalendar ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>{t.hideCompletedTasksLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.hideCompletedTasksDesc}</p>
+        <button type="button" onClick={() => updateSettings({ hideCompletedTasks: !hideCompletedTasks })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {hideCompletedTasks
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {hideCompletedTasks ? t.settingEnabled : t.settingDisabled}
         </button>
       </div>
 

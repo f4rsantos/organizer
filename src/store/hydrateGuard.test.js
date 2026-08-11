@@ -170,6 +170,30 @@ describe('edits made before hydration are never discarded', () => {
     expect(useStore.getState().settings.navbar.customNames?.tasks).toBe('My Stuff')
   })
 
+  it('adopts an app enabled on another device while keeping local settings', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().updateSettings({
+      apps: { collab: false, notes: true, goals: false },
+      gradeScale: 100,
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [],
+      settings: {
+        apps: { collab: false, notes: false, goals: true },
+        gradeScale: 20,
+      },
+      collab: { userId: 'u1', memberships: [] },
+    })
+
+    const settings = useStore.getState().settings
+    expect(settings.apps.goals).toBe(true)
+    expect(settings.apps.notes).toBe(true)
+    expect(settings.gradeScale).toBe(100)
+  })
+
   it('lets an explicit restore replace local settings', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().markHydrated()

@@ -31,6 +31,7 @@ export {
 export {
   openDekStore, closeDekStore, getDek, putDek, clearDek,
   getCachedDek, setCachedDek, importDekFromRaw, computeDekId, generateDekBytes,
+  subscribeDek,
 } from './keyStore'
 
 export {

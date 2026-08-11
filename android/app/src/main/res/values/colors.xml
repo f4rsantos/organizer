@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3880FF</color>
+    <color name="colorPrimaryDark">#3171E0</color>
+    <color name="colorAccent">#5260FF</color>
+
+    <color name="widget_background">#FBF8F6</color>
+    <color name="widget_surface">#EEEAE8</color>
+    <color name="widget_foreground">#1E1A16</color>
+    <color name="widget_muted">#76706C</color>
+    <color name="widget_overdue">#B4451F</color>
+    <color name="widget_accent">#305880</color>
+    <color name="widget_header">#1E1A16</color>
+    <color name="widget_divider">#E1DDDA</color>
+    <color name="widget_done">#A39D98</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <color name="widget_ring_track">#22000000</color>
+    <color name="widget_ring_done">#16A34A</color>
+</resources>

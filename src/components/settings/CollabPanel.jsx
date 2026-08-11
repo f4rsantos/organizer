@@ -376,7 +376,7 @@ export function CollabPanel() {
 
     setError(null)
     try {
-      await joinWithInvite({
+      const { teamName } = await joinWithInvite({
         config: { apiKey: parsed.apiKey, projectId: parsed.projectId },
         teamId: parsed.teamId,
         token: parsed.token,
@@ -388,6 +388,7 @@ export function CollabPanel() {
         apiKey: parsed.apiKey,
         projectId: parsed.projectId,
         teamKey: parsed.teamKey,
+        ...(teamName ? { teamName } : {}),
       })
       setJoinLink('')
     } catch (err) {
