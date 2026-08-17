@@ -80,13 +80,13 @@ export const fr = {
         'Les notes s\'importent depuis Markdown et texte brut, et s\'exportent en Markdown, texte brut, page web, Word, ou s\'impriment en PDF. Les notes en écriture manuscrite nécessitent la sync cloud activée, car les dessins sont volumineux et sont stockés à distance. Le canevas dispose d\'un stylo et d\'une gomme, cinq épaisseurs et cinq couleurs, dont une suit votre thème. La gomme efface un trait entier plutôt qu\'une partie.',
       ],
     },
-    goals: {
-      title: 'Objectifs',
+    habits: {
+      title: 'Habitudes',
       summary: 'Entretiens une habitude de longue haleine, un clic à la fois.',
       body: [
-        'Un objectif est quelque chose que tu veux continuer à faire plutôt que terminer une bonne fois. Chaque objectif affiche un seul bouton gris qui attend d\'être pressé : le presser marque la période en cours comme faite, déclenche une petite célébration et t\'indique la longueur de ta série.',
-        'À la création d\'un objectif tu choisis la fréquence des clics, du quotidien au mensuel, et si tu veux noter quelques mots à chaque fois. Les notes valent le coup quand tu tiens à savoir comment ça s\'est passé, et pas seulement que c\'est arrivé.',
-        'Ton historique se construit en calendrier en dessous. Il démarre par un seul cercle et grandit vers l\'extérieur, passant à une nouvelle ligne chaque lundi et à un nouveau bloc chaque mois, si bien que les premiers jours restent lisibles et que les longues séries prennent du recul toutes seules. Les boutons de l\'en-tête permettent de revoir ta progression, d\'annuler le clic du moment ou de supprimer l\'objectif.',
+        'Une habitude est quelque chose que tu veux continuer à faire plutôt que terminer une bonne fois. Chaque habitude affiche un seul bouton gris qui attend d\'être pressé : le presser marque la période en cours comme faite, déclenche une petite célébration et t\'indique la longueur de ta série.',
+        'À la création d\'une habitude tu choisis la fréquence des clics, du quotidien au mensuel, et si tu veux noter quelques mots à chaque fois. Les notes valent le coup quand tu tiens à savoir comment ça s\'est passé, et pas seulement que c\'est arrivé.',
+        'Ton historique se construit en calendrier en dessous, sept jours par ligne, avec un petit point marquant chaque jour hors de ta série. Il démarre sur une seule ligne et s\'étend en nouvelles lignes et nouveaux mois au fil du temps, si bien que les premiers jours restent lisibles et que les longues séries restent alignées. Les boutons de l\'en-tête permettent de revoir ta progression, d\'annuler le clic du moment ou de supprimer l\'habitude.',
       ],
     },
     eisenhower: {

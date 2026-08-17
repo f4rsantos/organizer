@@ -106,8 +106,8 @@ export const af = {
     folder: ['banana'],
     addWords: ['banana'],
   },
-  goalWords: {
-    goal: ['banana'],
+  habitWords: {
+    habit: ['banana'],
     note: ['banana'],
   },
 }

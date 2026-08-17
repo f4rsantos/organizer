@@ -1,15 +1,15 @@
 import { FREE_BOARD_ID } from '@/lib/taskUtils'
-import { currentPeriodKey, isCheckedIn } from '@/lib/goals'
+import { currentPeriodKey, isCheckedIn } from '@/lib/habits'
 
 export const OP_SET_TASK_DONE = 'setTaskDone'
 export const OP_MOVE_CARD = 'moveCard'
-export const OP_SET_GOAL_CHECKIN = 'setGoalCheckIn'
+export const OP_SET_HABIT_CHECKIN = 'setHabitCheckIn'
 export const OP_SET_FOCUS_RUNNING = 'setFocusRunning'
 
 const HANDLERS = {
   [OP_SET_TASK_DONE]: applySetTaskDone,
   [OP_MOVE_CARD]: applyMoveCard,
-  [OP_SET_GOAL_CHECKIN]: applySetGoalCheckIn,
+  [OP_SET_HABIT_CHECKIN]: applySetHabitCheckIn,
   [OP_SET_FOCUS_RUNNING]: applySetFocusRunning,
 }
 
@@ -22,7 +22,7 @@ export function isValidOp(op) {
   if (!isFreshOp(op)) return false
   if (op.type === OP_SET_TASK_DONE) return typeof op.done === 'boolean'
   if (op.type === OP_MOVE_CARD) return typeof op.columnId === 'string' && !!op.columnId
-  if (op.type === OP_SET_GOAL_CHECKIN) return typeof op.done === 'boolean'
+  if (op.type === OP_SET_HABIT_CHECKIN) return typeof op.done === 'boolean'
   if (op.type === OP_SET_FOCUS_RUNNING) return typeof op.running === 'boolean'
   return false
 }
@@ -61,16 +61,16 @@ function applyMoveCard(op, actions, state) {
   return true
 }
 
-function applySetGoalCheckIn(op, actions, state) {
-  const goal = (state.goals ?? []).find(g => g.id === op.id)
-  if (!goal) return false
+function applySetHabitCheckIn(op, actions, state) {
+  const habit = (state.habits ?? []).find(g => g.id === op.id)
+  if (!habit) return false
 
-  const periodKey = currentPeriodKey(goal, new Date(op.ts))
+  const periodKey = currentPeriodKey(habit, new Date(op.ts))
   if (!periodKey) return false
-  if (isCheckedIn(goal, periodKey) === op.done) return false
+  if (isCheckedIn(habit, periodKey) === op.done) return false
 
-  if (op.done) actions.checkInGoal(op.id, periodKey)
-  else actions.undoGoalCheckIn(op.id, periodKey)
+  if (op.done) actions.checkInHabit(op.id, periodKey)
+  else actions.undoHabitCheckIn(op.id, periodKey)
   return true
 }
 

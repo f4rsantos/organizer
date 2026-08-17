@@ -232,19 +232,19 @@ describe('grade commands', () => {
   })
 })
 
-describe('goal mutations', () => {
-  it('flags an explicit goal noun and leaves the note empty', () => {
+describe('habit mutations', () => {
+  it('flags an explicit habit noun and leaves the note empty', () => {
     const [item] = run('complete goal gym')
     expect(item.kind).toBe('mutation')
     expect(item.action).toBe('complete')
     expect(item.query).toBe('gym')
-    expect(item.goalScoped).toBe(true)
+    expect(item.habitScoped).toBe(true)
     expect(item.note).toBe('')
   })
 
-  it('does not flag goalScoped without a goal noun', () => {
+  it('does not flag habitScoped without a habit noun', () => {
     const [item] = run('complete gym')
-    expect(item.goalScoped).toBe(false)
+    expect(item.habitScoped).toBe(false)
     expect(item.query).toBe('gym')
   })
 
@@ -252,7 +252,7 @@ describe('goal mutations', () => {
     const [item] = run('undo goal gym')
     expect(item.action).toBe('undo')
     expect(item.query).toBe('gym')
-    expect(item.goalScoped).toBe(true)
+    expect(item.habitScoped).toBe(true)
   })
 
   it.each([
@@ -273,24 +273,24 @@ describe('goal mutations', () => {
     expect(item.note).toBe('')
   })
 
-  it('strips a determiner between the verb and the goal noun', () => {
+  it('strips a determiner between the verb and the habit noun', () => {
     const [item] = run('complete the goal gym')
     expect(item.query).toBe('gym')
-    expect(item.goalScoped).toBe(true)
+    expect(item.habitScoped).toBe(true)
   })
 
-  it('recognises goal verbs in a non-English locale', () => {
+  it('recognises habit verbs in a non-English locale', () => {
     const [item] = run('conclui objetivo gym', { lang: 'pt' })
     expect(item.kind).toBe('mutation')
     expect(item.action).toBe('complete')
-    expect(item.goalScoped).toBe(true)
+    expect(item.habitScoped).toBe(true)
     expect(item.query).toBe('gym')
   })
 
   it('parses undo in a non-English locale', () => {
     const [item] = run('desfazer objetivo gym', { lang: 'pt' })
     expect(item.action).toBe('undo')
-    expect(item.goalScoped).toBe(true)
+    expect(item.habitScoped).toBe(true)
   })
 })
 

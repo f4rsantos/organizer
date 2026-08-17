@@ -108,8 +108,8 @@ export const de = {
     folder: ['ordner', 'verzeichnis'],
     addWords: ['hinzufügen', 'hinzufuegen', 'füge', 'fuege', 'erstelle', 'erstellen', 'neue', 'neuer', 'neues'],
   },
-  goalWords: {
-    goal: ['ziel', 'ziele', 'gewohnheit', 'gewohnheiten'],
+  habitWords: {
+    habit: ['gewohnheit', 'gewohnheiten', 'ziel', 'ziele'],
     note: ['mit der notiz', 'mit notiz', 'notiz'],
   },
 }

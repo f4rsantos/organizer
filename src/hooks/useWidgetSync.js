@@ -21,7 +21,7 @@ export function useWidgetSync() {
   const events = useStore(s => s.events)
   const kanban = useStore(s => s.kanban)
   const classes = useStore(s => s.classes)
-  const goals = useStore(s => s.goals)
+  const habits = useStore(s => s.habits)
   const pomodoros = useStore(s => s.pomodoros)
   const focusSync = useStore(s => s.focusSync)
   const activeSemesterId = useStore(s => s.activeSemesterId)
@@ -47,7 +47,7 @@ export function useWidgetSync() {
   useEffect(() => {
     if (!active) return
     pushProjection(stateForWidgets())
-  }, [active, tasks, events, kanban, classes, goals, activeSemesterId, collabTeams, extraTick, pomodoros, focusSync])
+  }, [active, tasks, events, kanban, classes, habits, activeSemesterId, collabTeams, extraTick, pomodoros, focusSync])
 
   useEffect(() => {
     if (!active) return
@@ -58,8 +58,8 @@ export function useWidgetSync() {
       try {
         const ops = await drainQueue()
         if (ops.length > 0) {
-          const { setTaskDone, moveKanbanCard, checkInGoal, undoGoalCheckIn, setFocusSync } = useStore.getState()
-          replayOps(ops, { setTaskDone, moveKanbanCard, checkInGoal, undoGoalCheckIn, setFocusSync }, stateForWidgets)
+          const { setTaskDone, moveKanbanCard, checkInHabit, undoHabitCheckIn, setFocusSync } = useStore.getState()
+          replayOps(ops, { setTaskDone, moveKanbanCard, checkInHabit, undoHabitCheckIn, setFocusSync }, stateForWidgets)
         }
         await pushProjection(stateForWidgets())
       } finally {

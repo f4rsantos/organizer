@@ -80,13 +80,13 @@ export const cs = {
         'Poznámky lze importovat z Markdownu a prostého textu a exportovat jako Markdown, prostý text, webovou stránku, Word nebo tisknout do PDF. Poznámky na plátně pro ruční psaní vyžadují zapnutou cloudovou synchronizaci, protože kresby jsou velké a ukládají se vzdáleně. Plátno má pero a gumu, pět tlouštěk a pět barev, z nichž jedna sleduje váš motiv. Guma odstraní celý tah, ne jen jeho část.',
       ],
     },
-    goals: {
-      title: 'Cíle',
+    habits: {
+      title: 'Návyky',
       summary: 'Udrž dlouhodobý návyk, klik po kliku.',
       body: [
-        'Cíl je něco, v čem chceš pokračovat, ne něco, co jednou dokončíš. Každý cíl ukazuje jediné šedé tlačítko, které čeká na stisk. Stisknutím označíš aktuální období za splněné, spustí se malá oslava a uvidíš, jak dlouhá je tvoje série.',
-        'Při vytváření cíle vybereš, jak často se má mačkat, od každého dne až po jednou za měsíc, a jestli chceš pokaždé napsat krátkou poznámku. Poznámky se vyplatí zapnout, když ti záleží na tom, jak to šlo, ne jen na tom, že se to stalo.',
-        'Tvoje historie se pod tím skládá do kalendáře. Začíná jediným kolečkem a roste ven, každé pondělí přeskočí na nový řádek a každý měsíc otevře nový blok, takže první dny zůstanou čitelné a dlouhé série se samy oddálí. Tlačítka v záhlaví umožní projít pokrok, vrátit aktuální klik nebo cíl smazat.',
+        'Návyk je něco, v čem chceš pokračovat, ne něco, co jednou dokončíš. Každý návyk ukazuje jediné šedé tlačítko, které čeká na stisk. Stisknutím označíš aktuální období za splněné, spustí se malá oslava a uvidíš, jak dlouhá je tvoje série.',
+        'Při vytváření návyku vybereš, jak často se má mačkat, od každého dne až po jednou za měsíc, a jestli chceš pokaždé napsat krátkou poznámku. Poznámky se vyplatí zapnout, když ti záleží na tom, jak to šlo, ne jen na tom, že se to stalo.',
+        'Tvoje historie se pod tím skládá do kalendáře, sedm dní na řádek, s malou tečkou u každého dne mimo tvoji sérii. Začíná jediným řádkem a roste do nových řádků a měsíců, jak postupuješ, takže první dny zůstanou čitelné a dlouhé série zůstanou zarovnané. Tlačítka v záhlaví umožní projít pokrok, vrátit aktuální klik nebo návyk smazat.',
       ],
     },
     eisenhower: {

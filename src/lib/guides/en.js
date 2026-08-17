@@ -80,13 +80,13 @@ export const en = {
         'Notes import from Markdown and plain text, and export as Markdown, plain text, web page, Word, or print to PDF. Canvas notes for handwriting need cloud sync switched on, since drawings are large and are stored remotely. The canvas has a pen and eraser, five widths and five colours, one of which follows your theme. The eraser removes a whole stroke rather than part of one.',
       ],
     },
-    goals: {
-      title: 'Goals',
+    habits: {
+      title: 'Habits',
       summary: 'Keep a long-term habit going, one click at a time.',
       body: [
-        'A goal is something you want to keep doing rather than finish once. Each goal shows a single grey button waiting to be pressed, and pressing it marks the current period as done, sets off a little celebration, and tells you how long your run is.',
-        'When you create a goal you choose how often it should be clicked, from every day up to every month, and whether you want to jot a short note each time. Notes are worth turning on when you care about how something went, not only that it happened.',
-        'Your history builds into a calendar underneath. It starts as a single circle and grows outward, wrapping to a new row each Monday and splitting into a new block each month, so early days stay readable and long runs zoom out on their own. The buttons in the header let you review your progress, undo the current click, or delete the goal.',
+        'A habit is something you want to keep doing rather than finish once. Each habit shows a single grey button waiting to be pressed, and pressing it marks the current period as done, sets off a little celebration, and tells you how long your run is.',
+        'When you create a habit you choose how often it should be clicked, from every day up to every month, and whether you want to jot a short note each time. Notes are worth turning on when you care about how something went, not only that it happened.',
+        'Your history builds into a calendar underneath, seven days per row with a small dot marking any day outside your streak. It starts as a single row and grows into new rows and months as you go, so early days stay readable and long runs stay lined up. The buttons in the header let you review your progress, undo the current click, or delete the habit.',
       ],
     },
     eisenhower: {
