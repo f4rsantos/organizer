@@ -10,7 +10,6 @@ export function tokenize(text) {
   const rawTokens = norm.split(' ')
   for (let i = 0; i < rawTokens.length; i++) {
     const original = rawTokens[i]
-    // Value strips surrounding punctuation for easy exact matching
     const value = original.toLowerCase().replace(/^[.,!?;:()[\]]+|[.,!?;:()[\]]+$/g, '')
     tokens.push({
       index: i,
@@ -37,10 +36,6 @@ export function getUnconsumedText(tokens) {
   return tokens.filter(t => !t.consumed).map(t => t.original).join(' ').trim()
 }
 
-/**
- * Utility to run a regex against the currently unconsumed tokens.
- * This maps the string match index back to the token span.
- */
 export function matchUnconsumedTokens(tokens, regex) {
   const unconsumed = tokens.filter(t => !t.consumed)
   if (unconsumed.length === 0) return null
@@ -87,10 +82,6 @@ export function matchUnconsumedTokens(tokens, regex) {
   }
 }
 
-/**
- * Find exact sequence of words in unconsumed tokens.
- * words array e.g. ['advanced', 'math']
- */
 export function matchTokenSequence(tokens, words) {
   const unconsumed = tokens.filter(t => !t.consumed)
   if (words.length === 0 || unconsumed.length === 0) return null
