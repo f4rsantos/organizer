@@ -1,7 +1,11 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     namespace = "io.github.f4rsantos.organizer"
+    kotlinOptions {
+        jvmTarget = '21'
+    }
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "io.github.f4rsantos.organizer"

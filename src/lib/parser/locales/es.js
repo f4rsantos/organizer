@@ -117,8 +117,8 @@ export const es = {
     folder: ['carpeta', 'carpetas', 'directorio'],
     addWords: ['anadir', 'añadir', 'anade', 'añade', 'agregar', 'agrega', 'crear', 'crea', 'nueva', 'nuevo'],
   },
-  goalWords: {
-    goal: ['objetivo', 'objetivos', 'meta', 'metas', 'habito', 'hábito'],
+  habitWords: {
+    habit: ['hábito', 'habito', 'hábitos', 'habitos', 'objetivo', 'objetivos', 'meta', 'metas'],
     note: ['con la nota', 'con nota', 'nota'],
   },
 }

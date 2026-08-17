@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildProjection, buildTasksProjection, buildTodayProjection, buildKanbanProjection, emptyProjection,
-  buildAgendaProjection, buildGoalsProjection, buildSummaryProjection, buildCalendarProjection,
+  buildAgendaProjection, buildHabitsProjection, buildSummaryProjection, buildCalendarProjection,
   buildCalendarWeekProjection, buildCalendarDayProjection, buildCalendarYearProjection,
   buildPomodoroProjection,
 } from './projection.js'
@@ -15,7 +15,7 @@ function task(over = {}) {
 
 const CLASSES = [{ id: 'c1', name: 'Maths', color: '#6366f1' }]
 const NONE_MODE = { settings: { semesterMode: 'none' } }
-const GOALS_ON = { settings: { semesterMode: 'none', apps: { goals: true } } }
+const HABITS_ON = { settings: { semesterMode: 'none', apps: { habits: true } } }
 
 describe('tasks projection', () => {
   it('includes a task due today', () => {
@@ -430,45 +430,45 @@ describe('pomodoro projection', () => {
   })
 })
 
-describe('goals projection', () => {
-  const goal = (over = {}) => ({
+describe('habits projection', () => {
+  const habit = (over = {}) => ({
     id: 'g1', title: 'Run', cadenceDays: 1, weekdays: [], checkIns: {},
     createdAt: new Date('2026-08-01').getTime(), targetKind: 'endless', ...over,
   })
 
-  it('marks a goal pending when not checked in', () => {
-    const out = buildGoalsProjection({ ...GOALS_ON, goals: [goal()] }, NOW)
+  it('marks a habit pending when not checked in', () => {
+    const out = buildHabitsProjection({ ...HABITS_ON, habits: [habit()] }, NOW)
     expect(out).toHaveLength(1)
     expect(out[0]).toMatchObject({ id: 'g1', title: 'Run', done: false })
   })
 
-  it('marks a goal done when checked in for the period', () => {
-    const out = buildGoalsProjection({ ...GOALS_ON, goals: [goal({ checkIns: { [TODAY]: { note: '' } } })] }, NOW)
+  it('marks a habit done when checked in for the period', () => {
+    const out = buildHabitsProjection({ ...HABITS_ON, habits: [habit({ checkIns: { [TODAY]: { note: '' } } })] }, NOW)
     expect(out[0].done).toBe(true)
   })
 
   it('skips rest days on a custom cadence', () => {
-    const restToday = goal({ cadenceDays: 'custom', weekdays: [0] })
-    expect(buildGoalsProjection({ ...GOALS_ON, goals: [restToday] }, NOW)).toEqual([])
+    const restToday = habit({ cadenceDays: 'custom', weekdays: [0] })
+    expect(buildHabitsProjection({ ...HABITS_ON, habits: [restToday] }, NOW)).toEqual([])
   })
 
   it('keeps an active weekday on a custom cadence', () => {
-    const activeToday = goal({ cadenceDays: 'custom', weekdays: [2] })
-    expect(buildGoalsProjection({ ...GOALS_ON, goals: [activeToday] }, NOW)).toHaveLength(1)
+    const activeToday = habit({ cadenceDays: 'custom', weekdays: [2] })
+    expect(buildHabitsProjection({ ...HABITS_ON, habits: [activeToday] }, NOW)).toHaveLength(1)
   })
 
-  it('returns nothing without goals', () => {
-    expect(buildGoalsProjection({}, NOW)).toEqual([])
+  it('returns nothing without habits', () => {
+    expect(buildHabitsProjection({}, NOW)).toEqual([])
   })
 })
 
 describe('summary projection', () => {
-  it('counts overdue, due today and pending goals', () => {
+  it('counts overdue, due today and pending habits', () => {
     const state = { ...NONE_MODE, tasks: [task({ id: 'a' }), task({ id: 'b', dueDate: '2026-07-01' })] }
     const tasks = buildTasksProjection(state, TODAY)
     const summary = buildSummaryProjection(state, TODAY, tasks, [], [{ done: false }, { done: true }])
     expect(summary).toMatchObject({
-      overdue: 1, dueToday: 1, tasksOpen: 2, eventsToday: 0, goalsPending: 1,
+      overdue: 1, dueToday: 1, tasksOpen: 2, eventsToday: 0, habitsPending: 1,
     })
   })
 })

@@ -80,13 +80,13 @@ export const de = {
         'Notizen importieren aus Markdown und Klartext, und exportieren als Markdown, Klartext, Webseite, Word, oder drucken als PDF. Notizen mit Handschrift auf dem Zeichenblock benötigen aktivierte Cloud-Sync, da Zeichnungen groß sind und remote gespeichert werden. Der Zeichenblock hat Stift und Radiergummi, fünf Breiten und fünf Farben, von denen eine deinem Design folgt. Der Radiergummi entfernt einen ganzen Strich statt eines Teils davon.',
       ],
     },
-    goals: {
-      title: 'Ziele',
+    habits: {
+      title: 'Gewohnheiten',
       summary: 'Halte eine langfristige Gewohnheit am Laufen, Klick für Klick.',
       body: [
-        'Ein Ziel ist etwas, das du weiter tun willst, statt es einmal abzuschließen. Jedes Ziel zeigt einen einzelnen grauen Knopf, der darauf wartet, gedrückt zu werden. Ein Druck markiert den aktuellen Zeitraum als erledigt, löst eine kleine Feier aus und zeigt dir, wie lang deine Serie ist.',
-        'Beim Anlegen eines Ziels wählst du, wie oft geklickt werden soll, von täglich bis monatlich, und ob du jedes Mal eine kurze Notiz schreiben willst. Notizen lohnen sich, wenn dir wichtig ist, wie es lief, und nicht nur, dass es passiert ist.',
-        'Dein Verlauf wächst darunter zu einem Kalender. Er beginnt als einzelner Kreis und dehnt sich aus, bricht jeden Montag in eine neue Zeile um und jeden Monat in einen neuen Block, damit frühe Tage lesbar bleiben und lange Serien von selbst herauszoomen. Die Knöpfe in der Kopfzeile zeigen den Fortschritt, machen den aktuellen Klick rückgängig oder löschen das Ziel.',
+        'Eine Gewohnheit ist etwas, das du weiter tun willst, statt es einmal abzuschließen. Jede Gewohnheit zeigt einen einzelnen grauen Knopf, der darauf wartet, gedrückt zu werden. Ein Druck markiert den aktuellen Zeitraum als erledigt, löst eine kleine Feier aus und zeigt dir, wie lang deine Serie ist.',
+        'Beim Anlegen einer Gewohnheit wählst du, wie oft geklickt werden soll, von täglich bis monatlich, und ob du jedes Mal eine kurze Notiz schreiben willst. Notizen lohnen sich, wenn dir wichtig ist, wie es lief, und nicht nur, dass es passiert ist.',
+        'Dein Verlauf wächst darunter zu einem Kalender, sieben Tage pro Zeile, mit einem kleinen Punkt für jeden Tag außerhalb deiner Serie. Er beginnt als einzelne Zeile und wächst mit der Zeit in neue Zeilen und Monate, damit frühe Tage lesbar bleiben und lange Serien ausgerichtet bleiben. Die Knöpfe in der Kopfzeile zeigen den Fortschritt, machen den aktuellen Klick rückgängig oder löschen die Gewohnheit.',
       ],
     },
     eisenhower: {

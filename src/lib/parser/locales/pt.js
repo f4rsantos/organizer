@@ -124,8 +124,8 @@ export const pt = {
     folder: ['pasta', 'pastas', 'diretorio', 'diretório'],
     addWords: ['adicionar', 'adiciona', 'adicione', 'criar', 'cria', 'crie', 'nova', 'novo'],
   },
-  goalWords: {
-    goal: ['objetivo', 'objetivos', 'meta', 'metas', 'habito', 'hábito'],
+  habitWords: {
+    habit: ['hábito', 'habito', 'hábitos', 'habitos', 'objetivo', 'objetivos', 'meta', 'metas'],
     note: ['com a nota', 'com nota', 'nota'],
   },
 }

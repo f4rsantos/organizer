@@ -129,8 +129,8 @@ export const cs = {
     folder: ['složka', 'slozka', 'složku', 'slozku', 'adresář', 'adresar'],
     addWords: ['přidej', 'pridej', 'přidat', 'pridat', 'vytvoř', 'vytvor', 'vytvořit', 'vytvorit', 'nová', 'nova', 'nový', 'novy'],
   },
-  goalWords: {
-    goal: ['cíl', 'cil', 'cíle', 'cile', 'návyk', 'navyk'],
+  habitWords: {
+    habit: ['návyk', 'navyk', 'cíl', 'cil', 'cíle', 'cile'],
     note: ['s poznámkou', 's poznamkou', 'poznámka', 'poznamka'],
   },
 }

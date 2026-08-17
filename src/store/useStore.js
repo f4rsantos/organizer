@@ -88,10 +88,10 @@ function mergeStateOnHydrate(diskState, s) {
   const diskFolderIds = new Set(diskNoteFolders.map(f => f.id))
   const mergedNoteFolders = [...diskNoteFolders, ...currentNoteFolders.filter(f => !diskFolderIds.has(f.id))]
 
-  const diskGoals = Array.isArray(diskState?.goals) ? diskState.goals : []
-  const currentGoals = Array.isArray(s?.goals) ? s.goals : []
-  const diskGoalIds = new Set(diskGoals.map(g => g.id))
-  const mergedGoals = [...diskGoals, ...currentGoals.filter(g => !diskGoalIds.has(g.id))]
+  const diskHabits = Array.isArray(diskState?.habits) ? diskState.habits : []
+  const currentHabits = Array.isArray(s?.habits) ? s.habits : []
+  const diskHabitIds = new Set(diskHabits.map(g => g.id))
+  const mergedHabits = [...diskHabits, ...currentHabits.filter(g => !diskHabitIds.has(g.id))]
 
   const diskKanban = diskState?.kanban && typeof diskState.kanban === 'object' ? diskState.kanban : {}
   const currentKanban = s?.kanban && typeof s.kanban === 'object' ? s.kanban : {}
@@ -113,7 +113,7 @@ function mergeStateOnHydrate(diskState, s) {
     tasks: mergedTasks,
     notes: mergedNotes,
     noteFolders: mergedNoteFolders,
-    goals: mergedGoals,
+    habits: mergedHabits,
     kanban: mergedKanban,
     collab: {
       userId: diskCollab.userId ?? currentCollab.userId,
@@ -145,7 +145,7 @@ function buildInitialState() {
     events: [],
     notes: [],
     noteFolders: [],
-    goals: [],
+    habits: [],
     kanban: {},
     grades: {},
     settings: {
@@ -188,7 +188,7 @@ function buildInitialState() {
       semesterMode: 'semesters',
       navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
       standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
-      apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false, goals: false },
+      apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false, habits: false },
     },
     collab: {
       userId: null,
@@ -478,12 +478,12 @@ export const useStore = create((set, _get) => ({
     })
   }),
 
-  // --- Goals ---
-  addGoal: data => set(s => {
+  // --- Habits ---
+  addHabit: data => set(s => {
     const now = Date.now()
     return persist({
       ...s,
-      goals: [...(s.goals ?? []), {
+      habits: [...(s.habits ?? []), {
         id: nanoid(),
         title: '',
         cadenceDays: 1,
@@ -501,19 +501,19 @@ export const useStore = create((set, _get) => ({
       }],
     })
   }),
-  updateGoal: (id, data) => set(s => persist({
-    ...s, goals: (s.goals ?? []).map(g => g.id === id ? { ...g, ...data } : g),
+  updateHabit: (id, data) => set(s => persist({
+    ...s, habits: (s.habits ?? []).map(g => g.id === id ? { ...g, ...data } : g),
   })),
-  deleteGoal: id => set(s => persist({ ...s, goals: (s.goals ?? []).filter(g => g.id !== id) })),
-  checkInGoal: (id, periodKey, note = '') => set(s => persist({
+  deleteHabit: id => set(s => persist({ ...s, habits: (s.habits ?? []).filter(g => g.id !== id) })),
+  checkInHabit: (id, periodKey, note = '') => set(s => persist({
     ...s,
-    goals: (s.goals ?? []).map(g => g.id === id
+    habits: (s.habits ?? []).map(g => g.id === id
       ? { ...g, checkIns: { ...(g.checkIns ?? {}), [periodKey]: { at: Date.now(), note } } }
       : g),
   })),
-  undoGoalCheckIn: (id, periodKey) => set(s => persist({
+  undoHabitCheckIn: (id, periodKey) => set(s => persist({
     ...s,
-    goals: (s.goals ?? []).map(g => {
+    habits: (s.habits ?? []).map(g => {
       if (g.id !== id) return g
       const checkIns = { ...(g.checkIns ?? {}) }
       delete checkIns[periodKey]

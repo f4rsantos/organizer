@@ -12,7 +12,7 @@ export const GUIDE_STRINGS = { en, pt, fr, de, es, af, cs, pirate }
 // Order and grouping of the guide list. Entry ids match keys in each locale.
 export const GUIDE_SECTIONS = [
   { id: 'core', entries: ['tasks', 'kanban', 'grades', 'calendar', 'focus'] },
-  { id: 'productivity', entries: ['notes', 'eisenhower', 'goals', 'quickAction'] },
+  { id: 'productivity', entries: ['notes', 'eisenhower', 'habits', 'quickAction'] },
   { id: 'sync', entries: ['googleCalendar', 'eiCalendar'] },
   { id: 'ambient', entries: ['pomodoro', 'standby'] },
   { id: 'sharing', entries: ['firebaseSync', 'collab', 'dataTransfer'] },

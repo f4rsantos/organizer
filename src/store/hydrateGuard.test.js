@@ -174,7 +174,7 @@ describe('edits made before hydration are never discarded', () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().markHydrated()
     useStore.getState().updateSettings({
-      apps: { collab: false, notes: true, goals: false },
+      apps: { collab: false, notes: true, habits: false },
       gradeScale: 100,
     })
 
@@ -189,7 +189,7 @@ describe('edits made before hydration are never discarded', () => {
     })
 
     const settings = useStore.getState().settings
-    expect(settings.apps.goals).toBe(true)
+    expect(settings.apps.habits).toBe(true)
     expect(settings.apps.notes).toBe(true)
     expect(settings.gradeScale).toBe(100)
   })

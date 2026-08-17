@@ -122,8 +122,8 @@ export const fr = {
     folder: ['dossier', 'dossiers', 'repertoire', 'répertoire'],
     addWords: ['ajouter', 'ajoute', 'creer', 'créer', 'cree', 'crée', 'nouveau', 'nouvelle'],
   },
-  goalWords: {
-    goal: ['objectif', 'objectifs', 'habitude', 'habitudes'],
+  habitWords: {
+    habit: ['habitude', 'habitudes', 'objectif', 'objectifs'],
     note: ['avec la note', 'avec note', 'note'],
   },
 }

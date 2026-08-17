@@ -11,7 +11,7 @@ import { nanoid } from "@/lib/ids";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
 import { useCollabActions } from "@/hooks/useCollabActions";
 import { sortByOrder } from "@/lib/utils";
-import { currentPeriodKey, isCheckedIn } from "@/lib/goals";
+import { currentPeriodKey, isCheckedIn } from "@/lib/habits";
 
 function AutoTextarea({ value, onChange, onKeyDown, placeholder, ...props }) {
   const textareaRef = useRef(null);
@@ -101,9 +101,9 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
   const setGradeComponents = useStore((s) => s.setGradeComponents);
   const addNote = useStore((s) => s.addNote);
   const addNoteFolder = useStore((s) => s.addNoteFolder);
-  const goals = useStore((s) => s.goals ?? []);
-  const checkInGoal = useStore((s) => s.checkInGoal);
-  const undoGoalCheckIn = useStore((s) => s.undoGoalCheckIn);
+  const habits = useStore((s) => s.habits ?? []);
+  const checkInHabit = useStore((s) => s.checkInHabit);
+  const undoHabitCheckIn = useStore((s) => s.undoHabitCheckIn);
 
   const runFocusCommand = (cmd) => {
     const running = focusSync?.status === "started";
@@ -279,23 +279,23 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
     return scored[0].task;
   };
 
-  const openForCheckIn = (goal, now) => {
-    const pk = currentPeriodKey(goal, now);
-    return pk !== null && !isCheckedIn(goal, pk);
+  const openForCheckIn = (habit, now) => {
+    const pk = currentPeriodKey(habit, now);
+    return pk !== null && !isCheckedIn(habit, pk);
   };
 
-  const findBestGoal = (query) => {
+  const findBestHabit = (query) => {
     if (!query) return null;
     const qTokens = query.toLowerCase().trim().split(/\s+/);
 
-    const scored = goals
+    const scored = habits
       .map((g) => {
         const titleTokens = (g.title || "").toLowerCase().split(/\s+/);
         let matches = 0;
         for (const qt of qTokens) {
           if (titleTokens.includes(qt)) matches++;
         }
-        return { goal: g, score: matches };
+        return { habit: g, score: matches };
       })
       .filter((s) => s.score > 0);
 
@@ -304,27 +304,27 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
     const now = new Date();
     scored.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      const aOpen = openForCheckIn(a.goal, now) ? 0 : 1;
-      const bOpen = openForCheckIn(b.goal, now) ? 0 : 1;
+      const aOpen = openForCheckIn(a.habit, now) ? 0 : 1;
+      const bOpen = openForCheckIn(b.habit, now) ? 0 : 1;
       return aOpen - bOpen;
     });
 
-    return scored[0].goal;
+    return scored[0].habit;
   };
 
-  const runGoalMutation = (item, goal) => {
+  const runHabitMutation = (item, habit) => {
     const now = new Date();
-    const periodKey = currentPeriodKey(goal, now);
+    const periodKey = currentPeriodKey(habit, now);
     if (periodKey === null) return;
 
     if (item.action === "complete") {
-      if (isCheckedIn(goal, periodKey)) return;
-      checkInGoal(goal.id, periodKey, item.note ?? "");
+      if (isCheckedIn(habit, periodKey)) return;
+      checkInHabit(habit.id, periodKey, item.note ?? "");
       return;
     }
 
     if (item.action === "undo") {
-      undoGoalCheckIn(goal.id, periodKey);
+      undoHabitCheckIn(habit.id, periodKey);
     }
   };
 
@@ -363,20 +363,20 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
       }
 
       if (item.kind === "mutation") {
-        const goalsEnabled = apps.goals === true;
-        const goalOnly = item.action === "undo" || item.goalScoped;
+        const habitsEnabled = apps.habits === true;
+        const habitOnly = item.action === "undo" || item.habitScoped;
 
-        if (goalsEnabled && goalOnly) {
-          const targetGoal = findBestGoal(item.query);
-          if (targetGoal) runGoalMutation(item, targetGoal);
+        if (habitsEnabled && habitOnly) {
+          const targetHabit = findBestHabit(item.query);
+          if (targetHabit) runHabitMutation(item, targetHabit);
           continue;
         }
 
         const targetTask = findBestTask(item.query);
         if (!targetTask) {
-          if (goalsEnabled) {
-            const fallbackGoal = findBestGoal(item.query);
-            if (fallbackGoal) runGoalMutation(item, fallbackGoal);
+          if (habitsEnabled) {
+            const fallbackHabit = findBestHabit(item.query);
+            if (fallbackHabit) runHabitMutation(item, fallbackHabit);
           }
           continue;
         }

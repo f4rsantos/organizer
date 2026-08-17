@@ -108,8 +108,8 @@ export const en = {
     folder: ['folder'],
     addWords: ['add', 'new', 'create'],
   },
-  goalWords: {
-    goal: ['goal', 'habit', 'streak'],
+  habitWords: {
+    habit: ['habit', 'goal', 'streak'],
     note: ['with a note', 'with note', 'note'],
   },
 }

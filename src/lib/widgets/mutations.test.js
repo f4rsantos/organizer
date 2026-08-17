@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  replayOps, isValidOp, OP_SET_TASK_DONE, OP_MOVE_CARD, OP_SET_GOAL_CHECKIN, OP_SET_FOCUS_RUNNING,
+  replayOps, isValidOp, OP_SET_TASK_DONE, OP_MOVE_CARD, OP_SET_HABIT_CHECKIN, OP_SET_FOCUS_RUNNING,
 } from './mutations.js'
-import { currentPeriodKey } from '@/lib/goals'
+import { currentPeriodKey } from '@/lib/habits'
 
 const NOW = 1_700_000_000_000
 
@@ -21,13 +21,13 @@ function stubActions() {
   return {
     setTaskDone: vi.fn(),
     moveKanbanCard: vi.fn(),
-    checkInGoal: vi.fn(),
-    undoGoalCheckIn: vi.fn(),
+    checkInHabit: vi.fn(),
+    undoHabitCheckIn: vi.fn(),
     setFocusSync: vi.fn(),
   }
 }
 
-function goal(over = {}) {
+function habit(over = {}) {
   return {
     id: 'g1', title: 'Run', cadenceDays: 1, weekdays: [], checkIns: {},
     createdAt: NOW - 86400000 * 5, targetKind: 'endless', ...over,
@@ -122,60 +122,60 @@ describe('replayOps moveCard', () => {
   })
 })
 
-describe('replayOps setGoalCheckIn', () => {
-  it('checks in a goal queued from the widget', () => {
-    const state = { goals: [goal()] }
+describe('replayOps setHabitCheckIn', () => {
+  it('checks in a habit queued from the widget', () => {
+    const state = { habits: [habit()] }
     const actions = stubActions()
     const applied = replayOps(
-      [{ id: 'g1', type: OP_SET_GOAL_CHECKIN, done: true, ts: NOW }],
+      [{ id: 'g1', type: OP_SET_HABIT_CHECKIN, done: true, ts: NOW }],
       actions, () => state,
     )
     expect(applied).toBe(1)
-    expect(actions.checkInGoal).toHaveBeenCalledWith('g1', currentPeriodKey(state.goals[0], new Date(NOW)))
+    expect(actions.checkInHabit).toHaveBeenCalledWith('g1', currentPeriodKey(state.habits[0], new Date(NOW)))
   })
 
   it('undoes a check in', () => {
-    const key = currentPeriodKey(goal(), new Date(NOW))
-    const state = { goals: [goal({ checkIns: { [key]: { at: NOW, note: '' } } })] }
+    const key = currentPeriodKey(habit(), new Date(NOW))
+    const state = { habits: [habit({ checkIns: { [key]: { at: NOW, note: '' } } })] }
     const actions = stubActions()
-    replayOps([{ id: 'g1', type: OP_SET_GOAL_CHECKIN, done: false, ts: NOW }], actions, () => state)
-    expect(actions.undoGoalCheckIn).toHaveBeenCalledWith('g1', key)
+    replayOps([{ id: 'g1', type: OP_SET_HABIT_CHECKIN, done: false, ts: NOW }], actions, () => state)
+    expect(actions.undoHabitCheckIn).toHaveBeenCalledWith('g1', key)
   })
 
   it('ignores an op that matches the current state', () => {
-    const key = currentPeriodKey(goal(), new Date(NOW))
-    const state = { goals: [goal({ checkIns: { [key]: { at: NOW, note: '' } } })] }
+    const key = currentPeriodKey(habit(), new Date(NOW))
+    const state = { habits: [habit({ checkIns: { [key]: { at: NOW, note: '' } } })] }
     const actions = stubActions()
     const applied = replayOps(
-      [{ id: 'g1', type: OP_SET_GOAL_CHECKIN, done: true, ts: NOW }],
+      [{ id: 'g1', type: OP_SET_HABIT_CHECKIN, done: true, ts: NOW }],
       actions, () => state,
     )
     expect(applied).toBe(0)
-    expect(actions.checkInGoal).not.toHaveBeenCalled()
+    expect(actions.checkInHabit).not.toHaveBeenCalled()
   })
 
-  it('ignores an op for a missing goal', () => {
+  it('ignores an op for a missing habit', () => {
     const actions = stubActions()
     const applied = replayOps(
-      [{ id: 'nope', type: OP_SET_GOAL_CHECKIN, done: true, ts: NOW }],
-      actions, () => ({ goals: [] }),
+      [{ id: 'nope', type: OP_SET_HABIT_CHECKIN, done: true, ts: NOW }],
+      actions, () => ({ habits: [] }),
     )
     expect(applied).toBe(0)
   })
 
   it('ignores a check in on a rest day', () => {
-    const restDay = goal({ cadenceDays: 'custom', weekdays: [] })
+    const restDay = habit({ cadenceDays: 'custom', weekdays: [] })
     const actions = stubActions()
     const applied = replayOps(
-      [{ id: 'g1', type: OP_SET_GOAL_CHECKIN, done: true, ts: NOW }],
-      actions, () => ({ goals: [restDay] }),
+      [{ id: 'g1', type: OP_SET_HABIT_CHECKIN, done: true, ts: NOW }],
+      actions, () => ({ habits: [restDay] }),
     )
     expect(applied).toBe(0)
-    expect(actions.checkInGoal).not.toHaveBeenCalled()
+    expect(actions.checkInHabit).not.toHaveBeenCalled()
   })
 
-  it('rejects a goal op without a boolean', () => {
-    expect(isValidOp({ id: 'g1', type: OP_SET_GOAL_CHECKIN, done: 'yes', ts: NOW })).toBe(false)
+  it('rejects a habit op without a boolean', () => {
+    expect(isValidOp({ id: 'g1', type: OP_SET_HABIT_CHECKIN, done: 'yes', ts: NOW })).toBe(false)
   })
 })
 

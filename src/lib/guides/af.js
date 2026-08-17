@@ -80,7 +80,7 @@ export const af = {
         'banana',
       ],
     },
-    goals: {
+    habits: {
       title: 'banana',
       summary: 'banana',
       body: [

@@ -2,7 +2,7 @@ import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
 import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 
-export const CURRENT_VERSION = 6
+export const CURRENT_VERSION = 7
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
@@ -14,6 +14,7 @@ const MIGRATIONS = [
   { toVersion: 4, migrate: migrateV4Events },
   { toVersion: 5, migrate: migrateV5NavbarStandbyApps },
   { toVersion: 6, migrate: migrateV6QuickAction },
+  { toVersion: 7, migrate: migrateV7GoalsToHabits },
 ]
 
 export function migrateState(raw) {
@@ -167,6 +168,23 @@ function migrateV6QuickAction(state) {
   return { ...state, settings }
 }
 
+function migrateV7GoalsToHabits(state) {
+  const next = { ...state }
+  if (Array.isArray(state.goals) && !Array.isArray(state.habits)) {
+    next.habits = state.goals
+  }
+  delete next.goals
+
+  const settings = { ...(state.settings ?? {}) }
+  const apps = { ...(settings.apps ?? {}) }
+  if ('goals' in apps && !('habits' in apps)) apps.habits = apps.goals
+  delete apps.goals
+  settings.apps = apps
+  next.settings = settings
+
+  return next
+}
+
 export function plaintextToDoc(text) {
   const paragraphs = String(text).split(/\n{2,}/)
   return {
@@ -182,7 +200,7 @@ export function plaintextToDoc(text) {
 
 function normalizeNavbar(navbar) {
   const n = navbar && typeof navbar === 'object' ? navbar : {}
-  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'goals'])
+  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'habits'])
   const order = (Array.isArray(n.order) ? n.order : []).filter(id => known.has(id))
   for (const id of DEFAULT_TAB_ORDER) if (!order.includes(id)) order.push(id)
   const hidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
@@ -235,7 +253,7 @@ function normalizeApps(apps, settings) {
     notes: a.notes === true,
     eisenhower: a.eisenhower === true,
     googleCalendar: a.googleCalendar === true,
-    goals: a.goals === true,
+    habits: a.habits === true,
     quickAction: a.quickAction !== false,
     quickActionTripleTap: Boolean(a.quickActionTripleTap),
     quickActionShortcut: a.quickActionShortcut !== undefined ? a.quickActionShortcut : undefined,
@@ -365,10 +383,10 @@ function normalizeReminderOffsets(offsets) {
   return [...new Set(cleaned)].sort((a, b) => b - a).slice(0, 8)
 }
 
-function normalizeGoal(goal) {
-  if (!goal || typeof goal !== 'object') return null
-  if (typeof goal.id !== 'string') return null
-  const checkIns = goal.checkIns && typeof goal.checkIns === 'object' ? goal.checkIns : {}
+function normalizeHabit(habit) {
+  if (!habit || typeof habit !== 'object') return null
+  if (typeof habit.id !== 'string') return null
+  const checkIns = habit.checkIns && typeof habit.checkIns === 'object' ? habit.checkIns : {}
   const normalizedCheckIns = {}
   for (const [key, value] of Object.entries(checkIns)) {
     if (!value || typeof value !== 'object') continue
@@ -378,19 +396,19 @@ function normalizeGoal(goal) {
     }
   }
   return {
-    ...goal,
-    title: typeof goal.title === 'string' ? goal.title : '',
-    cadenceDays: [1, 2, 3, 7, 30, 'custom'].includes(goal.cadenceDays) ? goal.cadenceDays : 1,
-    weekdays: [...new Set((Array.isArray(goal.weekdays) ? goal.weekdays : [])
+    ...habit,
+    title: typeof habit.title === 'string' ? habit.title : '',
+    cadenceDays: [1, 2, 3, 7, 30, 'custom'].includes(habit.cadenceDays) ? habit.cadenceDays : 1,
+    weekdays: [...new Set((Array.isArray(habit.weekdays) ? habit.weekdays : [])
       .filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b),
-    requireNote: goal.requireNote === true,
-    color: typeof goal.color === 'string' ? goal.color : null,
-    tone: ['purpose', 'warm', 'upbeat', 'game', 'random', 'custom'].includes(goal.tone) ? goal.tone : 'warm',
-    customMessage: typeof goal.customMessage === 'string' ? goal.customMessage : '',
-    targetKind: ['endless', 'count', 'date'].includes(goal.targetKind) ? goal.targetKind : 'endless',
-    targetCount: Number.isFinite(goal.targetCount) && goal.targetCount > 0 ? Math.trunc(goal.targetCount) : null,
-    targetDate: typeof goal.targetDate === 'string' ? goal.targetDate : null,
-    createdAt: Number.isFinite(goal.createdAt) ? goal.createdAt : Date.now(),
+    requireNote: habit.requireNote === true,
+    color: typeof habit.color === 'string' ? habit.color : null,
+    tone: ['purpose', 'warm', 'upbeat', 'game', 'random', 'custom'].includes(habit.tone) ? habit.tone : 'warm',
+    customMessage: typeof habit.customMessage === 'string' ? habit.customMessage : '',
+    targetKind: ['endless', 'count', 'date'].includes(habit.targetKind) ? habit.targetKind : 'endless',
+    targetCount: Number.isFinite(habit.targetCount) && habit.targetCount > 0 ? Math.trunc(habit.targetCount) : null,
+    targetDate: typeof habit.targetDate === 'string' ? habit.targetDate : null,
+    createdAt: Number.isFinite(habit.createdAt) ? habit.createdAt : Date.now(),
     checkIns: normalizedCheckIns,
   }
 }
@@ -460,7 +478,7 @@ export function normalizeState(state) {
   state.events = (Array.isArray(state.events) ? state.events : []).map(normalizeEvent).filter(Boolean)
   state.notes = (Array.isArray(state.notes) ? state.notes : []).map(normalizeNote).filter(Boolean)
   state.noteFolders = (Array.isArray(state.noteFolders) ? state.noteFolders : []).map(normalizeNoteFolder).filter(Boolean)
-  state.goals = (Array.isArray(state.goals) ? state.goals : []).map(normalizeGoal).filter(Boolean)
+  state.habits = (Array.isArray(state.habits) ? state.habits : []).map(normalizeHabit).filter(Boolean)
   if (!state.kanban || typeof state.kanban !== 'object') state.kanban = {}
   if (!state.grades || typeof state.grades !== 'object') state.grades = {}
 

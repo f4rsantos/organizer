@@ -120,7 +120,7 @@ function consumeKeywords(tokens, words) {
   return found
 }
 
-function splitGoalNote(text, noteWords) {
+function splitHabitNote(text, noteWords) {
   const raw = (text ?? '').trim()
   if (!raw) return { query: '', note: '' }
 
@@ -256,17 +256,17 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
   const eventWordsPlural = asWordList(t.quickActionEventWordsPlural, ['calendar events', 'events'])
   const cardWordsPlural = asWordList(t.quickActionCardWordsPlural, ['kanban cards', 'cards'])
 
-  const goalWords = mergeWordGroups('goalWords', resolvedLocale)
+  const habitWords = mergeWordGroups('habitWords', resolvedLocale)
 
   for (let tokens of clauses) {
     const mutationLed = startsWithMutationVerb(tokens, resolvedLocale)
 
-    let goalNote = ''
+    let habitNote = ''
     if (mutationLed) {
       const clauseText = tokens.map(tok => tok.original).join(' ')
-      const split = splitGoalNote(clauseText, goalWords.note)
+      const split = splitHabitNote(clauseText, habitWords.note)
       if (split.note) {
-        goalNote = split.note
+        habitNote = split.note
         tokens = tokenize(split.query).map((tok, i) => ({ ...tok, index: i }))
       }
     }
@@ -389,14 +389,14 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
           consumeKeywords(tokens, cardWords)
 
           consumeKeywords(tokens, articleWords)
-          const goalScoped = consumeKeywords(tokens, goalWords.goal)
+          const habitScoped = consumeKeywords(tokens, habitWords.habit)
 
           results.push({
             kind: 'mutation',
             action: parsed.action.action,
             query: getUnconsumedText(tokens),
-            note: goalNote,
-            goalScoped,
+            note: habitNote,
+            habitScoped,
             columnId: columnMatch?.columnId ?? null,
             teamId: teamMatch?.teamId ?? null
           })

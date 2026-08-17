@@ -2,7 +2,7 @@ import { toDateKey } from '@/lib/taskReminders'
 import { FREE_BOARD_ID } from '@/lib/taskUtils'
 import { sortByOrder } from '@/lib/utils'
 import { getWeekContext } from '@/lib/weekContext'
-import { currentPeriodKey, isCheckedIn, isRestDay, goalStreak } from '@/lib/goals'
+import { currentPeriodKey, isCheckedIn, isRestDay, habitStreak } from '@/lib/habits'
 import { mergedKanban, mergedTasks } from './merge'
 import {
   getPeriodStart, getPomodoroTimestamp, getPomodoroCompletedCount,
@@ -15,7 +15,7 @@ const MAX_EVENTS = 15
 const MAX_COLUMNS = 8
 const MAX_CARDS = 6
 const MAX_AGENDA = 12
-const MAX_GOALS = 10
+const MAX_HABITS = 10
 const AGENDA_DAYS = 14
 const MAX_TOMATOES = 12
 const MAX_DAY_ENTRIES = 4
@@ -286,17 +286,17 @@ export function buildCalendarYearProjection(state, now = new Date(), yearOffset 
   }
 }
 
-export function buildGoalsProjection(state, now = new Date()) {
-  if (state.settings?.apps?.goals !== true) return []
-  return (state.goals ?? [])
-    .filter(goal => !isRestDay(goal, now))
-    .slice(0, MAX_GOALS)
-    .map(goal => ({
-      id: goal.id,
-      title: goal.title ?? '',
-      done: isCheckedIn(goal, currentPeriodKey(goal, now)),
-      streak: goalStreak(goal, now).current,
-      color: goal.color ?? null,
+export function buildHabitsProjection(state, now = new Date()) {
+  if (state.settings?.apps?.habits !== true) return []
+  return (state.habits ?? [])
+    .filter(habit => !isRestDay(habit, now))
+    .slice(0, MAX_HABITS)
+    .map(habit => ({
+      id: habit.id,
+      title: habit.title ?? '',
+      done: isCheckedIn(habit, currentPeriodKey(habit, now)),
+      streak: habitStreak(habit, now).current,
+      color: habit.color ?? null,
     }))
 }
 
@@ -371,16 +371,16 @@ export function buildPomodoroProjection(state, now = new Date()) {
   return { enabled: true, completed, abandoned, focusSecs, tomatoes, period, timer, dayKey: toDateKey(now) }
 }
 
-export function buildSummaryProjection(state, dayKey, tasks, today, goals) {
+export function buildSummaryProjection(state, dayKey, tasks, today, habits) {
   return {
-    goalsEnabled: state.settings?.apps?.goals === true,
+    habitsEnabled: state.settings?.apps?.habits === true,
     overdue: tasks.filter(t => t.overdue).length,
     dueToday: (state.tasks ?? []).filter(
       t => !t.done && typeof t.dueDate === 'string' && t.dueDate.slice(0, 10) === dayKey,
     ).length,
     tasksOpen: tasks.length,
     eventsToday: today.length,
-    goalsPending: goals.filter(g => !g.done).length,
+    habitsPending: habits.filter(g => !g.done).length,
   }
 }
 
@@ -388,7 +388,7 @@ export function buildProjection(state, now = new Date()) {
   const dayKey = toDateKey(now)
   const tasks = buildTasksProjection(state, dayKey, weekContextFor(state))
   const today = buildTodayProjection(state, dayKey)
-  const goals = buildGoalsProjection(state, now)
+  const habits = buildHabitsProjection(state, now)
   return {
     version: PROJECTION_VERSION,
     updatedAt: now.getTime(),
@@ -403,8 +403,8 @@ export function buildProjection(state, now = new Date()) {
     calendarWeeks: [-1, 0, 1].map(offset => buildCalendarWeekProjection(state, now, offset)),
     calendarDays: [-1, 0, 1].map(offset => buildCalendarDayProjection(state, now, offset)),
     calendarYears: [-1, 0, 1].map(offset => buildCalendarYearProjection(state, now, offset)),
-    goals,
-    summary: buildSummaryProjection(state, dayKey, tasks, today, goals),
+    habits,
+    summary: buildSummaryProjection(state, dayKey, tasks, today, habits),
   }
 }
 
@@ -422,8 +422,8 @@ export function emptyProjection(now = new Date()) {
     calendarYears: [],
     progress: { done: 0, total: 0, classes: [] },
     pomodoro: { enabled: false, completed: 0, abandoned: 0, focusSecs: 0, tomatoes: [] },
-    goals: [],
-    summary: { overdue: 0, dueToday: 0, tasksOpen: 0, eventsToday: 0, goalsPending: 0 },
+    habits: [],
+    summary: { overdue: 0, dueToday: 0, tasksOpen: 0, eventsToday: 0, habitsPending: 0 },
     kanban: [],
   }
 }
