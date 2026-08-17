@@ -4,6 +4,5 @@ export function updateBadge(count) {
     if (count > 0) navigator.setAppBadge(count)
     else navigator.clearAppBadge()
   } catch {
-    // Badging API unsupported here
   }
 }

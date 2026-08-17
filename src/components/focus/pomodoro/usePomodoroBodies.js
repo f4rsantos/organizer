@@ -417,7 +417,6 @@ export function usePomodoroBodies({
     const now = performance.now()
     const history = draggingRef.current.history
     history.push({ x, y, t: now })
-    // keep only last 100ms of samples
     const cutoff = now - 100
     let i = 0
     while (i < history.length - 1 && history[i].t < cutoff) i++

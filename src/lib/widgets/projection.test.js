@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import {
   buildProjection, buildTasksProjection, buildTodayProjection, buildKanbanProjection, emptyProjection,
   buildAgendaProjection, buildHabitsProjection, buildSummaryProjection, buildCalendarProjection,
@@ -16,6 +16,14 @@ function task(over = {}) {
 const CLASSES = [{ id: 'c1', name: 'Maths', color: '#6366f1' }]
 const NONE_MODE = { settings: { semesterMode: 'none' } }
 const HABITS_ON = { settings: { semesterMode: 'none', apps: { habits: true } } }
+
+beforeAll(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(NOW)
+})
+afterAll(() => {
+  vi.useRealTimers()
+})
 
 describe('tasks projection', () => {
   it('includes a task due today', () => {
