@@ -11,6 +11,7 @@ import {
   normalizeWeekdays,
   periodKeyFor,
   periodsBetween,
+  toDayKey,
 } from './habits.js'
 
 function makeHabit(overrides = {}) {
@@ -149,6 +150,77 @@ describe('groupPeriodsForCalendar', () => {
     expect(months[0].rows[0].cells.filter(Boolean)).toHaveLength(1)
     expect(months[0].rows[0].cells[0]).toMatchObject({ key: '2026-01-05' })
     expect(months[0].rows[0].cells.slice(1).every(c => c === null)).toBe(true)
+  })
+
+  it('shows a check-in on the day it was made, not the period start', () => {
+    const habit = makeHabit({
+      cadenceDays: 2,
+      createdAt: new Date('2026-01-06T00:00:00').getTime(),
+      checkIns: { '2026-01-18': { at: new Date('2026-01-19T09:00:00').getTime(), note: '' } },
+    })
+    const months = groupPeriodsForCalendar(habitPeriods(habit, new Date('2026-01-19T12:00:00')))
+    const row = months.flatMap(m => m.rows).at(-1)
+
+    expect(row.key).toBe('2026-01-19')
+    expect(row.cells[0]).toMatchObject({ key: '2026-01-18', current: true, done: true })
+    expect(row.cells.slice(1).every(c => c === null)).toBe(true)
+  })
+
+  it('keeps a past check-in on its own check-in day without colliding', () => {
+    const habit = makeHabit({
+      cadenceDays: 2,
+      createdAt: new Date('2026-01-06T00:00:00').getTime(),
+      checkIns: {
+        '2026-01-18': { at: new Date('2026-01-19T09:00:00').getTime(), note: '' },
+        '2026-01-20': { at: new Date('2026-01-20T09:00:00').getTime(), note: '' },
+      },
+    })
+    const periods = habitPeriods(habit, new Date('2026-01-21T12:00:00'))
+    const months = groupPeriodsForCalendar(periods)
+    const cells = months.flatMap(m => m.rows).flatMap(r => r.cells).filter(Boolean)
+    const row = months.flatMap(m => m.rows).at(-1)
+
+    expect(cells).toHaveLength(periods.length)
+    expect(row.cells[0]).toMatchObject({ key: '2026-01-18', done: true })
+    expect(row.cells[1]).toMatchObject({ key: '2026-01-20', done: true })
+  })
+
+  it('falls back to the period start for legacy check-ins without a timestamp', () => {
+    const habit = makeHabit({
+      cadenceDays: 2,
+      createdAt: new Date('2026-01-06T00:00:00').getTime(),
+      checkIns: { '2026-01-14': { at: 0, note: '' } },
+    })
+    const periods = habitPeriods(habit, new Date('2026-01-19T12:00:00'))
+    const checked = periods.find(p => p.key === '2026-01-14')
+
+    expect(checked.done).toBe(true)
+    expect(toDayKey(checked.displayStart)).toBe('2026-01-14')
+  })
+
+  it('clamps a check-in timestamp that falls outside its period', () => {
+    const habit = makeHabit({
+      cadenceDays: 2,
+      createdAt: new Date('2026-01-06T00:00:00').getTime(),
+      checkIns: { '2026-01-14': { at: new Date('2027-06-01T09:00:00').getTime(), note: '' } },
+    })
+    const periods = habitPeriods(habit, new Date('2026-01-19T12:00:00'))
+    const checked = periods.find(p => p.key === '2026-01-14')
+
+    expect(toDayKey(checked.displayStart)).toBe('2026-01-15')
+  })
+
+  it('leaves past periods on their start day', () => {
+    const habit = makeHabit({
+      cadenceDays: 2,
+      createdAt: new Date('2026-01-06T00:00:00').getTime(),
+    })
+    const months = groupPeriodsForCalendar(habitPeriods(habit, new Date('2026-01-19T12:00:00')))
+    const rows = months.flatMap(m => m.rows)
+
+    expect(rows[0].cells.map(c => c?.key ?? null)).toEqual([
+      null, '2026-01-06', null, '2026-01-08', null, '2026-01-10', null,
+    ])
   })
 })
 
