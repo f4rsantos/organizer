@@ -39,16 +39,30 @@ function FillerCell({ size }) {
   )
 }
 
-export function HabitCalendar({ periods, color, restLabel, monthFormat = 'MMMM yyyy' }) {
+export function HabitCalendar({ periods, color, restLabel, weekdayLabels, monthFormat = 'MMMM yyyy' }) {
   const months = groupPeriodsForCalendar(periods)
   if (months.length === 0) return null
 
   const single = periods.length === 1
   const size = cellSizeFor(periods.length)
   const gap = size >= 48 ? 'gap-2.5' : 'gap-1.5'
+  const showWeekdays = !single && weekdayLabels?.length === 7
 
   return (
     <div className="space-y-4">
+      {showWeekdays && (
+        <div className={cn('grid grid-cols-7', gap)}>
+          {weekdayLabels.map((label, i) => (
+            <div
+              key={i}
+              style={{ width: size }}
+              className="text-[10px] leading-none text-muted-foreground text-center shrink-0"
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
       {months.map(month => (
         <div key={month.key} className="space-y-1.5">
           {months.length > 1 && (

@@ -8,7 +8,7 @@ export function HabitHistory({ habit, periods, completion, message, t }) {
   return (
     <div className="min-h-full flex flex-col items-center justify-center gap-4 py-4">
       <div className="w-full max-w-md flex justify-center">
-        <HabitCalendar periods={periods} color={habit.color} restLabel={t.habitRestDay} />
+        <HabitCalendar periods={periods} color={habit.color} restLabel={t.habitRestDay} weekdayLabels={t.weekdaysShort} />
       </div>
 
       {message && <p className="text-sm font-medium text-center">{message}</p>}

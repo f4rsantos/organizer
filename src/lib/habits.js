@@ -104,17 +104,38 @@ export function isPending(habit, now = new Date()) {
   return !isCheckedIn(habit, key)
 }
 
+function checkInDayWithin(entry, periodStart, periodEnd, now) {
+  if (!Number.isFinite(entry?.at) || entry.at <= 0) return null
+  const day = startOfDay(new Date(entry.at))
+  if (Number.isNaN(day.getTime())) return null
+  if (day < periodStart) return null
+  const limit = periodEnd < now ? periodEnd : startOfDay(now)
+  return day > limit ? limit : day
+}
+
 export function habitPeriods(habit, now = new Date()) {
   if (!habit) return []
+  const cadence = habit.cadenceDays ?? 1
   const periods = periodsBetween(habit, anchorDateOf(habit), now)
   const currentKey = currentPeriodKey(habit, now)
-  const today = toDayKey(startOfDay(now))
-  return periods.map(p => ({
-    ...p,
-    done: !p.rest && isCheckedIn(habit, p.key),
-    current: p.rest ? p.key === today : p.key === currentKey,
-    note: p.rest ? '' : (habit.checkIns?.[p.key]?.note ?? ''),
-  }))
+  const todayStart = startOfDay(now)
+  const today = toDayKey(todayStart)
+  return periods.map(p => {
+    const current = p.rest ? p.key === today : p.key === currentKey
+    const entry = p.rest ? null : habit.checkIns?.[p.key]
+    const done = !p.rest && isCheckedIn(habit, p.key)
+    const lastDay = p.rest
+      ? p.start
+      : addDays(nextPeriodStart(p.start, cadence), -1)
+    const checkedOn = done ? checkInDayWithin(entry, p.start, lastDay, now) : null
+    return {
+      ...p,
+      done,
+      current,
+      displayStart: checkedOn ?? (current ? todayStart : p.start),
+      note: p.rest ? '' : (entry?.note ?? ''),
+    }
+  })
 }
 
 export function habitStreak(habit, now = new Date()) {
@@ -198,21 +219,21 @@ export function completionRate(habit, now = new Date()) {
 export function groupPeriodsForCalendar(periods) {
   const months = []
   for (const period of periods) {
-    const monthKey = format(period.start, 'yyyy-MM')
+    const at = period.displayStart ?? period.start
+    const monthKey = format(at, 'yyyy-MM')
     let month = months[months.length - 1]
     if (!month || month.key !== monthKey) {
-      month = { key: monthKey, start: startOfMonth(period.start), rows: [] }
+      month = { key: monthKey, start: startOfMonth(at), rows: [] }
       months.push(month)
     }
-    const weekStart = startOfWeek(period.start, { weekStartsOn: 1 })
+    const weekStart = startOfWeek(at, { weekStartsOn: 1 })
     const weekKey = toDayKey(weekStart)
     let row = month.rows[month.rows.length - 1]
     if (!row || row.key !== weekKey) {
       row = { key: weekKey, cells: new Array(7).fill(null) }
       month.rows.push(row)
     }
-    const slot = differenceInCalendarDays(period.start, weekStart)
-    row.cells[slot] = period
+    row.cells[differenceInCalendarDays(at, weekStart)] = period
   }
   return months
 }
