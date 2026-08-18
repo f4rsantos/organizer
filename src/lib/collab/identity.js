@@ -6,14 +6,30 @@ function createId() {
   return `u_${time}_${rand}`
 }
 
-export function getOrCreateCollabUserId() {
+export function readCachedCollabUserId() {
   try {
-    const existing = localStorage.getItem(COLLAP_ID_KEY)
-    if (existing) return existing
-    const id = createId()
-    localStorage.setItem(COLLAP_ID_KEY, id)
-    return id
+    return localStorage.getItem(COLLAP_ID_KEY) || null
   } catch {
-    return createId()
+    return null
   }
+}
+
+// The synced `collab.userId` is the real identity; this copy only survives a
+// cleared store. Writing it back on every import keeps a device from reviving
+// an id the team has already replaced.
+export function cacheCollabUserId(id) {
+  if (!id) return
+  try {
+    localStorage.setItem(COLLAP_ID_KEY, id)
+  } catch {
+    // private mode: the store copy still carries the identity
+  }
+}
+
+export function getOrCreateCollabUserId() {
+  const existing = readCachedCollabUserId()
+  if (existing) return existing
+  const id = createId()
+  cacheCollabUserId(id)
+  return id
 }

@@ -84,8 +84,10 @@ export function useMergedTasks(semesterId) {
     const remote = (showRemote ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
       const tasks = team?.state?.tasks ?? []
+      // doneBy is keyed by the per-project auth UID stored on the membership.
+      const memberUserId = membership.memberUserId ?? userId
       return tasks
-        .map(task => mapRemoteTask(task, membership.teamId, userId, semesterId, semester))
+        .map(task => mapRemoteTask(task, membership.teamId, memberUserId, semesterId, semester))
         .filter(Boolean)
     })
 

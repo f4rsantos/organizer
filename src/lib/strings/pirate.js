@@ -317,6 +317,7 @@ export const pirate = {
   collabGuideChecklistBody: "Two things Organizer can't do fer ye: hoist Anonymous Auth and publish the Firestore rules above. If shared booty never shows, one o' these be missin' on the cap'n's project.",
   collabSyncErrorHint: "Can't hail this crew. Make sure the cap'n's Firebase has Anonymous Auth flyin' and the rules be open.",
   collabKeyRequiredHint: "This crew be locked and yer invite carried no key. Beg a fresh invite link.",
+  collabOutdatedTeamHint: "This crew be out o' date an' sails no more. Bid the cap'n muster a new crew.",
   collabErrorPermission: "Firebase rules be blockin' ye. Cap'n must hoist Anonymous Auth and open the Firestore rules.",
   collabErrorNotFound: 'Crew not found. May have been sent to Davy Jones.',
   collabErrorInviteExpired: "This here invite be expired. Beg the cap'n for a fresh link.",

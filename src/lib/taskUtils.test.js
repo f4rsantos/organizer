@@ -33,6 +33,32 @@ describe('isTaskDone', () => {
   })
 })
 
+describe('isTaskDone with a per-team resolver', () => {
+  const shared = (teamId, doneBy) => ({
+    sharedMeta: { remote: true, teamId }, doneBy, doneForAll: false,
+  })
+
+  it('reads doneBy with the id for the task team', () => {
+    // Each team keys doneBy by its own per-project auth UID, so one list can
+    // need two different ids.
+    const resolve = teamId => (teamId === 'tA' ? 'uid_a' : 'uid_b')
+    expect(isTaskDone(shared('tA', { uid_a: true }), resolve)).toBe(true)
+    expect(isTaskDone(shared('tB', { uid_a: true }), resolve)).toBe(false)
+    expect(isTaskDone(shared('tB', { uid_b: true }), resolve)).toBe(true)
+  })
+
+  it('still accepts a plain id', () => {
+    expect(isTaskDone(shared('tA', { uid_a: true }), 'uid_a')).toBe(true)
+  })
+
+  it('never calls the resolver for a local task', () => {
+    let calls = 0
+    const resolve = () => { calls += 1; return 'x' }
+    expect(isTaskDone({ done: true }, resolve)).toBe(true)
+    expect(calls).toBe(0)
+  })
+})
+
 describe('splitCompletedTasks', () => {
   it('separates pending from completed while keeping order', () => {
     const tasks = [

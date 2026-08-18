@@ -11,6 +11,7 @@ import { weekDateRange } from '@/lib/semesterUtils'
 import { parseTaskText } from '@/lib/parser/nlpParse'
 import { useSpeechInput } from '@/hooks/useSpeechInput'
 import { getMemberList, getMemberDisplayName } from '@/lib/collab/teamColors'
+import { useTeamUserId } from '@/hooks/useTeamIdentity'
 
 function dateToWeek(dateStr, semesterStartDate) {
   if (!dateStr || !semesterStartDate) return null
@@ -51,7 +52,8 @@ export function TaskForm({
     assigneeUserId: initialData?.assigneeUserId ?? null,
   })
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
+  const userId = teamUserId(form.sharedRef?.teamId ?? form.sharedMeta?.teamId ?? null)
   const sharedTeamId = initialData?.sharedMeta?.teamId ?? initialData?.sharedRef?.teamId ?? null
   const teamMembers = useMemo(() => {
     if (!sharedTeamId) return []

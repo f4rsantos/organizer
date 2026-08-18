@@ -20,6 +20,7 @@ export const af = {
     eventTitle: 'Gebeurtenistitel', eventDate: 'Datum', eventRange: 'Datumreeks',
     more: 'meer', add: 'Voeg by',
     apps: 'Programme', notes: 'Notas', collabApp: 'Samewerking',
+    collabOutdatedTeamHint: "Hierdie span is verouderd en sinkroniseer nie meer nie. Vra die gasheer vir 'n nuwe span.",
     notesEnable: 'Aktiveer Notas', notesNew: 'Nuwe nota', notesTitle: 'Titel', notesSearch: 'Soek notas',
     semester: 'Semester', classes: 'Klasse', group: 'Groep', gradeComponents: 'Puntkomponente',
     kanbanColumns: 'Kanban-kolomme', general: 'Algemeen', data: 'Data & sinkroniseering',

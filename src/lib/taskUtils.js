@@ -39,9 +39,13 @@ export function groupTasksByClass(tasks, classes) {
   return Object.values(groups)
 }
 
+// `userId` may be a plain id or a resolver taking the task's team id. A list can
+// mix tasks from several teams, and each team keys doneBy by its own per-project
+// auth UID, so those callers pass a resolver.
 export function isTaskDone(task, userId) {
-  if (task?.sharedMeta?.remote) return !!task.doneForAll || !!task?.doneBy?.[userId]
-  return !!task?.done
+  if (!task?.sharedMeta?.remote) return !!task?.done
+  const id = typeof userId === 'function' ? userId(task.sharedMeta.teamId) : userId
+  return !!task.doneForAll || !!task?.doneBy?.[id]
 }
 
 export function splitCompletedTasks(tasks, userId) {

@@ -15,6 +15,7 @@ import { useWeekContext } from '@/hooks/useWeekContext'
 import { useCompactActions } from '@/hooks/useCompactActions'
 import { PRIORITY_COLORS } from '@/lib/constants'
 import { getMemberColor } from '@/lib/collab/teamColors'
+import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
 
 const FREE_BOARD_ID = '__free__'
 
@@ -31,7 +32,8 @@ export function TaskItem({ task }) {
   const updateTask = useStore(s => s.updateTask)
   const addKanbanCard = useStore(s => s.addKanbanCard)
   const allBoards = useStore(s => s.kanban)
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
+  const userId = teamUserId(entityTeamId(task))
   const semesters = useStore(s => s.semesters)
   const allClasses = useStore(s => s.classes)
   const lang = useStore(s => s.lang ?? 'en')

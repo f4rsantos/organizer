@@ -39,13 +39,23 @@ async function ensureSignedIn(auth) {
   return user
 }
 
+export async function resolveCollabUserId(config) {
+  const { auth } = getOrCreateApp(config)
+  const { uid } = await ensureSignedIn(auth)
+  return uid
+}
+
 function teamRef(db, teamId) {
   return doc(db, 'teams', teamId)
 }
 
-export async function createTeam({ config, hostUserId, name, expiresAt, teamKey }) {
+// The security rules identify a member by `request.auth.uid`, so every write
+// keys off the anonymous auth UID rather than the local `collab.userId`. The
+// UID is scoped to one Firebase project, which is why callers persist the one
+// they were given alongside the membership.
+export async function createTeam({ config, name, expiresAt, teamKey }) {
   const { auth, db } = getOrCreateApp(config)
-  await ensureSignedIn(auth)
+  const { uid: hostUserId } = await ensureSignedIn(auth)
   const teamId = nanoid()
   await setDoc(teamRef(db, teamId), {
     id: teamId,
@@ -65,7 +75,7 @@ export async function createTeam({ config, hostUserId, name, expiresAt, teamKey 
     updatedAt: Date.now(),
     serverUpdatedAt: serverTimestamp(),
   })
-  return teamId
+  return { teamId, userId: hostUserId }
 }
 
 export async function updateTeamMeta({ config, teamId, updates }) {
@@ -83,9 +93,9 @@ export async function updateTeamMeta({ config, teamId, updates }) {
   })
 }
 
-export async function updateMemberAlias({ config, teamId, userId, alias }) {
+export async function updateMemberAlias({ config, teamId, alias }) {
   const { auth, db } = getOrCreateApp(config)
-  await ensureSignedIn(auth)
+  const { uid: userId } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
@@ -132,9 +142,9 @@ export async function generateInvite({ config, teamId, ttlMs }) {
   return { token, expiresAt }
 }
 
-export async function joinWithInvite({ config, teamId, token, userId }) {
+export async function joinWithInvite({ config, teamId, token }) {
   const { auth, db } = getOrCreateApp(config)
-  await ensureSignedIn(auth)
+  const { uid: userId } = await ensureSignedIn(auth)
   let teamName = null
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
@@ -158,12 +168,12 @@ export async function joinWithInvite({ config, teamId, token, userId }) {
       serverUpdatedAt: serverTimestamp(),
     })
   })
-  return { teamName }
+  return { teamName, userId }
 }
 
-export async function leaveTeam({ config, teamId, userId }) {
+export async function leaveTeam({ config, teamId }) {
   const { auth, db } = getOrCreateApp(config)
-  await ensureSignedIn(auth)
+  const { uid: userId } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
@@ -215,9 +225,9 @@ export async function fetchTeam({ config, teamId, teamKey }) {
   return decryptTeamDoc(snap.data(), teamKey)
 }
 
-export async function updateTeamState({ config, teamId, userId, teamKey, updater }) {
+export async function updateTeamState({ config, teamId, teamKey, updater }) {
   const { auth, db } = getOrCreateApp(config)
-  await ensureSignedIn(auth)
+  const { uid: userId } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)

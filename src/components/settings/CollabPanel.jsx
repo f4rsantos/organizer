@@ -78,6 +78,10 @@ function PanelCard({ icon, title, subtitle, children }) {
 }
 
 function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDelete, onLeave, onUpdate, onUpdateAlias }) {
+  // Anyone holding the team key can re-share it, not just the host: the key is
+  // what a second device of your own needs, and gating this on host status
+  // leaves a member whose key was lost with no way to recover it.
+  const canInvite = Boolean(team.teamKey)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(team.name ?? '')
   const [daysInput, setDaysInput] = useState(String(Math.max(1, daysLeft(team.expiresAt))))
@@ -205,10 +209,10 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             </div>
 
             <div className="flex items-center justify-end gap-1 pt-1">
-                {isHost && (
+                {canInvite && (
                   <span className="text-[11px] text-muted-foreground mr-1">{t.collabInviteTtl}</span>
                 )}
-                {isHost && (
+                {canInvite && (
                   <Input
                     type="number"
                     min={1}
@@ -219,7 +223,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
                     title={t.collabInviteTtl}
                   />
                 )}
-                {isHost && (
+                {canInvite && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -272,6 +276,9 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             )}
             {team.syncStatus === 'key-required' && (
               <p className="text-[11px] text-destructive pt-1">{t.collabKeyRequiredHint}</p>
+            )}
+            {team.syncStatus === 'outdated' && (
+              <p className="text-[11px] text-destructive pt-1">{t.collabOutdatedTeamHint}</p>
             )}
           </>
         )
@@ -406,9 +413,8 @@ export function CollabPanel() {
     try {
       const expiresAt = Date.now() + parseDays(durationInput, 365) * DAY_MS
       const teamKey = createTeamKey()
-      const teamId = await createTeam({
+      const { teamId, userId } = await createTeam({
         config: firebaseConfig,
-        hostUserId: collab.userId,
         name: name.trim(),
         expiresAt,
         teamKey,
@@ -417,7 +423,10 @@ export function CollabPanel() {
         teamId,
         apiKey: firebaseConfig.apiKey,
         projectId: firebaseConfig.projectId,
-        hostUserId: collab.userId,
+        // The auth UID is scoped to this Firebase project, so it is stored per
+        // membership rather than on the global collab identity.
+        memberUserId: userId,
+        hostUserId: userId,
         teamName: name.trim(),
         expiresAt,
         teamKey,
@@ -462,17 +471,17 @@ export function CollabPanel() {
 
     setError(null)
     try {
-      const { teamName } = await joinWithInvite({
+      const { teamName, userId } = await joinWithInvite({
         config: { apiKey: parsed.apiKey, projectId: parsed.projectId },
         teamId: parsed.teamId,
         token: parsed.token,
-        userId: collab.userId,
       })
 
       addMembership({
         teamId: parsed.teamId,
         apiKey: parsed.apiKey,
         projectId: parsed.projectId,
+        memberUserId: userId,
         teamKey: parsed.teamKey,
         ...(teamName ? { teamName } : {}),
       })
@@ -493,7 +502,6 @@ export function CollabPanel() {
       await leaveTeam({
         config: { apiKey: membership.apiKey, projectId: membership.projectId },
         teamId: membership.teamId,
-        userId: collab.userId,
       })
     } catch {
       // local membership is removed below so the user isn't stuck in the team
@@ -572,14 +580,16 @@ export function CollabPanel() {
       <PanelCard icon={Users} title={t.collabYourTeams}>
         <div className="space-y-2">
           {teams.map(team => {
-            const isHost = team.hostUserId === collab.userId
+            // Host status is decided by the per-project auth UID, the same id
+            // the team doc and the security rules use.
+            const isHost = Boolean(team.memberUserId) && team.hostUserId === team.memberUserId
             return (
               <TeamRow
                 key={team.teamId}
                 team={team}
                 t={t}
                 isHost={isHost}
-                userId={collab.userId}
+                userId={team.memberUserId ?? collab.userId}
                 runtimeTeam={runtimeTeams[team.teamId]}
                 onGenerateInvite={daysToUse => handleGenerateInvite(team, daysToUse)}
                 onDelete={() => setDeleteTeamId(team.teamId)}

@@ -62,9 +62,16 @@ export function useCollabActions() {
 
   const getSharedTaskMode = team => team?.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all'
 
-  const ensureCanEdit = team => {
+  // Team documents identify a member by the per-project auth UID, so anything
+  // compared against `members`, `doneBy`, `hostUserId` or an assignee has to use
+  // the membership's id rather than the local `collab.userId`.
+  const teamUserId = teamId => (
+    memberships.find(m => m.teamId === teamId)?.memberUserId ?? userId
+  )
+
+  const ensureCanEdit = (team, teamId) => {
     if (!team) return false
-    if (team.hostUserId === userId) return true
+    if (team.hostUserId === teamUserId(teamId)) return true
     return team.membersCanEditShared !== false
   }
 
@@ -81,7 +88,10 @@ export function useCollabActions() {
     const membership = getMembership(teamId)
     const team = getTeam(teamId)
     if (!membership || !team || !userId) return null
-    if (requireEdit && !ensureCanEdit(team)) return null
+    // An outdated team rejects every write at the rules layer, so stop here
+    // rather than letting an optimistic update flash and roll back.
+    if (team.syncStatus === 'outdated') return null
+    if (requireEdit && !ensureCanEdit(team, teamId)) return null
     return { membership, team }
   }
 
@@ -90,7 +100,7 @@ export function useCollabActions() {
     optimistic(teamId, applyOptimistic)
     try {
       await updateTeamState({
-        config: firebaseConfig(membership), teamId, userId, teamKey: membership.teamKey, updater,
+        config: firebaseConfig(membership), teamId, teamKey: membership.teamKey, updater,
       })
     } catch (err) {
       if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
@@ -102,6 +112,7 @@ export function useCollabActions() {
   }
 
   const shareTaskToTeam = async ({ task, teamId, localBoard }) => {
+    const me = teamUserId(teamId)
     const ctx = guard(teamId)
     if (!ctx) return
     const { membership } = ctx
@@ -121,7 +132,7 @@ export function useCollabActions() {
       sharedWeekEndDate: canEncodeWeekDates ? mondayDateForWeek(taskSemester.startDate, weekEnd) : null,
       doneBy: {},
       doneForAll: !!task.done,
-      sharedByUserId: userId,
+      sharedByUserId: me,
       updatedAt: Date.now(),
     }
 
@@ -154,10 +165,11 @@ export function useCollabActions() {
 
   const toggleSharedTask = async ({ teamId, sharedTaskId }) => {
     const team = getTeam(teamId)
+    const me = teamUserId(teamId)
     const mode = getSharedTaskMode(team)
     if (team?.assignedOnlyComplete) {
       const target = (team.state?.tasks ?? []).find(t => t.id === sharedTaskId)
-      if (target?.assigneeUserId && target.assigneeUserId !== userId) return
+      if (target?.assigneeUserId && target.assigneeUserId !== me) return
     }
     const ctx = guard(teamId, mode === 'for-all')
     if (!ctx) return
@@ -170,7 +182,7 @@ export function useCollabActions() {
         if (mode === 'for-all') {
           return { ...task, doneForAll: !task.doneForAll, updatedAt: Date.now() }
         }
-        const doneBy = { ...(task.doneBy ?? {}), [userId]: !task.doneBy?.[userId] }
+        const doneBy = { ...(task.doneBy ?? {}), [me]: !task.doneBy?.[me] }
         return { ...task, doneBy, updatedAt: Date.now() }
       }),
     })
@@ -222,9 +234,10 @@ export function useCollabActions() {
 
   const updateSharedCard = async ({ teamId, sharedCardId, patch }) => {
     const team = getTeam(teamId)
+    const me = teamUserId(teamId)
     if (patch?.done === true && team?.assignedOnlyComplete) {
       const target = (team?.state?.kanban?.cards ?? []).find(c => c.id === sharedCardId)
-      if (target?.assigneeUserId && target.assigneeUserId !== userId) return
+      if (target?.assigneeUserId && target.assigneeUserId !== me) return
     }
     const ctx = guard(teamId)
     if (!ctx) return
@@ -263,6 +276,7 @@ export function useCollabActions() {
   }
 
   const shareKanbanCardToTeam = async ({ card, teamId, semId, localBoard }) => {
+    const me = teamUserId(teamId)
     const ctx = guard(teamId)
     if (!ctx) return
     const { membership } = ctx
@@ -274,7 +288,7 @@ export function useCollabActions() {
       id: sharedCardId,
       semesterId: null,
       columnId: cardColumnId,
-      sharedByUserId: userId,
+      sharedByUserId: me,
       updatedAt: Date.now(),
     }
 
@@ -294,6 +308,7 @@ export function useCollabActions() {
   }
 
   const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, columnId, classId = null, className = null }) => {
+    const me = teamUserId(teamId)
     const ctx = guard(teamId)
     if (!ctx) return
     const { membership } = ctx
@@ -311,7 +326,7 @@ export function useCollabActions() {
         classId: classId ?? sharedTask?.classId ?? null,
         className: className ?? sharedTask?.className ?? null,
         sharedTaskId,
-        sharedByUserId: userId,
+        sharedByUserId: me,
         updatedAt: Date.now(),
       }
     }
@@ -339,7 +354,6 @@ export function useCollabActions() {
       await firebaseUpdateMemberAlias({
         config: firebaseConfig(membership),
         teamId,
-        userId,
         alias,
       })
     } catch (err) {
