@@ -156,6 +156,8 @@ function buildInitialState() {
       kanbanShowChecklistInline: false,
       kanbanChecklistPreviewMode: 'none',
       kanbanAutoAddToFirstColumn: false,
+      kanbanSeparateByTeam: true,
+      kanbanSeparateByClass: false,
       notesViewMode: 'list',
       notesMathEnabled: false,
       speechInputEnabled: false,
@@ -825,6 +827,10 @@ export const useStore = create((set, _get) => ({
       },
       collabRuntime: s.collabRuntime ?? { teams: {} },
       activeTab: s.activeTab,
+      // `hydrated` is transient, so it is absent from the imported state.
+      // Without carrying it over, persist() treats the import as pre-hydration
+      // and never writes it to disk.
+      hydrated: s.hydrated,
     })
   }),
 

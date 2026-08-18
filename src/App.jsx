@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useFirebaseSync } from '@/hooks/useFirebaseSync'
 import { useCollabSync } from '@/hooks/useCollabSync'
+import { useCollabDeepLink } from '@/hooks/useCollabDeepLink'
 import { useGoogleCalendarSync } from '@/apps/googleCalendar/useGoogleCalendarSync'
 import { AppShell } from '@/components/layout/AppShell'
 import { TabBar, SideBar } from '@/components/layout/TabBar'
@@ -129,6 +130,7 @@ export default function App() {
   const hydrated = useHydrateState()
   useTheme()
   useCollabSync()
+  useCollabDeepLink()
   useGoogleCalendarSync()
   useAppBadge()
   useWidgetSync()

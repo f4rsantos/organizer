@@ -201,3 +201,28 @@ describe('unreadable data is never overwritten', () => {
     expect(getLoadWarnings()).toContain('newer-version')
   })
 })
+
+describe('importing a backup persists it', () => {
+  it('writes the imported state to disk so it survives a reload', async () => {
+    const { useStore } = await import('./useStore.js')
+    const { loadStateAsync } = await import('./persist.js')
+
+    // A store with no data yet, e.g. right after the last semester was deleted.
+    useStore.getState().markHydrated()
+
+    const backup = {
+      version: 7,
+      onboardingDone: true,
+      activeSemesterId: 's1',
+      semesters: [{ id: 's1', name: 'Restored' }],
+      classes: [], tasks: [], notes: [], settings: {},
+    }
+    useStore.getState().importData(backup, { preferLocalSettings: false })
+
+    await settle()
+    const reloaded = await loadStateAsync()
+    expect(reloaded).not.toBe(null)
+    expect(reloaded.onboardingDone).toBe(true)
+    expect(reloaded.semesters).toHaveLength(1)
+  })
+})

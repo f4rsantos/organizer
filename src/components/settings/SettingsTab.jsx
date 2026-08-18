@@ -176,7 +176,7 @@ export function SettingsTab({ syncStatus }) {
     if (!file) return
     try {
       const data = await importState(file)
-      importData(data)
+      importData(data, { preferLocalSettings: false })
     } catch {
       setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.')
     }

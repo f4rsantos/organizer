@@ -83,6 +83,8 @@ export const en = {
     'move to': { type: 'mut', action: 'move' },
     share: { type: 'mut', action: 'share' },
     'share with': { type: 'mut', action: 'share' },
+    assign: { type: 'mut', action: 'assign' },
+    'assign to': { type: 'mut', action: 'assign' },
     undo: { type: 'mut', action: 'undo' },
     uncheck: { type: 'mut', action: 'undo' },
     'un-complete': { type: 'mut', action: 'undo' },

@@ -83,6 +83,25 @@ export async function updateTeamMeta({ config, teamId, updates }) {
   })
 }
 
+export async function updateMemberAlias({ config, teamId, userId, alias }) {
+  const { auth, db } = getOrCreateApp(config)
+  await ensureSignedIn(auth)
+  await runTransaction(db, async tx => {
+    const ref = teamRef(db, teamId)
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const team = snap.data()
+    const members = { ...(team.members ?? {}) }
+    if (!members[userId]) return
+    members[userId] = { ...members[userId], alias: alias ?? '' }
+    tx.update(ref, {
+      members,
+      updatedAt: Date.now(),
+      serverUpdatedAt: serverTimestamp(),
+    })
+  })
+}
+
 export async function deleteTeam({ config, teamId }) {
   const { auth, db } = getOrCreateApp(config)
   await ensureSignedIn(auth)
@@ -131,7 +150,7 @@ export async function joinWithInvite({ config, teamId, token, userId }) {
     if (Date.now() > (invite.expiresAt ?? 0)) throw new Error('Invite expired')
     const members = team.members ?? {}
     if (!members[userId]) {
-      members[userId] = { role: 'member', joinedAt: Date.now() }
+      members[userId] = { role: 'member', joinedAt: Date.now(), alias: '' }
     }
     tx.update(ref, {
       members,

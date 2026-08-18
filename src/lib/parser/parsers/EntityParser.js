@@ -61,8 +61,14 @@ export class EntityParser extends Parser {
 
     if (context.teams) {
       const teamTrie = new Trie()
+      const memberTrie = new Trie()
       for (const [id, team] of Object.entries(context.teams)) {
         if (team.name) teamTrie.addPhrase(team.name, { teamId: id })
+        for (const [mId, member] of Object.entries(team.members ?? {})) {
+          if (member?.alias) {
+            memberTrie.addPhrase(member.alias, { userId: mId, alias: member.alias, teamId: id })
+          }
+        }
       }
       const matches = teamTrie.searchTokens(tokens)
       const unconsumed = tokens.filter(t => !t.consumed)
@@ -79,6 +85,19 @@ export class EntityParser extends Parser {
             confidence: 0.95
           })
         }
+      }
+
+      const memberMatches = memberTrie.searchTokens(tokens)
+      const memberPreps = [...new Set([...preps.to, ...preps.for, ...preps.with])]
+      for (const m of memberMatches) {
+        const startToken = extendForPreposition(unconsumed, m.startToken, memberPreps, wordOpts)
+        results.push({
+          startToken: startToken ?? m.startToken,
+          endToken: m.endToken,
+          value: m.value,
+          type: 'member',
+          confidence: 0.95
+        })
       }
     }
 

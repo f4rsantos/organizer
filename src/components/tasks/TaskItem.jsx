@@ -14,6 +14,7 @@ import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { useCompactActions } from '@/hooks/useCompactActions'
 import { PRIORITY_COLORS } from '@/lib/constants'
+import { getMemberColor } from '@/lib/collab/teamColors'
 
 const FREE_BOARD_ID = '__free__'
 
@@ -33,6 +34,8 @@ export function TaskItem({ task }) {
   const userId = useStore(s => s.collab?.userId)
   const semesters = useStore(s => s.semesters)
   const allClasses = useStore(s => s.classes)
+  const lang = useStore(s => s.lang ?? 'en')
+  const t = useStrings(lang)
   const {
     teams,
     getTeamName,
@@ -75,6 +78,21 @@ export function TaskItem({ task }) {
     const teamId = task?.sharedMeta?.teamId ?? task?.sharedRef?.teamId
     return teamId ? getTeamName(teamId) : null
   }, [task?.sharedMeta?.teamId, task?.sharedRef?.teamId, getTeamName])
+
+  const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const assigneeBadge = useMemo(() => {
+    if (!task.assigneeUserId) return null
+    const teamId = task.sharedMeta?.teamId ?? task.sharedRef?.teamId
+    if (!teamId) return null
+    const team = runtimeTeams[teamId]
+    const members = team?.members ?? {}
+    const member = members[task.assigneeUserId]
+    if (!member) return null
+    return {
+      alias: member.alias || (task.assigneeUserId === userId ? (t.collabYou ?? 'you') : (t.collabRoleMember ?? 'member')),
+      color: getMemberColor(members, task.assigneeUserId),
+    }
+  }, [task.assigneeUserId, task.sharedMeta?.teamId, task.sharedRef?.teamId, runtimeTeams, userId, t])
   const isDoneShared = isSharedRemote
     ? !!task.doneForAll || !!task?.doneBy?.[userId]
     : !!task.done
@@ -99,8 +117,6 @@ export function TaskItem({ task }) {
     },
     [mergedBoard, isSharedRemote, optimisticSharedInKanban, sharedTaskId, task.views?.kanban],
   )
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
 
   const hasSharedCard = isSharedRemote && (mergedBoard?.cards ?? []).some(c => c.sharedTaskId === sharedTaskId)
   const shouldClearOptimistic = optimisticSharedInKanban && (!isSharedRemote || hasSharedCard)
@@ -222,6 +238,15 @@ export function TaskItem({ task }) {
             )}
             {isShared && (
               <Badge variant="outline" className="text-xs h-5">{taskTeamName ?? 'shared'}</Badge>
+            )}
+            {assigneeBadge && (
+              <Badge variant="secondary" className="text-xs h-5 gap-1">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: assigneeBadge.color }}
+                />
+                {assigneeBadge.alias}
+              </Badge>
             )}
           </div>
         </div>

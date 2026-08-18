@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, Copy, Crown, Link2, Pencil, Plus, Trash2, UserMinus, Users, X } from 'lucide-react'
+import { Check, Copy, Crown, Circle, CircleCheck, Link2, Pencil, Plus, Trash2, UserMinus, Users, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,8 @@ import {
 } from '@/lib/collab/firebase'
 import { collabErrorText } from '@/lib/collab/errors'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { getMemberList } from '@/lib/collab/teamColors'
+import { useCollabActions } from '@/hooks/useCollabActions'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -75,20 +77,27 @@ function PanelCard({ icon, title, subtitle, children }) {
   )
 }
 
-function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdate }) {
+function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDelete, onLeave, onUpdate, onUpdateAlias }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(team.name ?? '')
   const [daysInput, setDaysInput] = useState(String(Math.max(1, daysLeft(team.expiresAt))))
   const [completionMode, setCompletionMode] = useState(team.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all')
   const [membersCanEditShared, setMembersCanEditShared] = useState(team.membersCanEditShared !== false)
+  const [assignedOnly, setAssignedOnly] = useState(team.assignedOnlyComplete === true)
   const [inviteDaysInput, setInviteDaysInput] = useState('1')
   const [copiedInvite, setCopiedInvite] = useState(false)
+  const [aliasInput, setAliasInput] = useState('')
+  const [editingAlias, setEditingAlias] = useState(false)
+
+  const members = useMemo(() => getMemberList(runtimeTeam), [runtimeTeam])
+  const myMember = members.find(m => m.userId === userId)
 
   const startEditing = () => {
     setName(team.name ?? '')
     setDaysInput(String(Math.max(1, daysLeft(team.expiresAt))))
     setCompletionMode(team.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all')
     setMembersCanEditShared(team.membersCanEditShared !== false)
+    setAssignedOnly(team.assignedOnlyComplete === true)
     setEditing(true)
   }
 
@@ -98,6 +107,7 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
       expiresAt: Date.now() + parseDays(daysInput, 365) * DAY_MS,
       sharedTaskCompletionMode: completionMode,
       membersCanEditShared,
+      assignedOnlyComplete: assignedOnly,
     })
     setEditing(false)
   }
@@ -156,6 +166,17 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
                   <SelectItem value="host-only">{t.collabTaskPermissionsHostOnly}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">{t.collabAssignedOnlyComplete ?? 'Only assigned can complete'}</p>
+              <button type="button" onClick={() => setAssignedOnly(v => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {assignedOnly
+                  ? <CircleCheck className="h-4 w-4 text-primary" />
+                  : <Circle className="h-4 w-4" />}
+                {assignedOnly ? t.settingEnabled : t.settingDisabled}
+              </button>
             </div>
 
             <div className="flex items-center justify-end gap-1">
@@ -262,6 +283,68 @@ function TeamRow({ team, t, isHost, onGenerateInvite, onDelete, onLeave, onUpdat
           </>
         )
       }
+
+      {members.length > 0 && (
+        <div className="space-y-1.5 pt-2 border-t border-border">
+          <p className="text-xs font-medium text-muted-foreground">{t.collabMembers ?? 'Members'}</p>
+          <div className="space-y-1">
+            {members.map(member => (
+              <div key={member.userId} className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: member.color }}
+                />
+                <span className="text-xs flex-1 truncate">
+                  {member.userId === userId
+                    ? (member.alias ? `${member.alias} (${t.collabYou ?? 'you'})` : (t.collabYou ?? 'you'))
+                    : (member.alias || (t.collabRoleMember ?? 'member'))}
+                  {member.role === 'host' && (
+                    <Crown className="inline h-3 w-3 ml-1 text-muted-foreground" />
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+          {!editingAlias ? (
+            <button
+              type="button"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => {
+                setAliasInput(myMember?.alias ?? '')
+                setEditingAlias(true)
+              }}
+            >
+              <Pencil className="h-3 w-3" />
+              {t.collabEditAlias ?? 'Edit alias'}
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Input
+                className="h-7 text-xs flex-1"
+                value={aliasInput}
+                onChange={e => setAliasInput(e.target.value)}
+                placeholder={t.collabAlias ?? 'Your alias'}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    onUpdateAlias(aliasInput.trim())
+                    setEditingAlias(false)
+                  }
+                  if (e.key === 'Escape') setEditingAlias(false)
+                }}
+              />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                onUpdateAlias(aliasInput.trim())
+                setEditingAlias(false)
+              }}>
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAlias(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -277,6 +360,9 @@ export function CollabPanel() {
   const clearTaskSharedRefByTeam = useStore(s => s.clearTaskSharedRefByTeam)
   const deleteLocalSharedTasksByTeam = useStore(s => s.deleteLocalSharedTasksByTeam)
   const localTasks = useStore(s => s.tasks ?? [])
+  const settings = useStore(s => s.settings)
+  const updateSettings = useStore(s => s.updateSettings)
+  const { updateAlias } = useCollabActions()
 
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -299,6 +385,7 @@ export function CollabPanel() {
         expiresAt: runtime?.expiresAt ?? m.expiresAt,
         sharedTaskCompletionMode: runtime?.sharedTaskCompletionMode ?? 'for-all',
         membersCanEditShared: runtime?.membersCanEditShared ?? true,
+        assignedOnlyComplete: runtime?.assignedOnlyComplete ?? false,
         syncStatus: runtime?.syncStatus ?? null,
       }
     })
@@ -493,9 +580,12 @@ export function CollabPanel() {
                 team={team}
                 t={t}
                 isHost={isHost}
+                userId={collab.userId}
+                runtimeTeam={runtimeTeams[team.teamId]}
                 onGenerateInvite={daysToUse => handleGenerateInvite(team, daysToUse)}
                 onDelete={() => setDeleteTeamId(team.teamId)}
                 onLeave={() => setLeaveTeamId(team.teamId)}
+                onUpdateAlias={alias => updateAlias(team.teamId, alias)}
                 onUpdate={async updates => {
                   await updateTeamMeta({
                     config: { apiKey: team.apiKey, projectId: team.projectId },
@@ -514,6 +604,20 @@ export function CollabPanel() {
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
       </PanelCard>
+
+      {teams.length > 0 && (
+        <PanelCard icon={Users} title={t.collabKanbanDividers ?? 'Kanban dividers'}>
+          <div className="space-y-2">
+            <button type="button" onClick={() => updateSettings({ kanbanSeparateByTeam: !(settings.kanbanSeparateByTeam ?? true) })}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {(settings.kanbanSeparateByTeam ?? true)
+                ? <CircleCheck className="h-4 w-4 text-primary" />
+                : <Circle className="h-4 w-4" />}
+              {t.collabSeparateByTeam ?? 'Separate by team'}
+            </button>
+          </div>
+        </PanelCard>
+      )}
 
       <Dialog open={!!leaveTeamId} onOpenChange={open => !open && setLeaveTeamId(null)}>
         <DialogContent className="max-w-sm">
