@@ -145,7 +145,7 @@ export function KanbanTab() {
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           {teams.length > 0 && (
             <Select value={filterTeam} onValueChange={setFilterTeam}>
-              <SelectTrigger className="h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
+              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
                 <Users className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="truncate">
                   {filterTeam === "all" && t.kanbanAllTeams}
@@ -173,7 +173,7 @@ export function KanbanTab() {
 
           {allMembers.length > 0 && (
             <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-              <SelectTrigger className="h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[120px] bg-secondary/30 gap-1">
+              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[120px] bg-secondary/30 gap-1">
                 <User className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="truncate">
                   {filterAssignee === "all" && t.kanbanAllAssignees}
@@ -227,7 +227,7 @@ export function KanbanTab() {
 
           {classes.length > 0 && (
             <Select value={filterClass} onValueChange={setFilterClass}>
-              <SelectTrigger className="h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
+              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
                 <BookOpen className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="truncate">
                   {filterClass === "all" && t.kanbanAllClasses}
