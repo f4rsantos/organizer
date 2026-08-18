@@ -281,61 +281,69 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
         <div className="space-y-1.5 pt-2 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground">{t.collabMembers ?? 'Members'}</p>
           <div className="space-y-1">
-            {members.map(member => (
-              <div key={member.userId} className="flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: member.color }}
-                />
-                <span className="text-xs flex-1 truncate">
-                  {member.userId === userId
-                    ? (member.alias ? `${member.alias} (${t.collabYou ?? 'you'})` : (t.collabYou ?? 'you'))
-                    : (member.alias || (t.collabRoleMember ?? 'member'))}
-                  {member.role === 'host' && (
-                    <Crown className="inline h-3 w-3 ml-1 text-muted-foreground" />
+            {members.map(member => {
+              const isMe = member.userId === userId
+              return (
+                <div key={member.userId} className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: member.color }}
+                  />
+                  {isMe && editingAlias ? (
+                    <>
+                      <Input
+                        autoFocus
+                        className="h-7 text-xs flex-1"
+                        value={aliasInput}
+                        onChange={e => setAliasInput(e.target.value)}
+                        placeholder={t.collabAlias ?? 'Your alias'}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            onUpdateAlias(aliasInput.trim())
+                            setEditingAlias(false)
+                          }
+                          if (e.key === 'Escape') setEditingAlias(false)
+                        }}
+                      />
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title={t.save} onClick={() => {
+                        onUpdateAlias(aliasInput.trim())
+                        setEditingAlias(false)
+                      }}>
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title={t.cancel} onClick={() => setEditingAlias(false)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs flex-1 truncate">
+                        {isMe
+                          ? (member.alias ? `${member.alias} (${t.collabYou ?? 'you'})` : (t.collabYou ?? 'you'))
+                          : (member.alias || (t.collabRoleMember ?? 'member'))}
+                        {member.role === 'host' && (
+                          <Crown className="inline h-3 w-3 ml-1 text-muted-foreground" />
+                        )}
+                      </span>
+                      {isMe && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setAliasInput(myMember?.alias ?? '')
+                            setEditingAlias(true)
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </>
                   )}
-                </span>
-              </div>
-            ))}
+                </div>
+              )
+            })}
           </div>
-          {!editingAlias ? (
-            <button
-              type="button"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => {
-                setAliasInput(myMember?.alias ?? '')
-                setEditingAlias(true)
-              }}
-            >
-              <Pencil className="h-3 w-3" />
-              {t.collabEditAlias ?? 'Edit alias'}
-            </button>
-          ) : (
-            <div className="flex items-center gap-1">
-              <Input
-                className="h-7 text-xs flex-1"
-                value={aliasInput}
-                onChange={e => setAliasInput(e.target.value)}
-                placeholder={t.collabAlias ?? 'Your alias'}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    onUpdateAlias(aliasInput.trim())
-                    setEditingAlias(false)
-                  }
-                  if (e.key === 'Escape') setEditingAlias(false)
-                }}
-              />
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                onUpdateAlias(aliasInput.trim())
-                setEditingAlias(false)
-              }}>
-                <Check className="h-3.5 w-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAlias(false)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
         </div>
       )}
     </div>
