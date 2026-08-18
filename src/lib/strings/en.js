@@ -302,7 +302,7 @@ export const en = {
     collabSeparateByTeam: 'Separate by team',
     collabPersonal: 'Personal',
     collabUnassigned: 'Unassigned',
-    collabYou: 'You',
+    collabMe: 'Me',
     collabAssignee: 'Assignee',
     collabSeparateByClass: 'Separate by class',
     kanbanAllTeams: 'All teams',

@@ -280,7 +280,7 @@ export const de = {
     collabSeparateByTeam: "Nach Team trennen",
     collabPersonal: "Persönlich",
     collabUnassigned: "Nicht zugewiesen",
-    collabYou: "Du",
+    collabMe: "Ich",
     collabAssignee: "Zuständig",
     collabSeparateByClass: "Nach Kurs trennen",
     kanbanAllTeams: "Alle Teams",

@@ -326,7 +326,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
                     <>
                       <span className="text-xs flex-1 truncate">
                         {isMe
-                          ? (member.alias ? `${member.alias} (${t.collabYou ?? 'you'})` : (t.collabYou ?? 'you'))
+                          ? (member.alias ? `${member.alias} (${t.collabMe ?? 'me'})` : (t.collabMe ?? 'me'))
                           : (member.alias || (t.collabRoleMember ?? 'member'))}
                         {member.role === 'host' && (
                           <Crown className="inline h-3 w-3 ml-1 text-muted-foreground" />
