@@ -404,7 +404,7 @@ export function KanbanCard({
                 }}
               >
                 <SelectTrigger
-                  className="relative z-10 !h-5 rounded-full border border-dashed border-foreground/60 !bg-transparent px-2 py-0 text-xs font-medium text-foreground gap-1 hover:border-foreground"
+                  className="relative z-10 !h-5 rounded-full border border-dashed border-foreground/40 !bg-transparent px-2 py-0 text-xs font-medium text-foreground/70 gap-1 hover:text-foreground hover:border-foreground/60"
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <span className="h-2 w-2 rounded-full border border-dashed border-current shrink-0" />
