@@ -55,6 +55,12 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const tomorrowKey = nextDateKey(today)
   const nowMinutes = today.getHours() * 60 + today.getMinutes()
 
+  // Shared tasks come from different teams, so doneBy has to be read with the
+  // identity for that task's team rather than one id for the whole panel.
+  const isTaskDone = task => (task?.sharedMeta?.remote
+    ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
+    : !!task.done)
+
   const dueToday = useMemo(() => {
     return (tasks ?? [])
       .filter(task => {
@@ -70,12 +76,6 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const showInApp = taskAlertMode === 'in-app' || taskAlertMode === 'both'
   const showNotification = taskAlertMode === 'notification' || taskAlertMode === 'both'
   const supportsOfflineSchedule = supportsOfflineTaskReminderScheduling()
-
-  // Shared tasks come from different teams, so doneBy has to be read with the
-  // identity for that task's team rather than one id for the whole panel.
-  const isTaskDone = task => (task?.sharedMeta?.remote
-    ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
-    : !!task.done)
 
   const nowMs = today.getTime()
 
