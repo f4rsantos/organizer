@@ -65,21 +65,28 @@ export function KanbanTab() {
     });
   }, [collabEnabled, memberships, runtimeTeams]);
 
+  const selfUserIds = useMemo(() => {
+    const ids = new Set();
+    if (userId) ids.add(userId);
+    for (const membership of memberships) {
+      if (membership.memberUserId) ids.add(membership.memberUserId);
+    }
+    return ids;
+  }, [memberships, userId]);
+
   const allMembers = useMemo(() => {
     if (!collabEnabled) return [];
     const memberMap = new Map();
-    if (userId) {
-      memberMap.set(userId, { userId, alias: "", color: "#6366f1" });
-    }
     for (const membership of memberships) {
       const team = runtimeTeams[membership.teamId];
       const list = getMemberList(team);
       for (const member of list) {
+        if (selfUserIds.has(member.userId)) continue;
         memberMap.set(member.userId, member);
       }
     }
     return [...memberMap.values()];
-  }, [collabEnabled, memberships, runtimeTeams, userId]);
+  }, [collabEnabled, memberships, runtimeTeams, selfUserIds]);
 
   const [filterClass, setFilterClass] = useState("all");
   const [filterTeam, setFilterTeam] = useState("all");
@@ -116,8 +123,8 @@ export function KanbanTab() {
 
       if (filterAssignee !== "all") {
         const isPersonal = !card.sharedMeta?.remote && !card.sharedRef?.teamId;
-        if (filterAssignee === userId || filterAssignee === "__me__") {
-          if (!isPersonal && card.assigneeUserId !== userId) return false;
+        if (filterAssignee === "__me__") {
+          if (!isPersonal && !selfUserIds.has(card.assigneeUserId)) return false;
         } else if (filterAssignee === "__unassigned__") {
           if (isPersonal || card.assigneeUserId) return false;
         } else {
@@ -132,7 +139,7 @@ export function KanbanTab() {
       columns: board?.columns ?? [],
       cards,
     };
-  }, [board, filterClass, filterTeam, filterAssignee, userId]);
+  }, [board, filterClass, filterTeam, filterAssignee, selfUserIds]);
 
   useEffect(() => {
     if (hydrated && noneMode && !localBoard?.columns?.length)
@@ -171,7 +178,7 @@ export function KanbanTab() {
             </Select>
           )}
 
-          {allMembers.length > 0 && (
+          {collabEnabled && memberships.length > 0 && (
             <Select value={filterAssignee} onValueChange={setFilterAssignee}>
               <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[120px] bg-secondary/30 gap-1">
                 <User className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -179,8 +186,10 @@ export function KanbanTab() {
                   {filterAssignee === "all" && t.kanbanAllAssignees}
                   {filterAssignee === "__unassigned__" &&
                     (t.collabUnassigned ?? "Unassigned")}
+                  {filterAssignee === "__me__" && (t.collabMe ?? "Me")}
                   {filterAssignee !== "all" &&
-                    filterAssignee !== "__unassigned__" && (
+                    filterAssignee !== "__unassigned__" &&
+                    filterAssignee !== "__me__" && (
                       <span className="flex items-center gap-1.5">
                         {allMembers.find(
                           (m) => m.userId === filterAssignee,
@@ -194,17 +203,15 @@ export function KanbanTab() {
                             }}
                           />
                         )}
-                        {filterAssignee === userId
-                          ? (t.collabYou ?? "You")
-                          : allMembers.find((m) => m.userId === filterAssignee)
-                              ?.alias ||
-                            (t.collabRoleMember ?? "Member")}
+                        {allMembers.find((m) => m.userId === filterAssignee)
+                          ?.alias || (t.collabRoleMember ?? "Member")}
                       </span>
                     )}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t.kanbanAllAssignees}</SelectItem>
+                <SelectItem value="__me__">{t.collabMe ?? "Me"}</SelectItem>
                 <SelectItem value="__unassigned__">
                   {t.collabUnassigned ?? "Unassigned"}
                 </SelectItem>
@@ -215,9 +222,7 @@ export function KanbanTab() {
                         className="h-2 w-2 rounded-full shrink-0"
                         style={{ backgroundColor: member.color }}
                       />
-                      {member.userId === userId
-                        ? (t.collabYou ?? "You")
-                        : member.alias || (t.collabRoleMember ?? "Member")}
+                      {member.alias || (t.collabRoleMember ?? "Member")}
                     </span>
                   </SelectItem>
                 ))}

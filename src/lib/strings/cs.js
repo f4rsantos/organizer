@@ -411,7 +411,7 @@ export const cs = {
     collabSeparateByTeam: "Rozdělit podle týmu",
     collabPersonal: "Osobní",
     collabUnassigned: "Nepřiřazeno",
-    collabYou: "Ty",
+    collabMe: "Já",
     collabAssignee: "Řešitel",
     collabSeparateByClass: "Rozdělit podle předmětu",
     kanbanAllTeams: "Všechny týmy",

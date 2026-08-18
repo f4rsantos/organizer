@@ -41,7 +41,7 @@ export function getMemberList(team) {
 export function getMemberDisplayName(member, currentUserId, t = {}) {
   if (!member) return ''
   if (member.userId === currentUserId) {
-    return member.alias || t.collabYou || 'You'
+    return t.collabMe || 'Me'
   }
   return member.alias || t.collabRoleMember || 'Member'
 }

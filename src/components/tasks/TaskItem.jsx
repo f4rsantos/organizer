@@ -91,7 +91,7 @@ export function TaskItem({ task }) {
     const member = members[task.assigneeUserId]
     if (!member) return null
     return {
-      alias: member.alias || (task.assigneeUserId === userId ? (t.collabYou ?? 'you') : (t.collabRoleMember ?? 'member')),
+      alias: member.alias || (task.assigneeUserId === userId ? (t.collabMe ?? 'me') : (t.collabRoleMember ?? 'member')),
       color: getMemberColor(members, task.assigneeUserId),
     }
   }, [task.assigneeUserId, task.sharedMeta?.teamId, task.sharedRef?.teamId, runtimeTeams, userId, t])

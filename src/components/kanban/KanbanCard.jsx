@@ -93,7 +93,7 @@ export function KanbanCard({
     const member = members[card.assigneeUserId];
     if (!member) return null;
     return {
-      alias: member.alias || (card.assigneeUserId === userId ? (t.collabYou ?? 'you') : (t.collabRoleMember ?? 'member')),
+      alias: getMemberDisplayName({ ...member, userId: card.assigneeUserId }, userId, t),
       color: getMemberColor(members, card.assigneeUserId),
     };
   }, [card.assigneeUserId, card.sharedMeta?.teamId, card.sharedRef?.teamId, runtimeTeams, userId, t]);

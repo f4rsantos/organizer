@@ -280,7 +280,7 @@ export const pirate = {
   collabSeparateByTeam: 'Split by crew',
   collabPersonal: 'Me Own',
   collabUnassigned: 'No Hand Assigned',
-  collabYou: 'Ye',
+  collabMe: 'Me',
   collabAssignee: 'Hand On Duty',
   collabSeparateByClass: 'Split by class',
   kanbanAllTeams: 'All Crews',
