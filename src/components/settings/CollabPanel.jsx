@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Check, Copy, Crown, Circle, CircleCheck, Link2, Pencil, Plus, Trash2, UserMinus, Users, X } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -145,7 +145,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             <div className="space-y-1 pt-1">
               <p className="text-xs text-muted-foreground">{t.collabTaskCompletionMode}</p>
               <Select value={completionMode} onValueChange={setCompletionMode} items={[{ value: 'personal', label: t.collabTaskCompletionPersonal }, { value: 'for-all', label: t.collabTaskCompletionForAll }]}>
-                <SelectTrigger className="h-8 w-full md:w-80">
+                <SelectTrigger className="h-8 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,7 +158,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">{t.collabTaskPermissions}</p>
               <Select value={membersCanEditShared ? 'everyone' : 'host-only'} onValueChange={v => setMembersCanEditShared(v === 'everyone')} items={[{ value: 'everyone', label: t.collabTaskPermissionsEveryone }, { value: 'host-only', label: t.collabTaskPermissionsHostOnly }]}>
-                <SelectTrigger className="h-8 w-full md:w-80">
+                <SelectTrigger className="h-8 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,13 +197,6 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
                 {formatExpiresAt(team.expiresAt) ? (
                   <p className="text-xs text-muted-foreground truncate">{t.collabEndsAt} {formatExpiresAt(team.expiresAt)}</p>
                 ) : null}
-                {isHost && (
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {team.sharedTaskCompletionMode === 'for-all' ? t.collabTaskCompletionForAll : t.collabTaskCompletionPersonal}
-                    {' · '}
-                    {team.membersCanEditShared !== false ? t.collabTaskPermissionsEveryone : t.collabTaskPermissionsHostOnly}
-                  </p>
-                )}
               </div>
               <Badge variant="outline" className="h-5 text-[11px]">
                 {isHost ? <Crown className="h-3 w-3 mr-1" /> : null}
@@ -360,8 +353,6 @@ export function CollabPanel() {
   const clearTaskSharedRefByTeam = useStore(s => s.clearTaskSharedRefByTeam)
   const deleteLocalSharedTasksByTeam = useStore(s => s.deleteLocalSharedTasksByTeam)
   const localTasks = useStore(s => s.tasks ?? [])
-  const settings = useStore(s => s.settings)
-  const updateSettings = useStore(s => s.updateSettings)
   const { updateAlias } = useCollabActions()
 
   const [creating, setCreating] = useState(false)
@@ -604,20 +595,6 @@ export function CollabPanel() {
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
       </PanelCard>
-
-      {teams.length > 0 && (
-        <PanelCard icon={Users} title={t.collabKanbanDividers ?? 'Kanban dividers'}>
-          <div className="space-y-2">
-            <button type="button" onClick={() => updateSettings({ kanbanSeparateByTeam: !(settings.kanbanSeparateByTeam ?? true) })}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {(settings.kanbanSeparateByTeam ?? true)
-                ? <CircleCheck className="h-4 w-4 text-primary" />
-                : <Circle className="h-4 w-4" />}
-              {t.collabSeparateByTeam ?? 'Separate by team'}
-            </button>
-          </div>
-        </PanelCard>
-      )}
 
       <Dialog open={!!leaveTeamId} onOpenChange={open => !open && setLeaveTeamId(null)}>
         <DialogContent className="max-w-sm">

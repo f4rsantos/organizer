@@ -86,7 +86,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
                       <div style={{ gridRow: gi * 2 + 2 }}>
                         <DividerLine label={group.label} />
                       </div>
-                      <div style={{ gridRow: gi * 2 + 3 }} className="flex flex-col gap-2 min-h-2">
+                      <div style={{ gridRow: gi * 2 + 3 }} className="flex flex-col gap-2 min-h-2 pb-2">
                         {group.cards.map(card => (
                           <KanbanCard
                             key={card.id}

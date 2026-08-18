@@ -68,7 +68,7 @@ export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
         className={cn(
           vertical ? 'flex flex-col gap-4 w-full pb-2' : 'flex flex-col md:flex-row gap-4 md:items-start w-full pb-2',
           !vertical && (isBanded
-            ? 'md:grid md:[grid-template-columns:repeat(var(--col-count),minmax(14rem,1fr))] md:[grid-template-rows:auto_repeat(var(--band-count),auto)_auto]'
+            ? 'md:grid md:self-start md:w-full md:gap-y-0 md:gap-x-4 md:[grid-template-columns:repeat(var(--col-count),minmax(14rem,1fr))] md:[grid-template-rows:auto_repeat(var(--band-count),min-content)_1fr]'
             : 'md:h-full'),
         )}
         style={!vertical && isBanded ? { '--col-count': columns.length, '--band-count': boardGroups.length * 2 } : undefined}>
