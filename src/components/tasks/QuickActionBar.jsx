@@ -405,6 +405,12 @@ export function QuickActionBar({ semesterId, classes = [], onDone }) {
           }
         } else if (item.action === "share" && item.teamId) {
           if (!remote) updateTask(targetTask.id, { teamId: item.teamId });
+        } else if (item.action === "assign" && item.memberId) {
+          if (remote) {
+            updateSharedCard({ teamId: remote.teamId, sharedCardId: remote.sharedCardId, patch: { assigneeUserId: item.memberId } });
+          } else {
+            updateTask(targetTask.id, { assigneeUserId: item.memberId });
+          }
         }
         continue;
       }

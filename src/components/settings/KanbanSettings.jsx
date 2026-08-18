@@ -14,6 +14,7 @@ export function KanbanSettings({ semesterId, columns }) {
   const kanbanChecklistPreviewMode = settings.kanbanChecklistPreviewMode
     ?? (settings.kanbanShowChecklistInline ? 'all' : 'none')
   const autoAddToFirstColumn = settings.kanbanAutoAddToFirstColumn ?? false
+  const separateByClass = settings.kanbanSeparateByClass ?? false
 
   const kanbanChecklistPreviewOptions = [
     { value: 'none', label: t.kanbanChecklistPreviewNone },
@@ -47,6 +48,17 @@ export function KanbanSettings({ semesterId, columns }) {
             ? <CircleCheck className="h-4 w-4 text-primary" />
             : <Circle className="h-4 w-4" />}
           {autoAddToFirstColumn ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>{t.collabSeparateByClass ?? 'Separate by class'}</Label>
+        <button type="button" onClick={() => updateSettings({ kanbanSeparateByClass: !separateByClass })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {separateByClass
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {separateByClass ? t.settingEnabled : t.settingDisabled}
         </button>
       </div>
 

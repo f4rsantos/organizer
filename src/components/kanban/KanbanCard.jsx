@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
-  ExternalLink,
   CheckSquare,
   Menu,
+  Pencil,
   Share2,
   Trash2,
 } from "lucide-react";
@@ -21,6 +21,13 @@ import { useStrings } from "@/lib/strings";
 import { useCollabActions } from "@/hooks/useCollabActions";
 import { ShareToTeamDialog } from "@/components/collab/ShareToTeamDialog";
 import { PRIORITY_COLORS as PRIORITY_DOT } from "@/lib/constants";
+import { getMemberColor, getMemberList, getMemberDisplayName } from "@/lib/collab/teamColors";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 
 export function KanbanCard({
   card,
@@ -46,6 +53,7 @@ export function KanbanCard({
   const classes = useStore((s) => s.classes ?? []);
   const lang = useStore((s) => s.lang ?? "en");
   const t = useStrings(lang);
+  const userId = useStore((s) => s.collab?.userId);
   const {
     teams,
     getTeamName,
@@ -72,6 +80,30 @@ export function KanbanCard({
     if (!teamId) return null;
     return getTeamName(teamId) ?? "shared";
   }, [card?.sharedMeta?.teamId, card?.sharedRef?.teamId, getTeamName]);
+
+  const runtimeTeams = useStore((s) => s.collabRuntime?.teams ?? {});
+  const assigneeBadge = useMemo(() => {
+    if (!card.assigneeUserId) return null;
+    const teamId = card.sharedMeta?.teamId ?? card.sharedRef?.teamId;
+    if (!teamId) return null;
+    const team = runtimeTeams[teamId];
+    const members = team?.members ?? {};
+    const member = members[card.assigneeUserId];
+    if (!member) return null;
+    return {
+      alias: member.alias || (card.assigneeUserId === userId ? (t.collabYou ?? 'you') : (t.collabRoleMember ?? 'member')),
+      color: getMemberColor(members, card.assigneeUserId),
+    };
+  }, [card.assigneeUserId, card.sharedMeta?.teamId, card.sharedRef?.teamId, runtimeTeams, userId, t]);
+
+  const cardTeamId = card?.sharedMeta?.teamId ?? card?.sharedRef?.teamId ?? null;
+  const assignableMembers = useMemo(() => {
+    if (!cardTeamId) return [];
+    return getMemberList(runtimeTeams[cardTeamId]);
+  }, [cardTeamId, runtimeTeams]);
+  const showUnassignedPill =
+    !card.assigneeUserId && !!cardTeamId && assignableMembers.length > 0;
+
   const canShareCard =
     !isSharedRemote && !isBackedBySharedTask && teams.length > 0;
 
@@ -85,16 +117,6 @@ export function KanbanCard({
     checklistPreviewMode === "all" ||
     (checklistPreviewMode === "card" && card?.checklistPreview === true);
 
-  const toggleChecklistPreview = (e) => {
-    e.stopPropagation();
-    if (checklist.length === 0) return;
-    const patch = { checklistPreview: !card.checklistPreview };
-    if (isSharedRemote) {
-      updateSharedCard({ teamId: sharedTeamId, sharedCardId, patch });
-      return;
-    }
-    updateCard(semId, card.id, patch);
-  };
   const classBadgeText = useMemo(() => {
     const fallback =
       typeof card?.className === "string" ? card.className.trim() : "";
@@ -197,12 +219,25 @@ export function KanbanCard({
     setShareOpen(true);
   };
 
+  const lastTapRef = useRef(0);
+  const handleCardClick = (e) => {
+    if (e.target.closest?.("button, input, textarea, a, select, [role='button'], [role='checkbox'], [contenteditable]")) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 350) {
+      lastTapRef.current = 0;
+      setDetailOpen(true);
+      return;
+    }
+    lastTapRef.current = now;
+  };
+
   return (
     <>
       <div
         ref={setNodeRef}
         style={style}
-        onDoubleClick={toggleChecklistPreview}
+        onClick={handleCardClick}
+        onDoubleClick={() => setDetailOpen(true)}
         className={cn(
           "relative rounded-lg border border-border bg-card p-3 space-y-2 select-none",
           "transition-shadow hover:shadow-md",
@@ -227,7 +262,7 @@ export function KanbanCard({
           <p
             className={cn(
               "flex-1 text-sm font-medium leading-snug",
-              card.done && "line-through text-muted-foreground",
+              (card.done || (doneColumnId && card.columnId === doneColumnId)) && "line-through text-muted-foreground",
             )}
           >
             {card.title || "Untitled"}
@@ -306,7 +341,7 @@ export function KanbanCard({
                     setMenuOpen(false);
                   }}
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -334,20 +369,65 @@ export function KanbanCard({
             )}
           </div>
         </div>
-        {card.dueDate && (
-          <Badge variant="secondary" className="text-xs h-5">
-            {card.dueDate}
-          </Badge>
-        )}
-        {classBadgeText && (
-          <Badge variant="secondary" className="text-xs h-5">
-            {classBadgeText}
-          </Badge>
-        )}
-        {sharedBadgeText && (
-          <Badge variant="outline" className="text-xs h-5">
-            {sharedBadgeText}
-          </Badge>
+        {(card.dueDate || classBadgeText || sharedBadgeText || assigneeBadge) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {card.dueDate && (
+              <Badge variant="secondary" className="text-xs h-5">
+                {card.dueDate}
+              </Badge>
+            )}
+            {classBadgeText && (
+              <Badge variant="secondary" className="text-xs h-5">
+                {classBadgeText}
+              </Badge>
+            )}
+            {sharedBadgeText && (
+              <Badge variant="outline" className="text-xs h-5">
+                {sharedBadgeText}
+              </Badge>
+            )}
+            {assigneeBadge && (
+              <Badge variant="secondary" className="text-xs h-5 gap-1">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: assigneeBadge.color }}
+                />
+                {assigneeBadge.alias}
+              </Badge>
+            )}
+            {showUnassignedPill && (
+              <Select
+                value="__none__"
+                onValueChange={(value) => {
+                  if (value === "__none__") return;
+                  handleSave({ assigneeUserId: value });
+                }}
+              >
+                <SelectTrigger
+                  className="h-5 rounded-full border border-dashed border-muted-foreground/50 bg-transparent px-2 py-0 text-xs text-muted-foreground gap-1 hover:text-foreground hover:border-muted-foreground"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <span className="h-2 w-2 rounded-full border border-dashed border-current shrink-0" />
+                  <span className="truncate">
+                    {t.collabUnassigned ?? "Unassigned"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent onPointerDown={(e) => e.stopPropagation()}>
+                  {assignableMembers.map((member) => (
+                    <SelectItem key={member.userId} value={member.userId}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: member.color }}
+                        />
+                        {getMemberDisplayName(member, userId, t)}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         )}
         {checklist.length > 0 && (
           <div className="flex items-center gap-2">

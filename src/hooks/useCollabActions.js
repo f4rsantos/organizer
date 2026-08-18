@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { addWeeks, format, parseISO, startOfWeek } from 'date-fns'
 import { nanoid } from '@/lib/ids'
 import { useStore } from '@/store/useStore'
-import { updateTeamState } from '@/lib/collab/firebase'
+import { updateTeamState, updateMemberAlias as firebaseUpdateMemberAlias } from '@/lib/collab/firebase'
 import { classifyCollabError } from '@/lib/collab/errors'
 import { sortByOrder } from '@/lib/utils'
 
@@ -155,6 +155,10 @@ export function useCollabActions() {
   const toggleSharedTask = async ({ teamId, sharedTaskId }) => {
     const team = getTeam(teamId)
     const mode = getSharedTaskMode(team)
+    if (team?.assignedOnlyComplete) {
+      const target = (team.state?.tasks ?? []).find(t => t.id === sharedTaskId)
+      if (target?.assigneeUserId && target.assigneeUserId !== userId) return
+    }
     const ctx = guard(teamId, mode === 'for-all')
     if (!ctx) return
     const { membership } = ctx
@@ -196,20 +200,32 @@ export function useCollabActions() {
     if (!ctx) return
     const { membership } = ctx
 
-    const applyMove = state => ({
-      ...state,
-      kanban: {
-        ...(state?.kanban ?? { columns: [], cards: [] }),
-        cards: (state?.kanban?.cards ?? []).map(card =>
-          card.id === sharedCardId ? { ...card, columnId: targetColumnId, updatedAt: Date.now() } : card
-        ),
-      },
-    })
+    const applyMove = state => {
+      const columns = sortByOrder(state?.kanban?.columns ?? [])
+      const doneColumnId = columns[columns.length - 1]?.id ?? null
+      const done = doneColumnId == null ? undefined : targetColumnId === doneColumnId
+      return {
+        ...state,
+        kanban: {
+          ...(state?.kanban ?? { columns: [], cards: [] }),
+          cards: (state?.kanban?.cards ?? []).map(card =>
+            card.id === sharedCardId
+              ? { ...card, columnId: targetColumnId, ...(done !== undefined && { done }), updatedAt: Date.now() }
+              : card
+          ),
+        },
+      }
+    }
 
     await writeShared(teamId, membership, applyMove, applyMove)
   }
 
   const updateSharedCard = async ({ teamId, sharedCardId, patch }) => {
+    const team = getTeam(teamId)
+    if (patch?.done === true && team?.assignedOnlyComplete) {
+      const target = (team?.state?.kanban?.cards ?? []).find(c => c.id === sharedCardId)
+      if (target?.assigneeUserId && target.assigneeUserId !== userId) return
+    }
     const ctx = guard(teamId)
     if (!ctx) return
     const { membership } = ctx
@@ -315,6 +331,22 @@ export function useCollabActions() {
     await writeShared(teamId, membership, applyAdd, applyAdd)
   }
 
+  const updateAlias = async (teamId, alias) => {
+    if (!userId) return
+    const membership = getMembership(teamId)
+    if (!membership) return
+    try {
+      await firebaseUpdateMemberAlias({
+        config: firebaseConfig(membership),
+        teamId,
+        userId,
+        alias,
+      })
+    } catch (err) {
+      setCollabError(teamId, err?.message ?? 'Failed to update alias', classifyCollabError(err))
+    }
+  }
+
   return {
     teams,
     getTeamName,
@@ -327,5 +359,6 @@ export function useCollabActions() {
     moveSharedCard,
     updateSharedCard,
     deleteSharedCard,
+    updateAlias,
   }
 }

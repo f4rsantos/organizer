@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Circle, CircleCheck, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+import { cn } from '@/lib/utils'
 import { nanoid } from '@/lib/ids'
 import { useStrings } from '@/lib/strings'
 import { parseTaskText } from '@/lib/parser/nlpParse'
 import { ChecklistItem } from './ChecklistItem'
+import { getMemberList, getMemberDisplayName } from '@/lib/collab/teamColors'
 
 const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]
 
@@ -33,6 +35,15 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
     if (!local?.classId) return noneClassLabel
     return classById.get(local.classId)?.name ?? local.className ?? noneClassLabel
   }, [local?.classId, local?.className, classById, noneClassLabel])
+
+  const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const sharedTeamId = card?.sharedMeta?.teamId ?? card?.sharedRef?.teamId ?? null
+  const teamMembers = useMemo(() => {
+    if (!sharedTeamId) return []
+    const team = runtimeTeams[sharedTeamId]
+    return getMemberList(team)
+  }, [sharedTeamId, runtimeTeams])
+  const userId = useStore(s => s.collab?.userId)
 
   const [touched, setTouched] = useState({ classId: Boolean(card?.classId), dueDate: Boolean(card?.dueDate) })
   const [rawTitle, setRawTitle] = useState('')
@@ -100,27 +111,68 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
               onChange={e => { setTouched(x => ({ ...x, dueDate: true })); setLocal(c => ({ ...c, dueDate: e.target.value || null })) }} />
           </div>
 
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">{classLabel}</p>
-            <Select
-              value={local.classId ?? '__none__'}
-              onValueChange={value => {
-                setTouched(x => ({ ...x, classId: true }))
-                if (value === '__none__') {
-                  setLocal(c => ({ ...c, classId: null, className: null }))
-                  return
-                }
-                const selected = classById.get(value)
-                setLocal(c => ({ ...c, classId: value, className: selected?.name ?? null }))
-              }}>
-              <SelectTrigger className="h-8 text-sm">
-                <span>{selectedClassLabel}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">{noneClassLabel}</SelectItem>
-                {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className={cn('grid gap-2', teamMembers.length > 0 ? 'grid-cols-2' : 'grid-cols-1')}>
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">{classLabel}</p>
+              <Select
+                value={local.classId ?? '__none__'}
+                onValueChange={value => {
+                  setTouched(x => ({ ...x, classId: true }))
+                  if (value === '__none__') {
+                    setLocal(c => ({ ...c, classId: null, className: null }))
+                    return
+                  }
+                  const selected = classById.get(value)
+                  setLocal(c => ({ ...c, classId: value, className: selected?.name ?? null }))
+                }}>
+                <SelectTrigger className="h-8 text-sm">
+                  <span>{selectedClassLabel}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{noneClassLabel}</SelectItem>
+                  {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {teamMembers.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">{t.collabAssignee ?? 'Assignee'}</p>
+                <Select
+                  value={local.assigneeUserId ?? '__none__'}
+                  onValueChange={value => {
+                    setLocal(c => ({ ...c, assigneeUserId: value === '__none__' ? null : value }))
+                  }}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <span className="flex items-center gap-2">
+                      {local.assigneeUserId && teamMembers.find(m => m.userId === local.assigneeUserId) && (
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: teamMembers.find(m => m.userId === local.assigneeUserId)?.color }}
+                        />
+                      )}
+                      {local.assigneeUserId
+                        ? getMemberDisplayName(teamMembers.find(m => m.userId === local.assigneeUserId), userId, t)
+                        : (t.collabUnassigned ?? 'Unassigned')}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">{t.collabUnassigned ?? 'Unassigned'}</SelectItem>
+                    {teamMembers.map(member => (
+                      <SelectItem key={member.userId} value={member.userId}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: member.color }}
+                          />
+                          {getMemberDisplayName(member, userId, t)}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {!local?.sharedMeta?.remote && (

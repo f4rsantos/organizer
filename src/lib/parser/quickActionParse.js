@@ -323,6 +323,7 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
     let columnMatch = entities.find(e => e.type === 'column')?.value
     const teamMatch = entities.find(e => e.type === 'team')?.value
     const classMatch = entities.find(e => e.type === 'class')?.value
+    const memberMatch = entities.find(e => e.type === 'member')?.value
 
     if (isPlural) {
       // Strip fillers before splitting, so a trailing particle ("... 3 hinzu") doesn't stop the
@@ -398,7 +399,8 @@ export function parseQuickAction(raw, { classes = [], now = new Date(), t = {}, 
             note: habitNote,
             habitScoped,
             columnId: columnMatch?.columnId ?? null,
-            teamId: teamMatch?.teamId ?? null
+            teamId: teamMatch?.teamId ?? null,
+            memberId: memberMatch?.userId ?? null
           })
           continue
         }

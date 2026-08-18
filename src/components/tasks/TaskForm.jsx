@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { differenceInCalendarWeeks, parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { useStrings } from '@/lib/strings'
 import { weekDateRange } from '@/lib/semesterUtils'
 import { parseTaskText } from '@/lib/parser/nlpParse'
 import { useSpeechInput } from '@/hooks/useSpeechInput'
+import { getMemberList, getMemberDisplayName } from '@/lib/collab/teamColors'
 
 function dateToWeek(dateStr, semesterStartDate) {
   if (!dateStr || !semesterStartDate) return null
@@ -47,7 +48,16 @@ export function TaskForm({
       calendar: initialData?.views?.calendar ?? taskDefaultToCalendar,
     },
     recurrence: initialData?.recurrence ?? null,
+    assigneeUserId: initialData?.assigneeUserId ?? null,
   })
+  const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const userId = useStore(s => s.collab?.userId)
+  const sharedTeamId = initialData?.sharedMeta?.teamId ?? initialData?.sharedRef?.teamId ?? null
+  const teamMembers = useMemo(() => {
+    if (!sharedTeamId) return []
+    const team = runtimeTeams[sharedTeamId]
+    return getMemberList(team)
+  }, [sharedTeamId, runtimeTeams])
   const [weeksManuallySet, setWeeksManuallySet] = useState(false)
   const [touched, setTouched] = useState({ classId: Boolean(initialData?.classId), dueDate: Boolean(initialData?.dueDate) })
   const addTask = useStore(s => s.addTask)
@@ -185,6 +195,43 @@ export function TaskForm({
         </Select>
       </div>
       </div>
+
+      {teamMembers.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>{t.collabAssignee ?? 'Assignee'}</Label>
+          <Select
+            value={form.assigneeUserId ?? '__none__'}
+            onValueChange={v => setForm(f => ({ ...f, assigneeUserId: v === '__none__' ? null : v }))}>
+            <SelectTrigger>
+              <span className="flex items-center gap-2">
+                {form.assigneeUserId && teamMembers.find(m => m.userId === form.assigneeUserId) && (
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: teamMembers.find(m => m.userId === form.assigneeUserId)?.color }}
+                  />
+                )}
+                {form.assigneeUserId
+                  ? getMemberDisplayName(teamMembers.find(m => m.userId === form.assigneeUserId), userId, t)
+                  : (t.collabUnassigned ?? 'Unassigned')}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">{t.collabUnassigned ?? 'Unassigned'}</SelectItem>
+              {teamMembers.map(m => (
+                <SelectItem key={m.userId} value={m.userId}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: m.color }}
+                    />
+                    {getMemberDisplayName(m, userId, t)}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>{t.task}</Label>
