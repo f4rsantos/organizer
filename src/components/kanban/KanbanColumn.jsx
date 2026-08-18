@@ -124,7 +124,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
           </div>
           {adding
             ? (
-              <div className="flex gap-2 px-1 shrink-0" style={isBanded ? { gridRow: -1 } : undefined}>
+              <div className={cn('flex gap-2 px-1 shrink-0', isBanded && 'md:self-end')} style={isBanded ? { gridRow: -1 } : undefined}>
                 <Input autoFocus className="flex-1 h-8 text-sm" placeholder={t.addCardPlaceholder} value={title}
                   onChange={e => setTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false) }} />
@@ -132,7 +132,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
               </div>
             )
             : (
-              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground mx-1 shrink-0"
+              <Button variant="ghost" size="sm" className={cn('gap-1 text-muted-foreground hover:text-foreground mx-1 shrink-0', isBanded && 'md:self-end')}
                 onClick={() => setAdding(true)} style={isBanded ? { gridRow: -1 } : undefined}>
                 <Plus className="h-3.5 w-3.5" /> {t.addCard}
               </Button>

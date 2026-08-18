@@ -370,7 +370,7 @@ export function KanbanCard({
           </div>
         </div>
         {(card.dueDate || classBadgeText || sharedBadgeText || assigneeBadge || showUnassignedPill) && (
-          <div className="relative z-10 flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {card.dueDate && (
               <Badge variant="secondary" className="text-xs h-5">
                 {card.dueDate}
@@ -404,7 +404,7 @@ export function KanbanCard({
                 }}
               >
                 <SelectTrigger
-                  className="!h-5 rounded-full border border-dashed border-muted-foreground/50 !bg-transparent px-2 py-0 text-xs font-medium text-muted-foreground gap-1 hover:text-foreground hover:border-muted-foreground"
+                  className="relative z-10 !h-5 rounded-full border border-dashed border-foreground/60 !bg-transparent px-2 py-0 text-xs font-medium text-foreground gap-1 hover:border-foreground"
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <span className="h-2 w-2 rounded-full border border-dashed border-current shrink-0" />
