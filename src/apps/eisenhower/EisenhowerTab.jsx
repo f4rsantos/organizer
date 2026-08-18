@@ -11,9 +11,10 @@ import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { useCollabActions } from '@/hooks/useCollabActions'
 import { TaskForm } from '@/components/tasks/TaskForm'
-import { EISENHOWER_DISMISSED } from '@/lib/taskUtils'
+import { EISENHOWER_DISMISSED, isTaskDone } from '@/lib/taskUtils'
 import { fireConfetti } from '@/lib/confetti'
 import { cn } from '@/lib/utils'
+import { useTeamUserId } from '@/hooks/useTeamIdentity'
 
 const PRIORITY_DOT = {
   high: 'bg-rose-500',
@@ -52,10 +53,8 @@ function EisenhowerCard({ task, classColor, className: cls, onEdit, onDelete, on
   const menuRef = useRef(null)
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
   const interactive = !!(onEdit || onDelete)
-  const userId = useStore(s => s.collab?.userId)
-  const isDone = task?.sharedMeta?.remote
-    ? !!task.doneForAll || !!task?.doneBy?.[userId]
-    : !!task.done
+  const teamUserId = useTeamUserId()
+  const isDone = isTaskDone(task, teamUserId)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -209,7 +208,7 @@ export function EisenhowerTab() {
   const { toggleSharedTask } = useCollabActions()
   const [confirmClear, setConfirmClear] = useState(false)
   const customQuadrants = useStore(s => s.settings?.apps?.eisenhowerQuadrants) || EMPTY_OBJ
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const tasks = useMergedTasks(activeSemesterId)
@@ -230,9 +229,7 @@ export function EisenhowerTab() {
   const hasDoneTasks = useMemo(() => visibleTasks.some(task => task.done), [visibleTasks])
 
   const handleToggleDone = async task => {
-    const isDone = task?.sharedMeta?.remote
-      ? !!task.doneForAll || !!task?.doneBy?.[userId]
-      : !!task.done
+    const isDone = isTaskDone(task, teamUserId)
     if (!isDone) fireConfetti()
     if (task?.sharedMeta?.remote) {
       await toggleSharedTask({ teamId: task.sharedMeta.teamId, sharedTaskId: task.sharedMeta.sharedTaskId })

@@ -317,6 +317,7 @@ export const pt = {
     collabGuideChecklistBody: 'Os dois passos que o Organizer não faz por ti: ativar a autenticação anónima e publicar as regras do Firestore acima. Se as tarefas partilhadas nunca aparecem, falta um destes no projeto do anfitrião.',
     collabSyncErrorHint: 'Não é possível aceder a esta equipa. Verifica se o Firebase do anfitrião tem a autenticação anónima ativada e regras abertas.',
     collabKeyRequiredHint: "Esta equipa está encriptada e o teu link de convite não tinha chave. Pede um novo link de convite.",
+    collabOutdatedTeamHint: "Esta equipa está desatualizada e já não sincroniza. Pede uma equipa nova ao anfitrião.",
     collabErrorPermission: 'Bloqueado pelas regras do Firebase. O anfitrião tem de ativar a autenticação anónima e abrir as regras do Firestore.',
     collabErrorNotFound: 'Equipa não encontrada. Pode ter sido eliminada.',
     collabErrorInviteExpired: 'Este convite expirou. Pede um novo link ao anfitrião.',

@@ -301,7 +301,11 @@ function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
 
 function parseFirebaseConfig(raw) {
   const trimmed = raw.trim()
-  try { return JSON.parse(trimmed) } catch {}
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    // Not strict JSON: fall through and try to salvage a JS object literal.
+  }
   const match = trimmed.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('no object found')
   const jsonified = match[0].replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')

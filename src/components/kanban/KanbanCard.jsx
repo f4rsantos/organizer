@@ -22,6 +22,7 @@ import { useCollabActions } from "@/hooks/useCollabActions";
 import { ShareToTeamDialog } from "@/components/collab/ShareToTeamDialog";
 import { PRIORITY_COLORS as PRIORITY_DOT } from "@/lib/constants";
 import { getMemberColor, getMemberList, getMemberDisplayName } from "@/lib/collab/teamColors";
+import { useTeamUserId, entityTeamId } from "@/hooks/useTeamIdentity";
 import {
   Select,
   SelectContent,
@@ -53,7 +54,8 @@ export function KanbanCard({
   const classes = useStore((s) => s.classes ?? []);
   const lang = useStore((s) => s.lang ?? "en");
   const t = useStrings(lang);
-  const userId = useStore((s) => s.collab?.userId);
+  const teamUserId = useTeamUserId();
+  const userId = teamUserId(entityTeamId(card));
   const {
     teams,
     getTeamName,

@@ -317,6 +317,7 @@ export const fr = {
     collabGuideChecklistBody: 'Les deux étapes qu\'Organizer ne peut pas faire à votre place : activer l\'authentification anonyme et publier les règles Firestore ci-dessus. Si les tâches partagées n\'apparaissent jamais, l\'une d\'elles manque sur le projet de l\'hôte.',
     collabSyncErrorHint: 'Impossible de joindre cette équipe. Vérifiez que le Firebase de l\'hôte a l\'authentification anonyme activée et des règles ouvertes.',
     collabKeyRequiredHint: "Cette équipe est chiffrée et votre lien d’invitation ne contenait aucune clé. Demandez un nouveau lien d’invitation.",
+    collabOutdatedTeamHint: "Cette équipe est obsolète et ne se synchronise plus. Demandez une nouvelle équipe à l’hôte.",
     collabErrorPermission: 'Bloqué par les règles Firebase. L\'hôte doit activer l\'authentification anonyme et ouvrir les règles Firestore.',
     collabErrorNotFound: 'Équipe introuvable. Elle a peut-être été supprimée.',
     collabErrorInviteExpired: 'Cette invitation a expiré. Demandez un nouveau lien à l\'hôte.',

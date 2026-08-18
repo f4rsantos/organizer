@@ -7,6 +7,7 @@ import { getWeekContext, remapTaskWeeks } from '@/lib/weekContext'
 import { sortByOrder } from '@/lib/utils'
 import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
+import { cacheCollabUserId } from '@/lib/collab/identity'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -811,17 +812,41 @@ export const useStore = create((set, _get) => ({
     const localMemberships = s.collab?.memberships ?? []
     const remoteMemberships = next.collab?.memberships ?? []
     const remoteTeamIds = new Set(remoteMemberships.map(m => m.teamId))
+    const localByTeamId = new Map(localMemberships.map(m => [m.teamId, m]))
+    // A remote membership can predate the credentials this device holds, so
+    // taking it wholesale drops the teamKey and the team decrypts to a locked,
+    // empty state. Remote still wins field by field; the connection details
+    // only fall back to the local copy when remote has none.
+    const mergedMemberships = remoteMemberships.map(remote => {
+      const local = localByTeamId.get(remote.teamId)
+      if (!local) return remote
+      return {
+        ...local,
+        ...remote,
+        teamKey: remote.teamKey ?? local.teamKey ?? null,
+        // Scoped to this device's Firebase auth, so a remote copy from another
+        // device must never overwrite the id this device actually signs in as.
+        memberUserId: local.memberUserId ?? remote.memberUserId ?? null,
+        apiKey: remote.apiKey ?? local.apiKey ?? null,
+        projectId: remote.projectId ?? local.projectId ?? null,
+      }
+    })
     const settings = preferLocalSettings && s.hydrated
       ? { ...next.settings, ...s.settings, apps: unionApps(s.settings?.apps, next.settings?.apps) }
       : next.settings
+    // The synced identity wins. Mirroring it into the device cache stops a
+    // later store reset from resurrecting a stale id and splitting the member
+    // in two on every team.
+    const collabUserId = next.collab?.userId ?? s.collab?.userId ?? null
+    cacheCollabUserId(collabUserId)
     return persist({
       ...next,
       settings,
       collab: {
         ...next.collab,
-        userId: next.collab?.userId ?? s.collab?.userId ?? null,
+        userId: collabUserId,
         memberships: [
-          ...remoteMemberships,
+          ...mergedMemberships,
           ...localMemberships.filter(m => !remoteTeamIds.has(m.teamId)),
         ],
       },

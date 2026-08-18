@@ -12,6 +12,7 @@ import { useStrings } from '@/lib/strings'
 import { parseTaskText } from '@/lib/parser/nlpParse'
 import { ChecklistItem } from './ChecklistItem'
 import { getMemberList, getMemberDisplayName } from '@/lib/collab/teamColors'
+import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
 
 const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]
 
@@ -43,7 +44,8 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
     const team = runtimeTeams[sharedTeamId]
     return getMemberList(team)
   }, [sharedTeamId, runtimeTeams])
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
+  const userId = teamUserId(entityTeamId(card))
 
   const [touched, setTouched] = useState({ classId: Boolean(card?.classId), dueDate: Boolean(card?.dueDate) })
   const [rawTitle, setRawTitle] = useState('')

@@ -5,6 +5,7 @@ import { useStrings } from '@/lib/strings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
 import {
   buildScheduledTaskReminderTag,
   clearScheduledTaskReminders,
@@ -34,7 +35,7 @@ function canShowAlert(state, nowMinutes) {
 }
 
 export function TaskAlertsPanel({ tasks, classNameById }) {
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
   const taskAlertMode = useStore(s => s.settings?.taskAlertMode ?? 'none')
   const taskAlertNextDayTime = useStore(s => s.settings?.taskAlertNextDayTime ?? '18:00')
   const taskAlertStates = useStore(s => s.taskAlertStates ?? {})
@@ -57,24 +58,23 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const dueToday = useMemo(() => {
     return (tasks ?? [])
       .filter(task => {
-        const done = task?.sharedMeta?.remote
-          ? !!task.doneForAll || !!task?.doneBy?.[userId]
-          : !!task.done
-        return !done && dueDateToKey(task.dueDate) === todayKey
+        return !isTaskDone(task) && dueDateToKey(task.dueDate) === todayKey
       })
       .map(task => ({
         task,
         className: task.classId ? (classNameById?.[task.classId] ?? 'Other') : 'Other',
       }))
       .filter(({ task }) => canShowAlert(taskAlertStates[`${task.id}:${todayKey}`], nowMinutes))
-  }, [tasks, classNameById, taskAlertStates, todayKey, nowMinutes, userId])
+  }, [tasks, classNameById, taskAlertStates, todayKey, nowMinutes, isTaskDone])
 
   const showInApp = taskAlertMode === 'in-app' || taskAlertMode === 'both'
   const showNotification = taskAlertMode === 'notification' || taskAlertMode === 'both'
   const supportsOfflineSchedule = supportsOfflineTaskReminderScheduling()
 
+  // Shared tasks come from different teams, so doneBy has to be read with the
+  // identity for that task's team rather than one id for the whole panel.
   const isTaskDone = task => (task?.sharedMeta?.remote
-    ? !!task.doneForAll || !!task?.doneBy?.[userId]
+    ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
     : !!task.done)
 
   const nowMs = today.getTime()
@@ -98,7 +98,7 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
         }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, reminderOffsets, reminderOffsetTime, taskAlertStates, taskAlertMode, todayKey, nowMs, userId])
+  }, [tasks, reminderOffsets, reminderOffsetTime, taskAlertStates, taskAlertMode, todayKey, nowMs, isTaskDone, teamUserId])
 
   useEffect(() => {
     if (!showNotification || supportsOfflineSchedule) return
@@ -146,7 +146,7 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
     const reminders = (tasks ?? [])
       .map(task => {
         const done = task?.sharedMeta?.remote
-          ? !!task.doneForAll || !!task?.doneBy?.[userId]
+          ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
           : !!task.done
         if (done) return null
 
@@ -216,7 +216,7 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
     tomorrowKey,
     taskAlertNextDayTime,
     lang,
-    userId,
+    teamUserId,
   ])
 
   if (!showInApp || (dueToday.length === 0 && leadReminders.length === 0)) return null

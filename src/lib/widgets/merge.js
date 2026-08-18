@@ -28,7 +28,8 @@ export function mergedTasks(state) {
     return shared.map(task => ({
       ...task,
       id: `shared:${membership.teamId}:${task.id}`,
-      done: !!task?.doneForAll || !!task?.doneBy?.[userId],
+      // doneBy is keyed by the per-project auth UID held on the membership.
+      done: !!task?.doneForAll || !!task?.doneBy?.[membership.memberUserId ?? userId],
       semesterId: state.activeSemesterId ?? null,
     }))
   })

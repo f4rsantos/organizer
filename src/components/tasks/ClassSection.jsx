@@ -5,14 +5,15 @@ import { useStrings } from '@/lib/strings'
 import { SvgProgressWheel } from '@/components/common/SvgProgressWheel'
 import { TaskItem } from './TaskItem'
 import { splitCompletedTasks } from '@/lib/taskUtils'
+import { useTeamUserId } from '@/hooks/useTeamIdentity'
 import { cn } from '@/lib/utils'
 
 export function ClassSection({ cls, tasks, ratio }) {
-  const userId = useStore(s => s.collab?.userId)
+  const teamUserId = useTeamUserId()
   const hideCompleted = useStore(s => s.settings?.hideCompletedTasks ?? false)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const { pending, completed } = splitCompletedTasks(tasks, userId)
+  const { pending, completed } = splitCompletedTasks(tasks, teamUserId)
   const done = completed.length
   const visible = hideCompleted ? pending : tasks
   const [open, setOpen] = useState(() => {

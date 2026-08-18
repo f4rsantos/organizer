@@ -225,6 +225,104 @@ describe('edits made before hydration are never discarded', () => {
     expect(merged[0].teamName).toBe('NEW')
   })
 
+  it('keeps the local team key when the remote membership has none', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().addCollabMembership({
+      teamId: 'merge2', teamName: 'OLD', apiKey: 'k', projectId: 'p', teamKey: 'local-key',
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: {
+        userId: 'u1',
+        memberships: [{ teamId: 'merge2', teamName: 'NEW', apiKey: 'k', projectId: 'p', teamKey: null }],
+      },
+    })
+
+    const merged = useStore.getState().collab.memberships.filter(m => m.teamId === 'merge2')
+    expect(merged).toHaveLength(1)
+    // Remote still wins on the fields it actually carries.
+    expect(merged[0].teamName).toBe('NEW')
+    // Losing this silently locks the team and hides every shared task.
+    expect(merged[0].teamKey).toBe('local-key')
+  })
+
+  it('mirrors the synced identity into the device cache', async () => {
+    const { useStore } = await import('./useStore.js')
+    const { readCachedCollabUserId } = await import('@/lib/collab/identity.js')
+    useStore.getState().markHydrated()
+    useStore.getState().setCollabUserId('u_local_only')
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: { userId: 'u_synced', memberships: [] },
+    })
+
+    // A stale cache would be re-minted after any store reset, splitting the
+    // member into two aliases on every team.
+    expect(useStore.getState().collab.userId).toBe('u_synced')
+    expect(readCachedCollabUserId()).toBe('u_synced')
+  })
+
+  it('keeps the local identity when the pull carries none', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().setCollabUserId('u_local')
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: { userId: null, memberships: [] },
+    })
+
+    expect(useStore.getState().collab.userId).toBe('u_local')
+  })
+
+  it('keeps this device auth uid when another device syncs its own', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().addCollabMembership({
+      teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk', memberUserId: 'uid_this_device',
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: {
+        userId: 'u1',
+        memberships: [{ teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk', memberUserId: 'uid_other_device' }],
+      },
+    })
+
+    // Anonymous auth UIDs are per device: adopting the remote one would make
+    // every write fail the members[request.auth.uid] rule.
+    const merged = useStore.getState().collab.memberships.find(m => m.teamId === 'uid1')
+    expect(merged.memberUserId).toBe('uid_this_device')
+  })
+
+  it('lets a remote team key rotation win over the local one', async () => {
+    const { useStore } = await import('./useStore.js')
+    useStore.getState().markHydrated()
+    useStore.getState().addCollabMembership({
+      teamId: 'merge3', teamName: 'T', apiKey: 'k', projectId: 'p', teamKey: 'stale-key',
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [], settings: {},
+      collab: {
+        userId: 'u1',
+        memberships: [{ teamId: 'merge3', teamName: 'T', apiKey: 'k', projectId: 'p', teamKey: 'rotated-key' }],
+      },
+    })
+
+    const merged = useStore.getState().collab.memberships.filter(m => m.teamId === 'merge3')
+    expect(merged[0].teamKey).toBe('rotated-key')
+  })
+
   it('flushes a pre-hydration edit to disk once hydration lands', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().addTask({ title: 'typed before hydrate' })
