@@ -63,11 +63,11 @@ export function useCollabActions() {
 
   const getSharedTaskMode = team => team?.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all'
 
-  const teamUserId = teamId => resolveTeamUserId(memberships, teamId)
+  const teamUserId = teamId => resolveTeamUserId(userId, teamId)
 
   const ensureCanEdit = (team, teamId) => {
     if (!team) return false
-    if (team.hostUserId === teamUserId(teamId)) return true
+    if (team.hostPersonId === teamUserId(teamId)) return true
     return team.membersCanEditShared !== false
   }
 
@@ -84,9 +84,7 @@ export function useCollabActions() {
     const membership = getMembership(teamId)
     const team = getTeam(teamId)
     if (!membership || !team || !userId) return null
-    // An outdated team rejects every write at the rules layer, so stop here
-    // rather than letting an optimistic update flash and roll back.
-    if (team.syncStatus === 'outdated') return null
+    if (team.syncStatus === 'device-unlinked') return null
     if (requireEdit && !ensureCanEdit(team, teamId)) return null
     return { membership, team }
   }
@@ -224,6 +222,27 @@ export function useCollabActions() {
     }
 
     await writeShared(teamId, membership, applyMove, applyMove)
+  }
+
+  const reorderSharedCards = async ({ teamId, columnId, orderedSharedIds }) => {
+    const ctx = guard(teamId)
+    if (!ctx) return
+    const { membership } = ctx
+
+    const position = new Map(orderedSharedIds.map((id, i) => [id, i]))
+    const applyReorder = state => ({
+      ...state,
+      kanban: {
+        ...(state?.kanban ?? { columns: [], cards: [] }),
+        cards: (state?.kanban?.cards ?? []).map(card =>
+          position.has(card.id)
+            ? { ...card, columnId, order: position.get(card.id), updatedAt: Date.now() }
+            : card
+        ),
+      },
+    })
+
+    await writeShared(teamId, membership, applyReorder, applyReorder)
   }
 
   const updateSharedCard = async ({ teamId, sharedCardId, patch }) => {
@@ -365,6 +384,7 @@ export function useCollabActions() {
     shareKanbanCardToTeam,
     addSharedTaskToKanbanForTeam,
     moveSharedCard,
+    reorderSharedCards,
     updateSharedCard,
     deleteSharedCard,
     updateAlias,

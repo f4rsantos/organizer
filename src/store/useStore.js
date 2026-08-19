@@ -578,6 +578,18 @@ export const useStore = create((set, _get) => ({
       }),
     })
   }),
+  reorderKanbanCards: (semId, columnId, orderedIds) => set(s => {
+    const doneCol = doneColumnIdFor(s, semId)
+    const position = new Map(orderedIds.map((id, i) => [id, i]))
+    return persist({
+      ...s,
+      tasks: s.tasks.map(t => {
+        if (!position.has(t.id)) return t
+        const done = doneCol == null ? t.done : columnId === doneCol
+        return { ...t, done, kanban: { ...t.kanban, columnId, order: position.get(t.id) } }
+      }),
+    })
+  }),
   deleteKanbanCard: (semId, cardId) => set(s => persist({
     ...s,
     tasks: s.tasks.reduce((acc, t) => {
@@ -824,9 +836,6 @@ export const useStore = create((set, _get) => ({
         ...local,
         ...remote,
         teamKey: remote.teamKey ?? local.teamKey ?? null,
-        // Scoped to this device's Firebase auth, so a remote copy from another
-        // device must never overwrite the id this device actually signs in as.
-        memberUserId: local.memberUserId ?? remote.memberUserId ?? null,
         apiKey: remote.apiKey ?? local.apiKey ?? null,
         projectId: remote.projectId ?? local.projectId ?? null,
       }

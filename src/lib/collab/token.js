@@ -20,3 +20,13 @@ export async function matchesTokenHash({ token, salt, tokenHash }) {
   if (!token || !tokenHash) return false
   return constantTimeEqualHex(await hashToken(token, salt ?? ''), tokenHash)
 }
+
+export async function createKeyProof(teamKey, salt) {
+  if (!teamKey) return null
+  return hashToken(teamKey, salt)
+}
+
+export async function matchesKeyProof({ teamKey, salt, proofHash }) {
+  if (!teamKey || !proofHash) return false
+  return constantTimeEqualHex(await hashToken(teamKey, salt ?? ''), proofHash)
+}

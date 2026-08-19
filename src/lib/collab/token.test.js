@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash } from './token.js'
+import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash, createKeyProof, matchesKeyProof } from './token.js'
 
 describe('invite tokens', () => {
   it('is 16 bytes of hex', () => {
@@ -69,5 +69,27 @@ describe('token verification', () => {
 
   it('rejects a missing hash', async () => {
     expect(await matchesTokenHash({ token: 'x', salt: 'y', tokenHash: null })).toBe(false)
+  })
+})
+
+describe('key proof', () => {
+  it('accepts the team key it was built from', async () => {
+    const salt = createTokenSalt()
+    const proofHash = await createKeyProof('team-key-abc', salt)
+    expect(await matchesKeyProof({ teamKey: 'team-key-abc', salt, proofHash })).toBe(true)
+  })
+
+  it('rejects a different key, and never matches without one', async () => {
+    const salt = createTokenSalt()
+    const proofHash = await createKeyProof('team-key-abc', salt)
+    expect(await matchesKeyProof({ teamKey: 'team-key-xyz', salt, proofHash })).toBe(false)
+    expect(await matchesKeyProof({ teamKey: null, salt, proofHash })).toBe(false)
+    expect(await matchesKeyProof({ teamKey: 'team-key-abc', salt, proofHash: null })).toBe(false)
+  })
+
+  it('does not reuse a hash across salts', async () => {
+    const proofHash = await createKeyProof('team-key-abc', createTokenSalt())
+    const otherSalt = createTokenSalt()
+    expect(await matchesKeyProof({ teamKey: 'team-key-abc', salt: otherSalt, proofHash })).toBe(false)
   })
 })

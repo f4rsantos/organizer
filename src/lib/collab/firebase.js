@@ -11,8 +11,8 @@ import {
 } from 'firebase/firestore'
 import { getAuth, signInAnonymously } from 'firebase/auth'
 import { nanoid } from '@/lib/ids'
-import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash } from './token'
-import { createTeamState, isMember } from './schema'
+import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash, createKeyProof, matchesKeyProof } from './token'
+import { createTeamState, isMember, personForAuthUid } from './schema'
 import { encryptTeamState, decryptTeamState, decryptTeamDoc, isEncryptedTeamState } from './teamCrypto'
 
 const appCache = new Map()
@@ -39,7 +39,7 @@ async function ensureSignedIn(auth) {
   return user
 }
 
-export async function resolveCollabUserId(config) {
+export async function resolveDeviceAuthUid(config) {
   const { auth } = getOrCreateApp(config)
   const { uid } = await ensureSignedIn(auth)
   return uid
@@ -49,33 +49,35 @@ function teamRef(db, teamId) {
   return doc(db, 'teams', teamId)
 }
 
-// The security rules identify a member by `request.auth.uid`, so every write
-// keys off the anonymous auth UID rather than the local `collab.userId`. The
-// UID is scoped to one Firebase project, which is why callers persist the one
-// they were given alongside the membership.
-export async function createTeam({ config, name, expiresAt, teamKey }) {
+export async function createTeam({ config, name, expiresAt, teamKey, personId }) {
+  if (!personId) throw new Error('Missing identity')
   const { auth, db } = getOrCreateApp(config)
-  const { uid: hostUserId } = await ensureSignedIn(auth)
+  const { uid: authUid } = await ensureSignedIn(auth)
   const teamId = nanoid()
+  const keyProofSalt = createTokenSalt()
   await setDoc(teamRef(db, teamId), {
     id: teamId,
     name,
-    hostUserId,
+    hostPersonId: personId,
     membersCanEditShared: true,
     sharedTaskCompletionMode: 'for-all',
     expiresAt,
     members: {
-      [hostUserId]: {
+      [personId]: {
         role: 'host',
         joinedAt: Date.now(),
+        alias: '',
       },
     },
+    authUids: { [authUid]: personId },
+    keyProofSalt,
+    keyProofHash: await createKeyProof(teamKey, keyProofSalt),
     invite: null,
     state: await encryptTeamState(createTeamState(), teamKey, teamId),
     updatedAt: Date.now(),
     serverUpdatedAt: serverTimestamp(),
   })
-  return { teamId, userId: hostUserId }
+  return { teamId, userId: personId }
 }
 
 export async function updateTeamMeta({ config, teamId, updates }) {
@@ -95,15 +97,16 @@ export async function updateTeamMeta({ config, teamId, updates }) {
 
 export async function updateMemberAlias({ config, teamId, alias }) {
   const { auth, db } = getOrCreateApp(config)
-  const { uid: userId } = await ensureSignedIn(auth)
+  const { uid: authUid } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
     if (!snap.exists()) return
     const team = snap.data()
+    const personId = personForAuthUid(team, authUid)
     const members = { ...(team.members ?? {}) }
-    if (!members[userId]) return
-    members[userId] = { ...members[userId], alias: alias ?? '' }
+    if (!personId || !members[personId]) return
+    members[personId] = { ...members[personId], alias: alias ?? '' }
     tx.update(ref, {
       members,
       updatedAt: Date.now(),
@@ -142,9 +145,10 @@ export async function generateInvite({ config, teamId, ttlMs }) {
   return { token, expiresAt }
 }
 
-export async function joinWithInvite({ config, teamId, token }) {
+export async function joinWithInvite({ config, teamId, token, personId }) {
+  if (!personId) throw new Error('Missing identity')
   const { auth, db } = getOrCreateApp(config)
-  const { uid: userId } = await ensureSignedIn(auth)
+  const { uid: authUid } = await ensureSignedIn(auth)
   let teamName = null
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
@@ -158,31 +162,64 @@ export async function joinWithInvite({ config, teamId, token }) {
     })
     if (!valid) throw new Error('Invalid invite')
     if (Date.now() > (invite.expiresAt ?? 0)) throw new Error('Invite expired')
-    const members = team.members ?? {}
-    if (!members[userId]) {
-      members[userId] = { role: 'member', joinedAt: Date.now(), alias: '' }
+    const members = { ...(team.members ?? {}) }
+    if (!members[personId]) {
+      members[personId] = { role: 'member', joinedAt: Date.now(), alias: '' }
     }
     tx.update(ref, {
       members,
+      authUids: { ...(team.authUids ?? {}), [authUid]: personId },
       updatedAt: Date.now(),
       serverUpdatedAt: serverTimestamp(),
     })
   })
-  return { teamName, userId }
+  return { teamName, userId: personId }
+}
+
+export async function attachDeviceWithKey({ config, teamId, teamKey, personId }) {
+  if (!personId || !teamKey) return { attached: false }
+  const { auth, db } = getOrCreateApp(config)
+  const { uid: authUid } = await ensureSignedIn(auth)
+  let attached = false
+  await runTransaction(db, async tx => {
+    const ref = teamRef(db, teamId)
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Team not found')
+    const team = snap.data()
+    if (team.authUids?.[authUid]) return
+    if (!team.members?.[personId]) return
+    const valid = await matchesKeyProof({
+      teamKey, salt: team.keyProofSalt, proofHash: team.keyProofHash,
+    })
+    if (!valid) return
+    tx.update(ref, {
+      authUids: { ...(team.authUids ?? {}), [authUid]: personId },
+      updatedAt: Date.now(),
+      serverUpdatedAt: serverTimestamp(),
+    })
+    attached = true
+  })
+  return { attached }
 }
 
 export async function leaveTeam({ config, teamId }) {
   const { auth, db } = getOrCreateApp(config)
-  const { uid: userId } = await ensureSignedIn(auth)
+  const { uid: authUid } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
     if (!snap.exists()) return
     const team = snap.data()
+    const personId = personForAuthUid(team, authUid)
+    if (!personId) return
     const members = { ...(team.members ?? {}) }
-    delete members[userId]
+    delete members[personId]
+    const authUids = Object.fromEntries(
+      Object.entries(team.authUids ?? {}).filter(([, person]) => person !== personId)
+    )
     tx.update(ref, {
       members,
+      authUids,
       updatedAt: Date.now(),
       serverUpdatedAt: serverTimestamp(),
     })
@@ -227,13 +264,13 @@ export async function fetchTeam({ config, teamId, teamKey }) {
 
 export async function updateTeamState({ config, teamId, teamKey, updater }) {
   const { auth, db } = getOrCreateApp(config)
-  const { uid: userId } = await ensureSignedIn(auth)
+  const { uid: authUid } = await ensureSignedIn(auth)
   await runTransaction(db, async tx => {
     const ref = teamRef(db, teamId)
     const snap = await tx.get(ref)
     if (!snap.exists()) throw new Error('Team not found')
     const team = snap.data()
-    if (!isMember(team, userId)) throw new Error('Not a member')
+    if (!isMember(team, personForAuthUid(team, authUid))) throw new Error('Not a member')
 
     const current = await decryptTeamState(team.state, teamKey, teamId)
     // Writing on an unreadable payload would clobber the team with a fresh

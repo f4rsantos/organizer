@@ -281,26 +281,27 @@ describe('edits made before hydration are never discarded', () => {
     expect(useStore.getState().collab.userId).toBe('u_local')
   })
 
-  it('keeps this device auth uid when another device syncs its own', async () => {
+  it('carries the person id across devices so one user stays one member', async () => {
     const { useStore } = await import('./useStore.js')
     useStore.getState().markHydrated()
     useStore.getState().addCollabMembership({
-      teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk', memberUserId: 'uid_this_device',
+      teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk',
     })
 
     useStore.getState().importData({
       version: 6, theme: 'system', lang: 'en', onboardingDone: true,
       tasks: [], notes: [], settings: {},
       collab: {
-        userId: 'u1',
-        memberships: [{ teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk', memberUserId: 'uid_other_device' }],
+        userId: 'u_person',
+        memberships: [{ teamId: 'uid1', apiKey: 'k', projectId: 'p', teamKey: 'tk' }],
       },
     })
 
-    // Anonymous auth UIDs are per device: adopting the remote one would make
-    // every write fail the members[request.auth.uid] rule.
+    // Team docs key members by this id, not by the per-device auth uid, so a
+    // second device joins the same member entry instead of adding another.
+    expect(useStore.getState().collab.userId).toBe('u_person')
     const merged = useStore.getState().collab.memberships.find(m => m.teamId === 'uid1')
-    expect(merged.memberUserId).toBe('uid_this_device')
+    expect(merged.memberUserId).toBeUndefined()
   })
 
   it('lets a remote team key rotation win over the local one', async () => {

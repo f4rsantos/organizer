@@ -64,6 +64,7 @@ export function useMergedTasks(semesterId) {
   const semesters = useStore(s => s.semesters ?? [])
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const memberships = useStore(s => s.collab?.memberships ?? [])
+  const collabUserId = useStore(s => s.collab?.userId ?? null)
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const activeSemesterId = useStore(s => s.activeSemesterId)
   const semester = useMemo(
@@ -83,12 +84,11 @@ export function useMergedTasks(semesterId) {
     const remote = (showRemote ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
       const tasks = team?.state?.tasks ?? []
-      const memberUserId = membership.memberUserId ?? null
       return tasks
-        .map(task => mapRemoteTask(task, membership.teamId, memberUserId, semesterId, semester))
+        .map(task => mapRemoteTask(task, membership.teamId, collabUserId, semesterId, semester))
         .filter(Boolean)
     })
 
     return [...local, ...remote]
-  }, [localTasks, collabEnabled, memberships, runtimeTeams, semesterId, activeSemesterId, semester])
+  }, [localTasks, collabEnabled, memberships, collabUserId, runtimeTeams, semesterId, activeSemesterId, semester])
 }

@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { getOrCreateCollabUserId, readCachedCollabUserId, cacheCollabUserId } from '@/lib/collab/identity'
-import { deleteTeam, subscribeTeam, resolveCollabUserId } from '@/lib/collab/firebase'
-import { isTeamExpired, isLegacyIdentityTeam } from '@/lib/collab/schema'
+import { deleteTeam, subscribeTeam, resolveDeviceAuthUid, attachDeviceWithKey } from '@/lib/collab/firebase'
+import { isTeamExpired, isKnownDevice } from '@/lib/collab/schema'
 import { markCollabRulesEnabled } from '@/lib/firebase'
 
 export function useCollabSync() {
@@ -19,7 +19,7 @@ export function useCollabSync() {
   const userId = useMemo(() => collab?.userId ?? null, [collab?.userId])
 
   const membershipsKey = useMemo(
-    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}:${m.teamKey ?? ''}:${m.memberUserId ?? ''}`).join('|'),
+    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}:${m.teamKey ?? ''}`).join('|'),
     [memberships],
   )
 
@@ -49,21 +49,6 @@ export function useCollabSync() {
       const config = { apiKey: membership.apiKey, projectId: membership.projectId }
       const teamId = membership.teamId
 
-      // Memberships that predate UID-based identity, or that arrived from
-      // another device, carry no usable id for this device's auth session.
-      if (!membership.memberUserId) {
-        resolveCollabUserId(config)
-          .then(uid => {
-            if (!uid) return
-            const current = useStore.getState().collab?.memberships
-              ?.find(m => m.teamId === teamId)
-            if (current && !current.memberUserId) {
-              updateCollabMembership(teamId, { memberUserId: uid })
-            }
-          })
-          .catch(() => {})
-      }
-
       const onData = async team => {
         if (team === null) {
           clearCollabRuntimeTeam(teamId)
@@ -71,9 +56,7 @@ export function useCollabSync() {
         }
         if (isTeamExpired(team)) {
           clearCollabRuntimeTeam(teamId)
-          // hostUserId is the per-project auth UID, so the local collab
-          // identity would never match and the doc would leak.
-          if (team.hostUserId && team.hostUserId === membership.memberUserId) {
+          if (team.hostPersonId && team.hostPersonId === userId) {
             try { await deleteTeam({ config, teamId }) } catch {
               // local membership is removed below regardless
             }
@@ -90,11 +73,16 @@ export function useCollabSync() {
           setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'key-required' })
           return
         }
-        const memberUserId = useStore.getState().collab?.memberships
-          ?.find(m => m.teamId === teamId)?.memberUserId ?? null
-        if (isLegacyIdentityTeam(team, memberUserId)) {
-          setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'outdated' })
-          return
+        const authUid = await resolveDeviceAuthUid(config).catch(() => null)
+        if (!isKnownDevice(team, authUid)) {
+          const personId = useStore.getState().collab?.userId ?? null
+          const { attached } = await attachDeviceWithKey({
+            config, teamId, teamKey: membership.teamKey, personId,
+          }).catch(() => ({ attached: false }))
+          if (!attached) {
+            setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'device-unlinked' })
+            return
+          }
         }
         setCollabRuntimeTeam(teamId, { ...team, config, syncStatus: 'live', syncedAt: Date.now() })
       }

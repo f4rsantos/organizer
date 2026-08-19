@@ -63,15 +63,15 @@ export function CollabConnectButton({ firebaseConnected }) {
   const handleDisconnect = async () => {
     const state = useStore.getState()
     const memberships = state.collab?.memberships ?? []
+    const collabUserId = state.collab?.userId ?? null
     const runtimeTeams = state.collabRuntime?.teams ?? {}
 
     for (const membership of memberships) {
       const runtime = runtimeTeams[membership.teamId]
       const config = { apiKey: membership.apiKey, projectId: membership.projectId }
-      // Host status is decided by the per-project auth UID stored on the
-      // membership, which is what the team doc and the rules compare against.
-      const memberUserId = membership.memberUserId ?? null
-      if (memberUserId && runtime?.hostUserId === memberUserId) {
+      // Host status is decided by the person id, which the team doc keys
+      // members by and which is identical on every device of this user.
+      if (collabUserId && runtime?.hostPersonId === collabUserId) {
         try {
           await deleteTeam({ config, teamId: membership.teamId })
         } catch {

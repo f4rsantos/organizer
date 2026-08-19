@@ -38,13 +38,13 @@ export function useCollabDeepLink() {
       config: { apiKey: parsed.apiKey, projectId: parsed.projectId },
       teamId: parsed.teamId,
       token: parsed.token,
+      personId: useStore.getState().collab?.userId ?? null,
     })
-      .then(({ teamName, userId: memberUserId }) => {
+      .then(({ teamName }) => {
         useStore.getState().addCollabMembership({
           teamId: parsed.teamId,
           apiKey: parsed.apiKey,
           projectId: parsed.projectId,
-          memberUserId,
           teamKey: parsed.teamKey,
           ...(teamName ? { teamName } : {}),
         })

@@ -23,6 +23,7 @@ function mapRemoteCard(card, teamId, localBoard) {
     ...card,
     id: `shared:${teamId}:${card.id}`,
     columnId,
+    order: Number.isFinite(card.order) ? card.order : 0,
     sharedMeta: {
       teamId,
       sharedCardId: card.id,

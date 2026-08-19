@@ -26,7 +26,7 @@ export function mergedTasks(state) {
     return shared.map(task => ({
       ...task,
       id: `shared:${membership.teamId}:${task.id}`,
-      done: !!task?.doneForAll || !!task?.doneBy?.[membership.memberUserId],
+      done: !!task?.doneForAll || !!task?.doneBy?.[state.collab?.userId],
       semesterId: state.activeSemesterId ?? null,
     }))
   })

@@ -1,40 +1,36 @@
 import { describe, it, expect } from 'vitest'
-import { isLegacyIdentityTeam, isMember, createTeamState } from './schema.js'
+import { isMember, isKnownDevice, personForAuthUid, createTeamState } from './schema.js'
 
 describe('isMember', () => {
   it('recognises a member by id', () => {
-    expect(isMember({ members: { uid_a: { role: 'host' } } }, 'uid_a')).toBe(true)
-    expect(isMember({ members: { uid_a: { role: 'host' } } }, 'uid_b')).toBe(false)
+    expect(isMember({ members: { u_person: { role: 'host' } } }, 'u_person')).toBe(true)
+    expect(isMember({ members: { u_person: { role: 'host' } } }, 'u_other')).toBe(false)
+    expect(isMember({ members: { u_person: { role: 'host' } } }, null)).toBe(false)
   })
 })
 
-describe('isLegacyIdentityTeam', () => {
-  const legacy = { members: { u_abc_123: { role: 'host' } } }
+describe('personForAuthUid', () => {
+  const team = {
+    members: { u_person: { role: 'host' } },
+    authUids: { uid_phone: 'u_person', uid_laptop: 'u_person' },
+  }
 
-  it('flags a team whose members predate uid identity', () => {
-    // Drives syncStatus 'outdated', which both blocks writes in guard() and
-    // renders the hint. Writes would fail the members[request.auth.uid] rule,
-    // and no central migration is possible because every user runs their own
-    // Firebase project.
-    expect(isLegacyIdentityTeam(legacy, 'uid_this_device')).toBe(true)
+  it('maps every device of a person back to the one member entry', () => {
+    // Both devices resolve to the same member, which is what stops one human
+    // becoming two members in the roster, in doneBy and in assignment.
+    expect(personForAuthUid(team, 'uid_phone')).toBe('u_person')
+    expect(personForAuthUid(team, 'uid_laptop')).toBe('u_person')
   })
 
-  it('does not flag a team this device is a member of', () => {
-    expect(isLegacyIdentityTeam({ members: { uid_me: {} } }, 'uid_me')).toBe(false)
+  it('returns null for a device that was never enrolled', () => {
+    expect(personForAuthUid(team, 'uid_unknown')).toBeNull()
+    expect(personForAuthUid(team, null)).toBeNull()
+    expect(personForAuthUid({}, 'uid_phone')).toBeNull()
   })
 
-  it('stays quiet until the device uid is known', () => {
-    expect(isLegacyIdentityTeam(legacy, null)).toBe(false)
-  })
-
-  it('stays quiet on a locked team, where members cannot be trusted', () => {
-    expect(isLegacyIdentityTeam({ ...legacy, locked: true }, 'uid_me')).toBe(false)
-  })
-
-  it('stays quiet on an absent or empty members map', () => {
-    expect(isLegacyIdentityTeam({ members: {} }, 'uid_me')).toBe(false)
-    expect(isLegacyIdentityTeam({}, 'uid_me')).toBe(false)
-    expect(isLegacyIdentityTeam(null, 'uid_me')).toBe(false)
+  it('reports whether this device may write', () => {
+    expect(isKnownDevice(team, 'uid_phone')).toBe(true)
+    expect(isKnownDevice(team, 'uid_unknown')).toBe(false)
   })
 })
 
