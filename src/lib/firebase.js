@@ -14,6 +14,7 @@ export { loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig } from './f
 const DOC_PATH = { collection: 'organizer', id: 'state' }
 const PERSONAL_AAD = aadForPersonalSlice(WHOLE_STATE)
 const COLLAB_RULES_PREF = 'collabRules'
+const COLLAB_GUIDE_SEEN_PREF = 'collabGuideSeen'
 const ANON_AUTH_FAIL_PREF = 'anonAuthFail'
 const ANON_AUTH_STATUS = new Map()
 const ANON_AUTH_PENDING = new Map()
@@ -25,6 +26,14 @@ export function loadCollabRulesTag() {
 
 export function markCollabRulesEnabled() {
   writeDevicePref(COLLAB_RULES_PREF, true)
+}
+
+export function hasSeenCollabGuide() {
+  return readDevicePref(COLLAB_GUIDE_SEEN_PREF) === true
+}
+
+export function markCollabGuideSeen() {
+  writeDevicePref(COLLAB_GUIDE_SEEN_PREF, true)
 }
 
 function getApp(config) {

@@ -201,7 +201,7 @@ describe('collab merging', () => {
     ...NONE_MODE,
     settings: { semesterMode: 'none', collabEnabled: true },
     activeSemesterId: null,
-    collab: { userId: 'me', memberships: [{ teamId: 'team1' }] },
+    collab: { userId: 'local', memberships: [{ teamId: 'team1', memberUserId: 'me' }] },
     classes: [],
     tasks: [],
     kanban: { __free__: { columns: [{ id: 'a', title: 'Todo', order: 0 }] } },
@@ -234,6 +234,21 @@ describe('collab merging', () => {
       },
     }
     expect(buildTasksProjection(done, TODAY)).toEqual([])
+  })
+
+  it('does not treat a shared task as done when the member id is unresolved', () => {
+    const unresolved = {
+      ...collabState,
+      collab: { userId: 'me', memberships: [{ teamId: 'team1' }] },
+      collabRuntime: {
+        teams: {
+          team1: {
+            state: { tasks: [{ id: 'r1', title: 'Shared task', doneBy: { me: true } }], kanban: { cards: [] } },
+          },
+        },
+      },
+    }
+    expect(buildTasksProjection(unresolved, TODAY).map(t => t.title)).toContain('Shared task')
   })
 
   it('includes shared kanban cards', () => {

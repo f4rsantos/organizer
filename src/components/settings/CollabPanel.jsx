@@ -20,6 +20,7 @@ import {
 import { collabErrorText } from '@/lib/collab/errors'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { getMemberList } from '@/lib/collab/teamColors'
+import { RulesBox } from '@/components/settings/RulesBox'
 import { useCollabActions } from '@/hooks/useCollabActions'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -77,6 +78,24 @@ function PanelCard({ icon, title, subtitle, children }) {
   )
 }
 
+function RulesHelpDialog({ open, onOpenChange, isHost, t }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t.collabRulesHelpTitle}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            {isHost ? t.collabRulesHelpHost : t.collabRulesHelpMember}
+          </p>
+          <RulesBox label={t.collabGuideRulesLabel} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDelete, onLeave, onUpdate, onUpdateAlias }) {
   // Anyone holding the team key can re-share it, not just the host: the key is
   // what a second device of your own needs, and gating this on host status
@@ -92,6 +111,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
   const [copiedInvite, setCopiedInvite] = useState(false)
   const [aliasInput, setAliasInput] = useState('')
   const [editingAlias, setEditingAlias] = useState(false)
+  const [rulesHelpOpen, setRulesHelpOpen] = useState(false)
 
   const members = useMemo(() => getMemberList(runtimeTeam), [runtimeTeam])
   const myMember = members.find(m => m.userId === userId)
@@ -272,7 +292,13 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             </div>
             {copiedInvite && <p className="text-[11px] text-muted-foreground">{t.linkCopied}</p>}
             {team.syncStatus === 'error' && (
-              <p className="text-[11px] text-destructive pt-1">{t.collabSyncErrorHint}</p>
+              <button
+                type="button"
+                className="text-[11px] text-destructive pt-1 text-left underline underline-offset-2"
+                onClick={() => setRulesHelpOpen(true)}
+              >
+                {t.collabSyncErrorHint}
+              </button>
             )}
             {team.syncStatus === 'key-required' && (
               <p className="text-[11px] text-destructive pt-1">{t.collabKeyRequiredHint}</p>
@@ -353,6 +379,8 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
           </div>
         </div>
       )}
+
+      <RulesHelpDialog open={rulesHelpOpen} onOpenChange={setRulesHelpOpen} isHost={isHost} t={t} />
     </div>
   )
 }
@@ -580,8 +608,6 @@ export function CollabPanel() {
       <PanelCard icon={Users} title={t.collabYourTeams}>
         <div className="space-y-2">
           {teams.map(team => {
-            // Host status is decided by the per-project auth UID, the same id
-            // the team doc and the security rules use.
             const isHost = Boolean(team.memberUserId) && team.hostUserId === team.memberUserId
             return (
               <TeamRow
@@ -589,7 +615,7 @@ export function CollabPanel() {
                 team={team}
                 t={t}
                 isHost={isHost}
-                userId={team.memberUserId ?? collab.userId}
+                userId={team.memberUserId ?? null}
                 runtimeTeam={runtimeTeams[team.teamId]}
                 onGenerateInvite={daysToUse => handleGenerateInvite(team, daysToUse)}
                 onDelete={() => setDeleteTeamId(team.teamId)}

@@ -63,7 +63,6 @@ export function useMergedTasks(semesterId) {
   const localTasks = useStore(s => s.tasks ?? [])
   const semesters = useStore(s => s.semesters ?? [])
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
-  const userId = useStore(s => s.collab?.userId)
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const activeSemesterId = useStore(s => s.activeSemesterId)
@@ -84,13 +83,12 @@ export function useMergedTasks(semesterId) {
     const remote = (showRemote ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
       const tasks = team?.state?.tasks ?? []
-      // doneBy is keyed by the per-project auth UID stored on the membership.
-      const memberUserId = membership.memberUserId ?? userId
+      const memberUserId = membership.memberUserId ?? null
       return tasks
         .map(task => mapRemoteTask(task, membership.teamId, memberUserId, semesterId, semester))
         .filter(Boolean)
     })
 
     return [...local, ...remote]
-  }, [localTasks, collabEnabled, memberships, runtimeTeams, semesterId, activeSemesterId, semester, userId])
+  }, [localTasks, collabEnabled, memberships, runtimeTeams, semesterId, activeSemesterId, semester])
 }

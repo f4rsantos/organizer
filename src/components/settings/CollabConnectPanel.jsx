@@ -4,21 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { markCollabRulesEnabled } from '@/lib/firebase'
+import { markCollabRulesEnabled, markCollabGuideSeen } from '@/lib/firebase'
 import { deleteTeam, leaveTeam } from '@/lib/collab/firebase'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { RulesBox } from '@/components/settings/RulesBox'
 
-const RULES_SNIPPET = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}`
-
-function CollabGuideModal({ open, onOpenChange, onEnable }) {
+export function CollabGuideModal({ open, onOpenChange, onEnable, confirmLabel }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
@@ -28,7 +19,7 @@ function CollabGuideModal({ open, onOpenChange, onEnable }) {
         <DialogHeader>
           <DialogTitle>{t.collabGuideTitle}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm max-h-[70vh] overflow-y-auto">
           <p className="text-muted-foreground">{t.collabGuideIntro}</p>
           <div className="rounded-lg border border-border bg-secondary/40 p-3">
             <p className="text-xs font-medium mb-1">{t.collabGuideImportantTitle}</p>
@@ -44,12 +35,12 @@ function CollabGuideModal({ open, onOpenChange, onEnable }) {
             <li>{t.collabGuideStep3}</li>
             <li>{t.collabGuideStep4}</li>
           </ol>
-          <RulesBox label={t.collabGuideRulesLabel} snippet={RULES_SNIPPET} />
+          <RulesBox label={t.collabGuideRulesLabel} />
           <div className="rounded-lg border border-border bg-secondary/40 p-3">
             <p className="text-xs font-medium mb-1">{t.collabGuideChecklistTitle}</p>
             <p className="text-xs text-muted-foreground">{t.collabGuideChecklistBody}</p>
           </div>
-          <Button className="w-full" onClick={onEnable}>{t.collabEnableNow}</Button>
+          <Button className="w-full" onClick={onEnable}>{confirmLabel ?? t.collabEnableNow}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -68,7 +59,6 @@ export function CollabConnectButton({ firebaseConnected }) {
   const [openGuide, setOpenGuide] = useState(false)
   const [confirmOff, setConfirmOff] = useState(false)
 
-  const disabled = !firebaseConnected && !collabEnabled
 
   const handleDisconnect = async () => {
     const state = useStore.getState()
@@ -103,18 +93,25 @@ export function CollabConnectButton({ firebaseConnected }) {
     wipeCollabData()
   }
 
+  const handleEnable = () => {
+    markCollabRulesEnabled()
+    markCollabGuideSeen()
+    updateSettings({ collabEnabled: true })
+    setOpenGuide(false)
+  }
+
   const handleClick = async () => {
     if (collabEnabled) {
       setConfirmOff(true)
       return
     }
+    // The guide is all host-side Firebase setup. Without a project there is
+    // nothing to follow, so enable straight away and let them join by link.
+    if (!firebaseConnected) {
+      handleEnable()
+      return
+    }
     setOpenGuide(true)
-  }
-
-  const handleEnable = () => {
-    markCollabRulesEnabled()
-    updateSettings({ collabEnabled: true })
-    setOpenGuide(false)
   }
 
   return (
@@ -122,7 +119,6 @@ export function CollabConnectButton({ firebaseConnected }) {
       <Button
         variant="outline"
         className="col-span-2 gap-2 w-full"
-        disabled={disabled}
         onClick={handleClick}
       >
         {collabEnabled
@@ -132,8 +128,8 @@ export function CollabConnectButton({ firebaseConnected }) {
         {collabEnabled ? t.collabDisconnect : t.collabConnect}
       </Button>
 
-      {!firebaseConnected && !collabEnabled && (
-        <p className="col-span-2 text-xs text-muted-foreground">{t.collabRequiresFirebase}</p>
+      {!firebaseConnected && (
+        <p className="col-span-2 text-xs text-muted-foreground">{t.collabFirebaseOnlyForCreating}</p>
       )}
 
       <CollabGuideModal open={openGuide} onOpenChange={setOpenGuide} onEnable={handleEnable} />

@@ -17,8 +17,6 @@ function remoteMemberships(state, boardId) {
 export function mergedTasks(state) {
   const teams = state.collabRuntime?.teams ?? {}
   const ids = activeTeamIds(state)
-  const userId = state.collab?.userId
-
   const local = (state.tasks ?? []).filter(
     task => !isSharedLocalHidden(task, ids, teams),
   )
@@ -28,8 +26,7 @@ export function mergedTasks(state) {
     return shared.map(task => ({
       ...task,
       id: `shared:${membership.teamId}:${task.id}`,
-      // doneBy is keyed by the per-project auth UID held on the membership.
-      done: !!task?.doneForAll || !!task?.doneBy?.[membership.memberUserId ?? userId],
+      done: !!task?.doneForAll || !!task?.doneBy?.[membership.memberUserId],
       semesterId: state.activeSemesterId ?? null,
     }))
   })
