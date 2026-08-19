@@ -1,4 +1,5 @@
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import { useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -12,7 +13,8 @@ import { computeCardGroups } from '@/lib/kanbanGrouping'
 export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
   const [activeCard, setActiveCard] = useState(null)
   const moveCard = useStore(s => s.moveKanbanCard)
-  const { moveSharedCard } = useCollabActions()
+  const reorderCards = useStore(s => s.reorderKanbanCards)
+  const { moveSharedCard, reorderSharedCards } = useCollabActions()
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
@@ -58,6 +60,28 @@ export function KanbanBoard({ semId, board, localBoard, vertical = false }) {
         return
       }
       moveCard(semId, active.id, targetColId)
+      return
+    }
+
+    if (!targetColId || active.id === over.id) return
+    const columnCards = sortByOrder((board?.cards ?? []).filter(c => c.columnId === targetColId))
+    const from = columnCards.findIndex(c => c.id === active.id)
+    const to = columnCards.findIndex(c => c.id === over.id)
+    if (from === -1 || to === -1 || from === to) return
+    const ordered = arrayMove(columnCards, from, to)
+
+    const localIds = ordered.filter(c => !c.sharedMeta?.remote).map(c => c.id)
+    if (localIds.length) reorderCards(semId, targetColId, localIds)
+
+    const sharedByTeam = new Map()
+    for (const c of ordered) {
+      if (!c.sharedMeta?.remote) continue
+      const list = sharedByTeam.get(c.sharedMeta.teamId) ?? []
+      list.push(c.sharedMeta.sharedCardId)
+      sharedByTeam.set(c.sharedMeta.teamId, list)
+    }
+    for (const [teamId, orderedSharedIds] of sharedByTeam) {
+      reorderSharedCards({ teamId, columnId: targetColId, orderedSharedIds })
     }
   }
 

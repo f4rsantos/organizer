@@ -16,21 +16,41 @@ service cloud.firestore {
       allow get: if request.auth != null;
       allow list: if false;
 
+      function personOf(data) {
+        return data.authUids[request.auth.uid];
+      }
+      function isKnownDevice(data) {
+        return data.authUids.keys().hasAny([request.auth.uid]);
+      }
+      function onlyEnrollsSelf() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['members', 'authUids', 'updatedAt', 'serverUpdatedAt'])
+          && request.resource.data.authUids.diff(resource.data.authUids)
+              .affectedKeys().hasOnly([request.auth.uid])
+          && (
+            request.resource.data.members.diff(resource.data.members)
+                .affectedKeys().size() == 0
+            || (
+              request.resource.data.members.diff(resource.data.members)
+                  .affectedKeys().hasOnly([personOf(request.resource.data)])
+              && request.resource.data.members[personOf(request.resource.data)].role == 'member'
+            )
+          );
+      }
+
       allow create: if request.auth != null
-        && request.resource.data.hostUserId == request.auth.uid;
+        && request.resource.data.authUids.keys().hasOnly([request.auth.uid])
+        && personOf(request.resource.data) == request.resource.data.hostPersonId
+        && request.resource.data.members.keys().hasOnly([request.resource.data.hostPersonId]);
 
       allow update: if request.auth != null && (
-        (request.auth.uid in resource.data.members)
-        || (
-          !(request.auth.uid in resource.data.members)
-          && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['members', 'updatedAt', 'serverUpdatedAt'])
-          && (request.auth.uid in request.resource.data.members)
-        )
+        isKnownDevice(resource.data)
+        || onlyEnrollsSelf()
       );
 
       allow delete: if request.auth != null
-        && resource.data.hostUserId == request.auth.uid;
+        && isKnownDevice(resource.data)
+        && personOf(resource.data) == resource.data.hostPersonId;
     }
   }
 }`

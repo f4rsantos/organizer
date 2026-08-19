@@ -201,7 +201,7 @@ describe('collab merging', () => {
     ...NONE_MODE,
     settings: { semesterMode: 'none', collabEnabled: true },
     activeSemesterId: null,
-    collab: { userId: 'local', memberships: [{ teamId: 'team1', memberUserId: 'me' }] },
+    collab: { userId: 'me', memberships: [{ teamId: 'team1' }] },
     classes: [],
     tasks: [],
     kanban: { __free__: { columns: [{ id: 'a', title: 'Todo', order: 0 }] } },
@@ -239,7 +239,7 @@ describe('collab merging', () => {
   it('does not treat a shared task as done when the member id is unresolved', () => {
     const unresolved = {
       ...collabState,
-      collab: { userId: 'me', memberships: [{ teamId: 'team1' }] },
+      collab: { userId: null, memberships: [{ teamId: 'team1' }] },
       collabRuntime: {
         teams: {
           team1: {

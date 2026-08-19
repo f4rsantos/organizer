@@ -324,7 +324,7 @@ export const de = {
     collabGuideChecklistBody: 'Die zwei Schritte, die Organizer nicht für dich erledigen kann: anonyme Anmeldung aktivieren und die obigen Firestore-Regeln veröffentlichen. Wenn geteilte Aufgaben nie erscheinen, fehlt einer davon im Host-Projekt.',
     collabSyncErrorHint: 'Dieses Team ist nicht erreichbar. Prüfe, ob im Firebase des Hosts die anonyme Anmeldung aktiviert und die Regeln offen sind.',
     collabKeyRequiredHint: "Dieses Team ist verschlüsselt und dein Einladungslink enthielt keinen Schlüssel. Bitte um einen neuen Einladungslink.",
-    collabOutdatedTeamHint: "Dieses Team ist veraltet und synchronisiert nicht mehr. Bitte den Host um ein neues Team.",
+    collabDeviceUnlinkedHint: "Dieses Gerät ist noch nicht mit diesem Team verbunden. Öffne hier einen Einladungslink, um zu synchronisieren.",
     collabErrorPermission: 'Durch Firebase-Regeln blockiert. Der Host muss die anonyme Anmeldung aktivieren und die Firestore-Regeln öffnen.',
     collabErrorAuthDisabled: "Die anonyme Anmeldung ist im Firebase-Projekt des Hosts deaktiviert. Der Host muss sie unter Authentication › Sign-in method aktivieren.",
     collabErrorNotFound: 'Team nicht gefunden. Es wurde möglicherweise gelöscht.',

@@ -303,8 +303,8 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             {team.syncStatus === 'key-required' && (
               <p className="text-[11px] text-destructive pt-1">{t.collabKeyRequiredHint}</p>
             )}
-            {team.syncStatus === 'outdated' && (
-              <p className="text-[11px] text-destructive pt-1">{t.collabOutdatedTeamHint}</p>
+            {team.syncStatus === 'device-unlinked' && (
+              <p className="text-[11px] text-destructive pt-1">{t.collabDeviceUnlinkedHint}</p>
             )}
           </>
         )
@@ -389,6 +389,7 @@ export function CollabPanel() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const collab = useStore(s => s.collab ?? { userId: null, memberships: [] })
+  const userId = collab.userId ?? null
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const addMembership = useStore(s => s.addCollabMembership)
   const updateMembership = useStore(s => s.updateCollabMembership)
@@ -415,7 +416,7 @@ export function CollabPanel() {
       return {
         ...m,
         name: runtime?.name ?? m.teamName ?? 'Team',
-        hostUserId: runtime?.hostUserId ?? m.hostUserId,
+        hostPersonId: runtime?.hostPersonId ?? m.hostPersonId,
         expiresAt: runtime?.expiresAt ?? m.expiresAt,
         sharedTaskCompletionMode: runtime?.sharedTaskCompletionMode ?? 'for-all',
         membersCanEditShared: runtime?.membersCanEditShared ?? true,
@@ -441,20 +442,18 @@ export function CollabPanel() {
     try {
       const expiresAt = Date.now() + parseDays(durationInput, 365) * DAY_MS
       const teamKey = createTeamKey()
-      const { teamId, userId } = await createTeam({
+      const { teamId } = await createTeam({
         config: firebaseConfig,
         name: name.trim(),
         expiresAt,
         teamKey,
+        personId: userId,
       })
       addMembership({
         teamId,
         apiKey: firebaseConfig.apiKey,
         projectId: firebaseConfig.projectId,
-        // The auth UID is scoped to this Firebase project, so it is stored per
-        // membership rather than on the global collab identity.
-        memberUserId: userId,
-        hostUserId: userId,
+        hostPersonId: userId,
         teamName: name.trim(),
         expiresAt,
         teamKey,
@@ -499,17 +498,17 @@ export function CollabPanel() {
 
     setError(null)
     try {
-      const { teamName, userId } = await joinWithInvite({
+      const { teamName } = await joinWithInvite({
         config: { apiKey: parsed.apiKey, projectId: parsed.projectId },
         teamId: parsed.teamId,
         token: parsed.token,
+        personId: userId,
       })
 
       addMembership({
         teamId: parsed.teamId,
         apiKey: parsed.apiKey,
         projectId: parsed.projectId,
-        memberUserId: userId,
         teamKey: parsed.teamKey,
         ...(teamName ? { teamName } : {}),
       })
@@ -608,14 +607,14 @@ export function CollabPanel() {
       <PanelCard icon={Users} title={t.collabYourTeams}>
         <div className="space-y-2">
           {teams.map(team => {
-            const isHost = Boolean(team.memberUserId) && team.hostUserId === team.memberUserId
+            const isHost = Boolean(userId) && team.hostPersonId === userId
             return (
               <TeamRow
                 key={team.teamId}
                 team={team}
                 t={t}
                 isHost={isHost}
-                userId={team.memberUserId ?? null}
+                userId={userId ?? null}
                 runtimeTeam={runtimeTeams[team.teamId]}
                 onGenerateInvite={daysToUse => handleGenerateInvite(team, daysToUse)}
                 onDelete={() => setDeleteTeamId(team.teamId)}

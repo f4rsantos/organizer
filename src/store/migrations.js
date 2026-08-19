@@ -488,14 +488,9 @@ export function normalizeState(state) {
     state.collab = { userId: null, memberships: [] }
   }
   if (!Array.isArray(state.collab.memberships)) state.collab.memberships = []
-  state.collab.memberships = state.collab.memberships.map(m => {
-    const withKey = typeof m?.teamKey === 'string' && m.teamKey.trim() ? m : { ...m, teamKey: null }
-    // Memberships created before the auth UID became the team identity have no
-    // `memberUserId`; it is refilled on the next authenticated collab write.
-    return typeof withKey.memberUserId === 'string' && withKey.memberUserId.trim()
-      ? withKey
-      : { ...withKey, memberUserId: null }
-  })
+  state.collab.memberships = state.collab.memberships.map(m => (
+    typeof m?.teamKey === 'string' && m.teamKey.trim() ? m : { ...m, teamKey: null }
+  ))
   if (typeof state.collab.userId !== 'string' && state.collab.userId !== null) state.collab.userId = null
 
   if (!state.collabRuntime || typeof state.collabRuntime !== 'object') {

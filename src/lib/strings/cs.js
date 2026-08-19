@@ -455,7 +455,7 @@ export const cs = {
     collabGuideChecklistBody: "The two steps Organizer cannot do for you: enable Anonymous Auth, and publish the Firestore rules above. If shared tasks never appear, one of these is missing on the host project.",
     collabSyncErrorHint: "Can't reach this team. Check the host's Firebase has Anonymous Auth enabled and open rules.",
     collabKeyRequiredHint: "Tento tým je šifrovaný a tvůj pozvánkový odkaz neobsahoval klíč. Požádej o nový odkaz.",
-    collabOutdatedTeamHint: "Tento tým je zastaralý a už se nesynchronizuje. Požádej hostitele o nový tým.",
+    collabDeviceUnlinkedHint: "Toto zařízení zatím není k týmu připojeno. Otevři na něm pozvánku, aby se synchronizoval.",
     collabErrorPermission: "Blocked by Firebase rules. Host must enable Anonymous Auth and open Firestore rules.",
     collabErrorAuthDisabled: "Anonymní přihlášení je v hostitelově projektu Firebase vypnuté. Hostitel ho musí zapnout v Authentication › Sign-in method.",
     collabErrorNotFound: "Team not found. It may have been deleted.",

@@ -324,7 +324,7 @@ export const es = {
     collabGuideChecklistBody: 'Los dos pasos que Organizer no puede hacer por ti: activar la autenticación anónima y publicar las reglas de Firestore de arriba. Si las tareas compartidas nunca aparecen, falta uno de estos en el proyecto del anfitrión.',
     collabSyncErrorHint: 'No se puede acceder a este equipo. Verifica que el Firebase del anfitrión tenga la autenticación anónima activada y reglas abiertas.',
     collabKeyRequiredHint: "Este equipo está cifrado y tu enlace de invitación no tenía clave. Pide un enlace de invitación nuevo.",
-    collabOutdatedTeamHint: "Este equipo está desactualizado y ya no sincroniza. Pide un equipo nuevo al anfitrión.",
+    collabDeviceUnlinkedHint: "Este dispositivo aún no está vinculado a este equipo. Abre un enlace de invitación aquí para sincronizar.",
     collabErrorPermission: 'Bloqueado por las reglas de Firebase. El anfitrión debe activar la autenticación anónima y abrir las reglas de Firestore.',
     collabErrorAuthDisabled: "El inicio de sesión anónimo está desactivado en el proyecto Firebase del anfitrión. El anfitrión debe activarlo en Authentication › Sign-in method.",
     collabErrorNotFound: 'Equipo no encontrado. Puede que se haya eliminado.',

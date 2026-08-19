@@ -68,11 +68,8 @@ export function KanbanTab() {
   const selfUserIds = useMemo(() => {
     const ids = new Set();
     if (userId) ids.add(userId);
-    for (const membership of memberships) {
-      if (membership.memberUserId) ids.add(membership.memberUserId);
-    }
     return ids;
-  }, [memberships, userId]);
+  }, [userId]);
 
   const allMembers = useMemo(() => {
     if (!collabEnabled) return [];

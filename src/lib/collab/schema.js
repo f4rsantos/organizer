@@ -19,19 +19,15 @@ export function isTeamExpired(team) {
   return Date.now() > team.expiresAt
 }
 
-export function isMember(team, userId) {
-  return Boolean(team?.members?.[userId])
+export function isMember(team, personId) {
+  return Boolean(personId && team?.members?.[personId])
 }
 
-// Teams created before members were keyed by the Firebase auth UID cannot be
-// repaired in place: the rules only accept writes from an id already present in
-// `members`, and every user runs their own Firebase project, so there is no
-// central migration. Such a team is detectable and has to be recreated.
-export function isLegacyIdentityTeam(team, memberUserId) {
-  if (!team || team.locked) return false
-  const members = team.members
-  if (!members || typeof members !== 'object') return false
-  if (Object.keys(members).length === 0) return false
-  if (!memberUserId) return false
-  return !members[memberUserId]
+export function personForAuthUid(team, authUid) {
+  if (!authUid) return null
+  return team?.authUids?.[authUid] ?? null
+}
+
+export function isKnownDevice(team, authUid) {
+  return Boolean(personForAuthUid(team, authUid))
 }
