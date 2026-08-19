@@ -19,7 +19,7 @@ export function useCollabSync() {
   const userId = useMemo(() => collab?.userId ?? null, [collab?.userId])
 
   const membershipsKey = useMemo(
-    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}:${m.teamKey ?? ''}`).join('|'),
+    () => memberships.map(m => `${m.teamId}:${m.projectId}:${m.apiKey}:${m.teamKey ?? ''}:${m.memberUserId ?? ''}`).join('|'),
     [memberships],
   )
 

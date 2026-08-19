@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
 import { useStrings } from '@/lib/strings'
+import { collabErrorTextForCode } from '@/lib/collab/errors'
 import { matchesShortcut, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
@@ -66,6 +67,8 @@ function NewerVersionBanner() {
 function CollabErrorToast() {
   const lastError = useStore(s => s.collabRuntime?.lastError ?? null)
   const clearCollabError = useStore(s => s.clearCollabError)
+  const lang = useStore(s => s.lang ?? 'en')
+  const t = useStrings(lang)
   useEffect(() => {
     if (!lastError) return
     const id = setTimeout(() => clearCollabError(), 6000)
@@ -75,7 +78,7 @@ function CollabErrorToast() {
   return (
     <div className="fixed bottom-above-tab-bar inset-x-0 z-50 flex justify-center px-4-safe">
       <div className="flex items-center gap-3 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-xs shadow-lg max-w-sm">
-        <span className="flex-1">{lastError.message}</span>
+        <span className="flex-1">{collabErrorTextForCode(lastError.code, t, t.collabSyncFailed)}</span>
         <button className="shrink-0 font-medium" onClick={clearCollabError}>×</button>
       </div>
     </div>
