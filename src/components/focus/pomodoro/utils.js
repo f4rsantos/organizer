@@ -38,6 +38,17 @@ export function growthFromSecs(secs) {
   return Math.min(POMODORO_UNITS_MAX, Math.max(0, secs) / 600)
 }
 
+// 1 unit = 10 minutes. `getPomodoroFocusSecs` adds a 1s sentinel on top of this
+// so aggregates can subtract their counts back out; storage compaction cannot.
+export function pomodoroFocusSecsRaw(pomodoro) {
+  if (typeof pomodoro?.focusSecs === 'number' && Number.isFinite(pomodoro.focusSecs)) {
+    return Math.max(0, pomodoro.focusSecs)
+  }
+  const pctRaw = Number.isFinite(pomodoro?.pct) ? pomodoro.pct : (pomodoro?.abandoned ? 0 : LEGACY_FULL_PCT_UNITS)
+  const units = pctRaw <= 1 ? pctRaw * LEGACY_FULL_PCT_UNITS : pctRaw
+  return Math.round(Math.min(POMODORO_UNITS_MAX, Math.max(0, units)) * 600)
+}
+
 export function getPomodoroFocusSecs(pomodoro) {
   if (isPomodoroAggregate(pomodoro)) {
     const completed = Math.max(0, Number(pomodoro?.completedCount) || 0)
@@ -50,12 +61,7 @@ export function getPomodoroFocusSecs(pomodoro) {
     return Math.max(0, pomodoro.focusSecs) + 1
   }
 
-  const pctRaw = Number.isFinite(pomodoro?.pct) ? pomodoro.pct : (pomodoro?.abandoned ? 0 : LEGACY_FULL_PCT_UNITS)
-  const units = pctRaw <= 1 ? pctRaw * LEGACY_FULL_PCT_UNITS : pctRaw
-  const clampedUnits = Math.min(POMODORO_UNITS_MAX, Math.max(0, units))
-
-  // Unit model: 1 unit = 10 minutes.
-  return Math.round(clampedUnits * 600) + 1
+  return pomodoroFocusSecsRaw(pomodoro) + 1
 }
 
 export function getPomodoroCompletedCount(pomodoro) {

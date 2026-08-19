@@ -22,37 +22,6 @@ import { RulesBox } from '@/components/settings/RulesBox'
 
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStep3', 'firebaseStep4']
 
-const RULES_SNIPPET = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    match /organizer/state {
-      allow read, write: if request.auth != null;
-    }
-
-    match /teams/{teamId} {
-      allow get: if request.auth != null;
-      allow list: if false;
-
-      allow create: if request.auth != null
-        && request.resource.data.hostUserId == request.auth.uid;
-
-      allow update: if request.auth != null && (
-        (resource.data.members[request.auth.uid] != null)
-        || (
-          resource.data.members[request.auth.uid] == null
-          && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['members', 'updatedAt', 'serverUpdatedAt'])
-          && request.resource.data.members[request.auth.uid] != null
-        )
-      );
-
-      allow delete: if request.auth != null
-        && resource.data.hostUserId == request.auth.uid;
-    }
-  }
-}`
-
 function SetupStep({ titleKey, t, active, done, onClick, children }) {
   return (
     <div className={`flex gap-3 transition-opacity cursor-default ${active || done ? 'opacity-100' : 'opacity-35'} ${done ? 'cursor-pointer' : ''}`}
@@ -83,7 +52,7 @@ function UnauthenticatedWarning({ t }) {
       <div className="space-y-1.5">
         <p className="text-xs font-medium text-destructive">{t.firebaseOpenRulesWarningTitle}</p>
         <p className="text-xs text-muted-foreground leading-relaxed">{t.firebaseOpenRulesWarningDesc}</p>
-        <RulesBox label={t.firebaseRulesTemplateLink} snippet={RULES_SNIPPET} />
+        <RulesBox label={t.firebaseRulesTemplateLink} />
       </div>
     </div>
   )
@@ -395,7 +364,7 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
                     <SetupStep key={key} titleKey={key} t={t}
                       active={i === step} done={i < step}
                       onClick={() => i < step && setStep(i)}>
-                      {i === 1 && <RulesBox label={t.firebaseRulesTemplateLink} snippet={RULES_SNIPPET} />}
+                      {i === 1 && <RulesBox label={t.firebaseRulesTemplateLink} />}
                     </SetupStep>
                   ))}
                 </div>

@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore'
 import { updateTeamState, updateMemberAlias as firebaseUpdateMemberAlias } from '@/lib/collab/firebase'
 import { classifyCollabError } from '@/lib/collab/errors'
 import { sortByOrder } from '@/lib/utils'
+import { resolveTeamUserId } from '@/hooks/useTeamIdentity'
 
 function resolveTargetColumn(localBoard, desiredColumnId = null) {
   const columns = sortByOrder(localBoard?.columns ?? [])
@@ -62,12 +63,7 @@ export function useCollabActions() {
 
   const getSharedTaskMode = team => team?.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all'
 
-  // Team documents identify a member by the per-project auth UID, so anything
-  // compared against `members`, `doneBy`, `hostUserId` or an assignee has to use
-  // the membership's id rather than the local `collab.userId`.
-  const teamUserId = teamId => (
-    memberships.find(m => m.teamId === teamId)?.memberUserId ?? userId
-  )
+  const teamUserId = teamId => resolveTeamUserId(memberships, teamId)
 
   const ensureCanEdit = (team, teamId) => {
     if (!team) return false

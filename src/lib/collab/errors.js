@@ -1,5 +1,6 @@
 export function classifyCollabError(error) {
   const code = String(error?.code ?? '').toLowerCase()
+  if (code.includes('operation-not-allowed') || code.includes('admin-restricted-operation')) return 'auth-disabled'
   if (code.includes('permission-denied') || code.includes('unauthenticated')) return 'permission'
   const message = String(error?.message ?? '')
   if (message === 'Team not found') return 'not-found'
@@ -10,6 +11,7 @@ export function classifyCollabError(error) {
 
 export function collabErrorTextForCode(code, t, fallback) {
   switch (code) {
+    case 'auth-disabled': return t.collabErrorAuthDisabled
     case 'permission': return t.collabErrorPermission
     case 'not-found': return t.collabErrorNotFound
     case 'invite-expired': return t.collabErrorInviteExpired

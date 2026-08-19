@@ -1,4 +1,4 @@
-import { getPomodoroTimestamp, isPomodoroAggregate } from '../components/focus/pomodoro/utils'
+import { getPomodoroTimestamp, isPomodoroAggregate, pomodoroFocusSecsRaw } from '../components/focus/pomodoro/utils'
 import { migrateState, normalizeState } from './migrations'
 import {
   isEnvelope, decryptForSlot, aadForLocalSlice, aadForPersonalSlice, aadForExport, WHOLE_STATE,
@@ -9,8 +9,6 @@ import { readContainer, writeContainerRecord } from './stateStore'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const BACKUP_KEY = `${STORAGE_KEY}:pre-slice-backup`
-const LEGACY_FULL_PCT_UNITS = 2.5
-const POMODORO_UNITS_MAX = 120
 
 let loadWarnings = []
 let writesBlocked = null
@@ -65,19 +63,6 @@ function getPeriodStart(period) {
   return 0
 }
 
-function getPomodoroFocusSecsRaw(pomodoro) {
-  if (typeof pomodoro?.focusSecs === 'number' && Number.isFinite(pomodoro.focusSecs)) {
-    return Math.max(0, pomodoro.focusSecs)
-  }
-
-  const pctRaw = Number.isFinite(pomodoro?.pct)
-    ? pomodoro.pct
-    : (pomodoro?.abandoned ? 0 : LEGACY_FULL_PCT_UNITS)
-  const units = pctRaw <= 1 ? pctRaw * LEGACY_FULL_PCT_UNITS : pctRaw
-  const clampedUnits = Math.min(POMODORO_UNITS_MAX, Math.max(0, units))
-  return Math.round(clampedUnits * 600)
-}
-
 function compactPomodorosForStorage(state) {
   const all = Array.isArray(state?.pomodoros) ? state.pomodoros : []
   if (!all.length) return all
@@ -111,7 +96,7 @@ function compactPomodorosForStorage(state) {
 
     if (p?.abandoned) aggregate.abandonedCount += 1
     else aggregate.completedCount += 1
-    aggregate.focusSecs += getPomodoroFocusSecsRaw(p)
+    aggregate.focusSecs += pomodoroFocusSecsRaw(p)
   })
 
   if (aggregate.completedCount + aggregate.abandonedCount > 0) {

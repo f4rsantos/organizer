@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { loadFirebaseConfig } from '@/lib/firebase'
-import { CollabConnectButton } from '../CollabConnectPanel'
+import { loadFirebaseConfig, hasSeenCollabGuide, markCollabGuideSeen } from '@/lib/firebase'
+import { CollabConnectButton, CollabGuideModal } from '../CollabConnectPanel'
 import { CollabPanel } from '../CollabPanel'
 
 export function CollabAppModal({ open, onOpenChange }) {
@@ -10,6 +11,17 @@ export function CollabAppModal({ open, onOpenChange }) {
   const t = useStrings(lang)
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const firebaseConnected = !!loadFirebaseConfig()
+  const [guideDismissed, setGuideDismissed] = useState(false)
+
+  // Someone who enabled collab without a Firebase project never saw the setup
+  // guide. Show it once when they open the tab after connecting one.
+  const showGuide = open && firebaseConnected && collabEnabled
+    && !guideDismissed && !hasSeenCollabGuide()
+
+  const dismissGuide = () => {
+    markCollabGuideSeen()
+    setGuideDismissed(true)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -21,7 +33,8 @@ export function CollabAppModal({ open, onOpenChange }) {
           <div className="grid grid-cols-2 gap-2">
             <CollabConnectButton firebaseConnected={firebaseConnected} collabEnabled={collabEnabled} />
           </div>
-          {firebaseConnected && collabEnabled && <CollabPanel />}
+          {collabEnabled && <CollabPanel />}
+          <CollabGuideModal open={showGuide} onOpenChange={o => { if (!o) dismissGuide() }} onEnable={dismissGuide} confirmLabel={t.collabGuideGotIt} />
         </div>
       </DialogContent>
     </Dialog>
