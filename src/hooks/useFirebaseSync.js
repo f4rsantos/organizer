@@ -12,6 +12,8 @@ function getSerializableState() {
   return JSON.parse(JSON.stringify(stripTransient(useStore.getState())))
 }
 
+const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])
+
 export function useFirebaseSync() {
   const importData = useStore(s => s.importData)
   const hydrated = useStore(s => s.hydrated === true)
@@ -53,7 +55,7 @@ export function useFirebaseSync() {
       }
       setStatus('ok')
     } catch (err) {
-      setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
+      setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
     } finally {
       refs.current.isPulling = false
       refs.current.lastPullAt = Date.now()
@@ -70,7 +72,7 @@ export function useFirebaseSync() {
       await pushToFirebase(config, getSerializableState())
       setStatus('ok')
     } catch (err) {
-      setStatus(err?.message === 'encryption-key-required' ? 'key-required' : 'error')
+      setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
     }
   }, [hydrated])
 
