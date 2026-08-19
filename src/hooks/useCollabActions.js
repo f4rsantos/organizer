@@ -101,9 +101,7 @@ export function useCollabActions() {
     } catch (err) {
       if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
       if (typeof onRollback === 'function') onRollback()
-      const dbgTeam = useStore.getState().collabRuntime?.teams?.[teamId]
-      const dbg = `me=${userId} members=[${Object.keys(dbgTeam?.members ?? {}).join(',')}]`
-      setCollabError(teamId, `${err?.message ?? 'Sync failed'} | ${dbg}`, classifyCollabError(err))
+      setCollabError(teamId, err?.message ?? 'Sync failed', classifyCollabError(err))
     }
   }
 
