@@ -26,6 +26,7 @@ export {
   MODE_OFF, MODE_LOCAL, MODE_SYNC, getEncMode, setEncMode,
   isPlaintextSyncAcknowledged, acknowledgePlaintextSync,
   loadLocalWraps, saveLocalWraps, clearLocalWraps,
+  loadDekId, saveDekId, clearDekId,
 } from './keyState'
 
 export {

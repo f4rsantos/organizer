@@ -5,6 +5,7 @@ const LEGACY_KEY = `${PREFIX}encryption-key`
 const ENABLED_FLAG_KEY = `${PREFIX}encryption-enabled`
 const MODE_KEY = `${PREFIX}enc-mode`
 const LOCAL_WRAPS_KEY = `${PREFIX}enc-local-wraps`
+const DEK_ID_KEY = `${PREFIX}enc-dek-id`
 const PLAINTEXT_ACK_PREF = 'plaintextSyncAck'
 
 export const MODE_OFF = 'off'
@@ -96,6 +97,19 @@ export function saveLocalWraps(wraps) {
 
 export function clearLocalWraps() {
   remove(LOCAL_WRAPS_KEY)
+}
+
+export function loadDekId() {
+  return read(DEK_ID_KEY)
+}
+
+export function saveDekId(dekId) {
+  if (!dekId) return false
+  return write(DEK_ID_KEY, dekId)
+}
+
+export function clearDekId() {
+  return remove(DEK_ID_KEY)
 }
 
 export function isPlaintextSyncAcknowledged() {

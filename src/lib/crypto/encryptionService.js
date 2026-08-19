@@ -2,7 +2,7 @@ import { zeroFill } from './bytes'
 import { openDekStore, getDek, putDek, clearDek, setCachedDek, getCachedDek, importDekFromRaw, computeDekId, generateDekBytes } from './keyStore'
 import { createWraps, unwrapDekRaw, rewrapSlot, SLOT_PASSPHRASE, SLOT_RECOVERY_CODE } from './wraps'
 import {
-  getEncMode, setEncMode,
+  getEncMode, setEncMode, saveDekId, clearDekId,
   wasEncryptionEverEnabled, MODE_OFF, MODE_LOCAL, MODE_SYNC,
 } from './keyState'
 import { clearProjection } from '@/lib/widgets/bridge'
@@ -42,6 +42,7 @@ export async function prepareEnable({ passphrase, hint, mode = MODE_SYNC }) {
       commit: async () => {
         await openStore()
         await putDek(created.dek)
+        saveDekId(created.dekId)
         setEncMode(mode)
       },
     }
@@ -62,6 +63,7 @@ export async function unlockWithSecret({ wraps, slot, secret, mode = MODE_SYNC, 
     } catch {
       setCachedDek(dek)
     }
+    saveDekId(dekId)
     setEncMode(mode)
     return { dek, dekId }
   } finally {
@@ -101,6 +103,7 @@ export async function disableEncryption() {
   } catch {
     setCachedDek(null)
   }
+  clearDekId()
   setEncMode(MODE_OFF)
   await clearProjection()
 }
