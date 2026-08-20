@@ -33,6 +33,11 @@ import { useStrings } from '@/lib/strings'
 import { collabErrorTextForCode } from '@/lib/collab/errors'
 import { matchesShortcut, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
+// Only the Android build draws under the status bar and camera cutout. The web
+// app -- in a browser or installed as a PWA -- keeps its own top chrome, so
+// adding the inset there would double the spacing.
+const IS_NATIVE = typeof __NATIVE_BUILD__ !== 'undefined' && __NATIVE_BUILD__ === true
+
 const STORAGE_LIMIT = 5 * 1024 * 1024
 const TRIPLE_TAP_WINDOW_MS = 450
 const SYNTHETIC_MOUSE_MS = 500
@@ -259,7 +264,7 @@ export default function App() {
     <AppShell>
       <div className="flex h-dvh overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative flex-1 overflow-hidden md:pb-0', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
+        <div className={cn('relative flex-1 overflow-hidden md:pb-0', IS_NATIVE && 'native-safe-top', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component

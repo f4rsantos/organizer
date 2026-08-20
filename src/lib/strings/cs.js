@@ -392,7 +392,7 @@ export const cs = {
     copy: "Kopírovat",
     copied: "Zkopírováno!",
     collabGuideGotIt: "Rozumím",
-    collabFirebaseOnlyForCreating: "Firebase je potřeba jen pro vytváření týmů. Připojit se přes pozvánku můžeš i bez něj.",
+    collabFirebaseOnlyForCreating: "Zapni spolupráci a sdílej úkoly s ostatními přes týmy. Firebase je potřeba jen k vytváření týmů.",
     collabGuideTroubleshootTitle: "If you see signUp 400 error",
     collabGuideTroubleshootBody: "That means Anonymous authentication is still disabled in Firebase. Enable it in Security > Authentication > Sign-in method.",
     collabEnableNow: "I configured rules, enable collab",

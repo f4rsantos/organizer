@@ -257,7 +257,7 @@ export const pirate = {
   copy: "Pilfer",
   copied: "Pilfered!",
   collabGuideGotIt: "Aye",
-  collabFirebaseOnlyForCreating: "Firebase be only needed to raise a crew. Ye can board one from an invite link without it.",
+  collabFirebaseOnlyForCreating: "Enable collab to share yer tasks with other scallywags through crews. Firebase be needed to raise a crew.",
   collabErrorAuthDisabled: "Anonymous boardin' be barred in the cap'n's Firebase. The cap'n must hoist it under Authentication › Sign-in method.",
   collabGuideTroubleshootTitle: 'If ye see signUp 400 error',
   collabGuideTroubleshootBody: 'That means Anonymous auth be still lowered in Firebase. Enable it in Security > Authentication > Sign-in method.',

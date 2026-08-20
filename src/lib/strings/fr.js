@@ -257,7 +257,7 @@ export const fr = {
     copy: "Copier",
     copied: "Copié !",
     collabGuideGotIt: "Compris",
-    collabFirebaseOnlyForCreating: "Firebase n'est nécessaire que pour créer des équipes. Vous pouvez en rejoindre une via un lien d'invitation sans cela.",
+    collabFirebaseOnlyForCreating: "Activez collab pour partager des tâches avec d'autres personnes via des équipes. Firebase est nécessaire pour créer des équipes.",
     collabGuideTroubleshootTitle: 'Si vous voyez une erreur signUp 400',
     collabGuideTroubleshootBody: 'Cela signifie que l\'authentification anonyme est encore désactivée dans Firebase. Activez-la dans Security > Authentication > Méthode de connexion.',
     collabEnableNow: 'J\'ai configuré les règles, activer la collab',

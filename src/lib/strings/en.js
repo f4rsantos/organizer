@@ -279,7 +279,7 @@ export const en = {
     copy: "Copy",
     copied: "Copied!",
     collabGuideGotIt: "Got it",
-    collabFirebaseOnlyForCreating: "Firebase sync is only needed to create teams. You can join one from an invite link without it.",
+    collabFirebaseOnlyForCreating: "Enable collab to share tasks with other people through teams. Firebase is necessary to create teams.",
     collabGuideTroubleshootTitle: 'If you see signUp 400 error',
     collabGuideTroubleshootBody: 'That means Anonymous authentication is still disabled in Firebase. Enable it in Security > Authentication > Sign-in method.',
     collabEnableNow: 'I configured rules, enable collab',

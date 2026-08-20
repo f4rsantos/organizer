@@ -172,8 +172,25 @@
             bottom: 1.5rem;
         }
     }
+    /* The Android build draws under the status bar, so panes lose the top
+       inset as well as the tab bar. On web the inset is 0 and this is a no-op. */
+    .native-safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+    @media (width >= 48rem) {
+        .native-safe-top {
+            padding-top: 0;
+        }
+    }
     .h-tab-pane {
         height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
+    }
+    /* Native only: the wrapper adds the top inset as padding, so panes must
+       give that height back or their bottom slides under the tab bar. */
+    .native-safe-top .h-tab-pane {
+        height: calc(
+            100dvh - 5rem - env(safe-area-inset-bottom) - env(safe-area-inset-top)
+        );
     }
     @media (width >= 48rem) {
         .h-tab-pane {

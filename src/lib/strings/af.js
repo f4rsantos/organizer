@@ -29,7 +29,7 @@ export const af = {
     copy: "Kopieer",
     copied: "Gekopieer!",
     collabGuideGotIt: "Verstaan",
-    collabFirebaseOnlyForCreating: "Firebase is net nodig om spanne te skep. Jy kan by een aansluit met 'n uitnodigingskakel daarsonder.",
+    collabFirebaseOnlyForCreating: "Aktiveer collab om take met ander mense deur spanne te deel. Firebase is nodig om spanne te skep.",
     collabErrorAuthDisabled: "Anonieme aanmelding is af in die gasheer se Firebase-projek. Die gasheer moet dit aanskakel onder Authentication › Sign-in method.",
     notesEnable: 'Aktiveer Notas', notesNew: 'Nuwe nota', notesTitle: 'Titel', notesSearch: 'Soek notas',
     semester: 'Semester', classes: 'Klasse', group: 'Groep', gradeComponents: 'Puntkomponente',
