@@ -375,6 +375,7 @@ function normalizeTask(task) {
           columnId: task.kanban.columnId ?? null,
           order: Number.isFinite(task.kanban.order) ? task.kanban.order : 0,
           checklist: normalizeChecklist(task.kanban.checklist),
+          checklistPreview: task.kanban.checklistPreview === true,
         }
       : null,
     recurrence: normalizeRecurrence(task.recurrence),
