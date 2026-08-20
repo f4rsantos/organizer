@@ -37,3 +37,8 @@ android/capacitor-cordova-android-plugins
 *.njsproj
 *.sln
 *.sw?
+
+# Local env (Firebase preset keys)
+.env
+.env.local
+.env.*.local
