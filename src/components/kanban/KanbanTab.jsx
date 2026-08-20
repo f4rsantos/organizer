@@ -144,8 +144,8 @@ export function KanbanTab() {
   }, [hydrated, noneMode, localBoard, ensureBoard]);
 
   return (
-    <div className="flex flex-col h-tab-pane p-4 pt-4 gap-3">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+    <div className="flex flex-col h-tab-pane py-4 gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0 px-4">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           {teams.length > 0 && (
             <Select value={filterTeam} onValueChange={setFilterTeam}>
@@ -292,7 +292,7 @@ export function KanbanTab() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto md:overflow-y-hidden md:overflow-x-auto flex has-[[data-kanban-banded]]:md:overflow-y-auto">
+      <div className="flex-1 overflow-y-auto md:overflow-y-hidden md:overflow-x-auto flex px-4 has-[[data-kanban-banded]]:md:overflow-y-auto">
         {boardReady
           ? (
             <KanbanBoard
