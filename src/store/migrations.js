@@ -6,6 +6,7 @@ export const CURRENT_VERSION = 7
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
+export const NAV_VISIBILITY_MODES = ['both', 'none', 'desktop', 'mobile']
 export const STANDBY_PANES = ['wheel', 'wheel-time', 'calendar', 'focus', 'kanban', 'tasks-by-category']
 
 const MIGRATIONS = [
@@ -138,7 +139,7 @@ function normalizeEvent(event) {
 }
 
 function defaultNavbar() {
-  return { order: [...DEFAULT_TAB_ORDER], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
+  return { order: [...DEFAULT_TAB_ORDER], visibility: {}, folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
 }
 
 function migrateV5NavbarStandbyApps(state) {
@@ -203,7 +204,16 @@ function normalizeNavbar(navbar) {
   const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'habits'])
   const order = (Array.isArray(n.order) ? n.order : []).filter(id => known.has(id))
   for (const id of DEFAULT_TAB_ORDER) if (!order.includes(id)) order.push(id)
-  const hidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
+  const legacyHidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
+  const rawVis = n.visibility && typeof n.visibility === 'object' ? n.visibility : null
+  const visibility = {}
+  if (rawVis) {
+    for (const [id, v] of Object.entries(rawVis)) {
+      if (known.has(id) && NAV_VISIBILITY_MODES.includes(v) && v !== 'both') visibility[id] = v
+    }
+  } else {
+    for (const id of legacyHidden) visibility[id] = 'none'
+  }
   const labelMode = ['both', 'icons', 'names'].includes(n.labelMode) ? n.labelMode : 'both'
   const mobilePosition = ['bottom', 'side'].includes(n.mobilePosition) ? n.mobilePosition : 'bottom'
   const addAction = ['task', 'kanban', 'event', 'note', 'quickaction', 'picker'].includes(n.addAction) ? n.addAction : 'task'
@@ -218,7 +228,7 @@ function normalizeNavbar(navbar) {
       children: (Array.isArray(f.children) ? f.children : []).filter(id => known.has(id)),
     } : null))
     .filter(Boolean)
-  return { order, hidden, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, addButtonLabel, customNames, folders }
+  return { order, visibility, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, addButtonLabel, customNames, folders }
 }
 
 function defaultStandby() {

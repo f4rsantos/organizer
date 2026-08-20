@@ -22,6 +22,7 @@ export const pirate = {
   eventMultiDay: 'Many a day', eventColor: 'Colour', eventNote: 'Scrawl',
   eventNotePlaceholder: 'Optional scrawl', more: 'more',
   navbar: 'Helm bar', navHide: 'Hide', navOverflow: 'Stow in the more chest', navAddButton: 'Show the add-chore button',
+  navVisBoth: 'Spied on deck and in the dinghy', navVisNone: 'Hidden in the bilge', navVisDesktop: 'Deck only', navVisMobile: 'Dinghy only',
   navMore: 'More', navLabelMode: 'Show', navLabelBoth: 'Marks + names', navLabelIcons: 'Marks only', navLabelNames: 'Names only',
   add: 'Add', navAddLabel: 'Add', navDrag: 'Drag to reorder the ranks',
   appDisableTitle: 'Disable and scuttle the data?', appDisableDesc: 'Turnin this app off sends all its data to the depths forever.',

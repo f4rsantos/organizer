@@ -2,6 +2,8 @@ import { CheckSquare, Kanban, GraduationCap, CalendarDays, Timer, Settings, Stic
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { getAppTabs, getAppById } from '@/apps/registry'
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout'
+import { NAV_VISIBILITY_MODES } from '@/store/migrations'
 
 const ADD_ID = '__add__'
 const TAB_ICONS = { tasks: CheckSquare, kanban: Kanban, grades: GraduationCap, calendar: CalendarDays, focus: Timer, settings: Settings, notes: StickyNote, [ADD_ID]: Plus }
@@ -9,6 +11,8 @@ const FOLDER_ICONS = { more: MoreHorizontal, folder: Folder, folderOpen: FolderO
 const DEFAULT_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
 
 export function useNavTabs() {
+  const isDesktop = useIsDesktopLayout()
+  const surface = isDesktop ? 'desktop' : 'mobile'
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const workMode = useStore(s => s.settings?.workMode ?? false)
@@ -37,7 +41,11 @@ export function useNavTabs() {
   if (showAddButton) insertBeforeSettings(ADD_ID)
   for (const id of enabledAppIds) if (!DEFAULT_ORDER.includes(id)) insertBeforeSettings(id)
 
-  const hidden = new Set(navbar?.hidden ?? [])
+  const visibility = navbar?.visibility ?? {}
+  const visibleOn = id => {
+    const mode = visibility[id] ?? 'both'
+    return mode === 'both' || mode === surface
+  }
   const inFolder = new Set(folderDefs.flatMap(f => f.children ?? []))
 
   const customNames = navbar?.customNames ?? {}
@@ -47,7 +55,7 @@ export function useNavTabs() {
   const isVisible = id =>
     (!optionalTabIds.has(id) || enabledAppIds.has(id))
     && (id !== ADD_ID || showAddButton)
-    && !hidden.has(id)
+    && visibleOn(id)
     && !(hideGrades && id === 'grades')
   const visible = order.filter(isVisible)
 
@@ -68,4 +76,4 @@ export function useNavTabs() {
   }
 }
 
-export { TAB_ICONS, FOLDER_ICONS, DEFAULT_ORDER, ADD_ID }
+export { TAB_ICONS, FOLDER_ICONS, DEFAULT_ORDER, ADD_ID, NAV_VISIBILITY_MODES }

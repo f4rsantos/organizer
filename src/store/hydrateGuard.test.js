@@ -153,7 +153,7 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().markHydrated()
     useStore.getState().updateSettings({
       apps: { collab: false, notes: true, eisenhower: false },
-      navbar: { order: ['tasks', 'kanban'], hidden: [], customNames: { tasks: 'My Stuff' } },
+      navbar: { order: ['tasks', 'kanban'], visibility: {}, customNames: { tasks: 'My Stuff' } },
     })
 
     useStore.getState().importData({
@@ -161,7 +161,7 @@ describe('edits made before hydration are never discarded', () => {
       tasks: [], notes: [],
       settings: {
         apps: { collab: false, notes: false, eisenhower: false },
-        navbar: { order: ['tasks', 'kanban'], hidden: [], customNames: {} },
+        navbar: { order: ['tasks', 'kanban'], visibility: {}, customNames: {} },
       },
       collab: { userId: 'u1', memberships: [] },
     })

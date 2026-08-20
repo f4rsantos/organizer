@@ -22,6 +22,7 @@ export const pt = {
     eventMultiDay: 'Vários dias', eventColor: 'Cor', eventNote: 'Nota',
     eventNotePlaceholder: 'Nota opcional', more: 'mais',
     navbar: 'Barra de navegação', navHide: 'Ocultar', navOverflow: 'Mover para menu', navAddButton: 'Mostrar botão de adicionar',
+    navVisBoth: 'Visível no computador e no telemóvel', navVisNone: 'Oculto em todo o lado', navVisDesktop: 'Apenas no computador', navVisMobile: 'Apenas no telemóvel',
     navMore: 'Mais', navLabelMode: 'Mostrar', navLabelBoth: 'Ícones + nomes', navLabelIcons: 'Só ícones', navLabelNames: 'Só nomes',
     add: 'Adicionar', navAddLabel: 'Adicionar', navDrag: 'Arrasta para reordenar',
     appDisableTitle: 'Desativar e apagar dados?', appDisableDesc: 'Desativar esta app elimina permanentemente todos os seus dados.',
