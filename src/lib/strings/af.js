@@ -1,4 +1,5 @@
 export const af = {
+    navVisBoth: 'Sigbaar op rekenaar en selfoon', navVisNone: 'Oral versteek', navVisDesktop: 'Slegs rekenaar', navVisMobile: 'Slegs selfoon',
     months: ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie', 'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'],
     weekdaysShort: ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Sa', 'So'],
     weekdays: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrydag', 'Saterdag', 'Sondag'],

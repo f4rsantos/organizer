@@ -30,6 +30,7 @@ export const en = {
     eventAllDay: 'All day', eventStartTime: 'Start time', eventEndTime: 'End time',
     viewDay: 'Day', viewWeek: 'Week', viewMonth: 'Month', viewYear: 'Year',
     navbar: 'Navbar', navHide: 'Hide', navOverflow: 'Move to more menu', navAddButton: 'Show add-task button',
+    navVisBoth: 'Visible on desktop and mobile', navVisNone: 'Hidden everywhere', navVisDesktop: 'Desktop only', navVisMobile: 'Mobile only',
     navMore: 'More', navLabelMode: 'Show', navLabelBoth: 'Icons + names', navLabelIcons: 'Icons only', navLabelNames: 'Names only',
     add: 'Add', navAddLabel: 'Add', navDrag: 'Drag to reorder',
     appDisableTitle: 'Disable and erase data?', appDisableDesc: 'Turning this app off permanently deletes all its data.',

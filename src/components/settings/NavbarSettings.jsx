@@ -1,5 +1,5 @@
 import { nanoid } from '@/lib/ids'
-import { GripVertical, Eye, EyeOff, FolderPlus, X } from 'lucide-react'
+import { GripVertical, Eye, EyeOff, Monitor, Smartphone, FolderPlus, X } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -15,7 +15,11 @@ import { Switch } from '@/components/ui/switch'
 
 const NO_FOLDER = '__none__'
 
-function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onAssignFolder, icon, labelKey, customName, onRename }) {
+const VIS_CYCLE = { both: 'none', none: 'desktop', desktop: 'mobile', mobile: 'both' }
+const VIS_ICONS = { both: Eye, none: EyeOff, desktop: Monitor, mobile: Smartphone }
+const VIS_LABEL_KEYS = { both: 'navVisBoth', none: 'navVisNone', desktop: 'navVisDesktop', mobile: 'navVisMobile' }
+
+function TabRow({ id, t, visibility, isAdd, folders, folderOf, onCycleVisibility, onAssignFolder, icon, labelKey, customName, onRename }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const Icon = icon ?? TAB_ICONS[id]
   const style = { transform: CSS.Transform.toString(transform), transition }
@@ -23,7 +27,7 @@ function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onA
   return (
     <li ref={setNodeRef} style={style}
       className={cn('flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5 bg-card',
-        isHidden && 'opacity-50', isDragging && 'shadow-lg z-10')}>
+        visibility !== 'both' && 'opacity-60', visibility === 'none' && 'opacity-40', isDragging && 'shadow-lg z-10')}>
       <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
         {...attributes} {...listeners} title={t.navDrag}>
         <GripVertical className="h-4 w-4" />
@@ -47,12 +51,18 @@ function TabRow({ id, t, isHidden, isAdd, folders, folderOf, onToggleHidden, onA
           </SelectContent>
         </Select>
       )}
-      {!isAdd && (
-        <button title={t.navHide} onClick={() => onToggleHidden(id)}
-          className="rounded p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-          {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      )}
+      {!isAdd && (() => {
+        const VisIcon = VIS_ICONS[visibility] ?? Eye
+        return (
+          <button title={t[VIS_LABEL_KEYS[visibility]] ?? t.navHide} onClick={() => onCycleVisibility(id)}
+            className={cn('rounded p-1.5 transition-colors',
+              visibility === 'both' ? 'text-muted-foreground hover:text-foreground'
+                : visibility === 'none' ? 'text-muted-foreground/50 hover:text-muted-foreground'
+                : 'text-muted-foreground hover:text-foreground')}>
+            <VisIcon className="h-4 w-4" />
+          </button>
+        )
+      })()}
     </li>
   )
 }
@@ -98,7 +108,7 @@ function buildOrder(navbar, showAddButton, enabledAppIds) {
 export function NavbarSettings() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const navbar = useStore(s => s.settings?.navbar) ?? { order: DEFAULT_ORDER, hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
+  const navbar = useStore(s => s.settings?.navbar) ?? { order: DEFAULT_ORDER, visibility: {}, folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} }
   const state = useStore(s => s)
   const updateSettings = useStore(s => s.updateSettings)
 
@@ -110,11 +120,12 @@ export function NavbarSettings() {
   const showAddButton = Boolean(navbar.showAddButton)
   const labelMode = navbar.labelMode ?? 'both'
   const order = buildOrder(navbar, showAddButton, enabledAppIds)
-  const hidden = new Set(navbar.hidden ?? [])
+  const visibility = navbar.visibility ?? {}
+  const visibilityOf = id => visibility[id] ?? 'both'
   const folders = Array.isArray(navbar.folders) ? navbar.folders : []
   const folderOf = id => folders.find(f => (f.children ?? []).includes(id))?.id ?? null
 
-  const save = patch => updateSettings({ navbar: { ...navbar, order, hidden: [...hidden], labelMode, mobilePosition: navbar.mobilePosition ?? 'bottom', addAction: navbar.addAction ?? 'task', folders, ...patch } })
+  const save = patch => updateSettings({ navbar: { ...navbar, order, visibility, labelMode, mobilePosition: navbar.mobilePosition ?? 'bottom', addAction: navbar.addAction ?? 'task', folders, ...patch } })
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -126,11 +137,12 @@ export function NavbarSettings() {
     save({ order: arrayMove(order, order.indexOf(active.id), order.indexOf(over.id)) })
   }
 
-  const toggleHidden = id => {
-    const next = new Set(hidden)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    save({ hidden: [...next] })
+  const cycleVisibility = id => {
+    const next = VIS_CYCLE[visibilityOf(id)] ?? 'none'
+    const map = { ...visibility }
+    if (next === 'both') delete map[id]
+    else map[id] = next
+    save({ visibility: map })
   }
 
   const addFolder = () => save({ folders: [...folders, { id: 'folder_' + nanoid(), label: t.navMore, icon: 'more', children: [] }] })
@@ -184,11 +196,11 @@ export function NavbarSettings() {
           <ul className="space-y-1.5">
             {order.map(id => (
               <TabRow key={id} id={id} t={t} isAdd={id === ADD_ID}
-                isHidden={hidden.has(id)}
+                visibility={visibilityOf(id)}
                 icon={appIcons[id]} labelKey={appLabelKeys[id]}
                 customName={navbar.customNames?.[id]} onRename={renameTab}
                 folders={folders} folderOf={folderOf(id)} onAssignFolder={assignFolder}
-                onToggleHidden={toggleHidden} />
+                onCycleVisibility={cycleVisibility} />
             ))}
           </ul>
         </SortableContext>

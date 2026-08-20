@@ -189,7 +189,7 @@ function buildInitialState() {
       collabEnabled: false,
       workMode: false,
       semesterMode: 'semesters',
-      navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], hidden: [], folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
+      navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], visibility: {}, folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
       standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
       apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false, habits: false },
     },

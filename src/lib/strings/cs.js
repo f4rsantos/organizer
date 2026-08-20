@@ -64,6 +64,7 @@ export const cs = {
     viewYear: "Rok",
     navbar: "Navbar",
     navHide: "Hide",
+    navVisBoth: 'Viditelné na počítači i mobilu', navVisNone: 'Všude skryté', navVisDesktop: 'Pouze počítač', navVisMobile: 'Pouze mobil',
     navOverflow: "Move to more menu",
     navAddButton: "Show add-task button",
     navMore: "More",
