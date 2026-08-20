@@ -1,4 +1,11 @@
+const WEB_ORIGIN = 'https://f4rsantos.github.io/organizer/'
+
+function isNativeBuild() {
+  return typeof __NATIVE_BUILD__ !== 'undefined' && __NATIVE_BUILD__ === true
+}
+
 export function getSecureBaseUrl() {
+  if (isNativeBuild()) return WEB_ORIGIN
   const url = new URL(window.location.href)
   url.hash = ''
   url.search = ''
