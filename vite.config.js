@@ -72,6 +72,9 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  define: {
+    __NATIVE_BUILD__: JSON.stringify(IS_NATIVE),
+  },
   base: BASE_PATH,
   test: {
     environment: 'node',
