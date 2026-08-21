@@ -2,7 +2,7 @@ export const cs = {
     months: ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'],
     weekdaysShort: ['pon', 'úte', 'stř', 'čtv', 'pát', 'sob', 'ned'],
     weekdays: ['pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota', 'neděle'],
-    tasks: 'Úkoly', kanban: 'Kanban', grades: 'Známky', calendar: 'Kalendář', focus: 'Soustředění', settings: 'Nastavení',
+    tasks: 'Úkoly', kanban: 'Kanban', grades: 'Známky', calendar: 'Kalendář', focus: 'Fokus', settings: 'Nastavení',
     guides: 'Návody',
     noSemester: 'Žádný semestr nenastaven', goToSettings: 'Přejděte do Nastavení a začněte.',
     weekLabel: w => `Týden ${w}`, done: 'hotovo', timeToRelax: 'Čas na odpočinek!',
