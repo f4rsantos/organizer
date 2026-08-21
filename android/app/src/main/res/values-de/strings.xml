@@ -74,4 +74,6 @@
         <item quantity="other">%1$d Pomodoros</item>
     </plurals>
     <string name="widget_add_event">Termin hinzufügen</string>
+    <string name="widget_preview_pomodoro_count">4 Pomodoros</string>
+    <string name="widget_preview_pomodoro_focus">1h 40m fokussiert</string>
 </resources>
