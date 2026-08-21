@@ -451,6 +451,7 @@ function normalizeSettings(settings) {
   if (typeof s.taskReminderTime !== 'string' || !/^\d{2}:\d{2}$/.test(s.taskReminderTime)) {
     s.taskReminderTime = '09:00'
   }
+  if (typeof s.widgetsEnabled !== 'boolean') s.widgetsEnabled = true
   if (typeof s.defaultTab !== 'string') s.defaultTab = 'last'
   if (typeof s.collabEnabled !== 'boolean') s.collabEnabled = false
   if (!['semesters', 'none'].includes(s.semesterMode)) s.semesterMode = 'semesters'

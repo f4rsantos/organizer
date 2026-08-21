@@ -89,7 +89,7 @@ export const en = {
     obInfoTasksTitle: 'Tasks & Kanban', obInfoTasksDesc: 'Add tasks per week or date, then drag them across your kanban board.',
     obInfoCalTitle: 'Calendar & Focus', obInfoCalDesc: 'See everything on the calendar and run focus sessions to get things done.',
     obInfoDoneTitle: 'You are all set', obInfoDoneDesc: 'You can change any of this later in settings.',
-    shareLink: 'Copy share link', qrCode: 'QR Code', linkCopied: 'Link copied!',
+    shareLink: 'Share link', qrCode: 'QR Code', linkCopied: 'Link copied!',
     high: 'High', medium: 'Medium', low: 'Low', none: 'None',
     addSemester: 'Add semester', semesterName: 'Semester name', startDate: 'Start date', endDate: 'End date',
     weeks: n => `${n} weeks`, addAClass: 'Add class', className: 'Class name', ects: 'ECTS', colour: 'Colour',

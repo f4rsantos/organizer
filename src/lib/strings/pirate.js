@@ -73,7 +73,7 @@ export const pirate = {
   obInfoTasksTitle: 'Chores & Plank Board', obInfoTasksDesc: 'Add chores per fortnight or day, then drag em across yer plank board.',
   obInfoCalTitle: 'Almanac & Steady Aim', obInfoCalDesc: 'See it all on the almanac and run steady-aim watches to get things done.',
   obInfoDoneTitle: 'Ye be all set', obInfoDoneDesc: 'Ye can change any o this later in ship\'s orders.',
-  shareLink: 'Copy the message-in-a-bottle', qrCode: 'QR Mark', linkCopied: 'Bottle cast off!',
+  shareLink: 'Message-in-a-bottle', qrCode: 'QR Mark', linkCopied: 'Bottle cast off!',
   high: 'Cap\'n', medium: 'Bosun', low: 'Swabbie', none: 'None',
   addSemester: 'Add voyage', semesterName: 'Voyage name', startDate: 'Set-sail day', endDate: 'Make-port day',
   weeks: n => `${n} fortnights`, addAClass: 'Muster crew', className: 'Crew name', ects: 'ECTS', colour: 'Colour',

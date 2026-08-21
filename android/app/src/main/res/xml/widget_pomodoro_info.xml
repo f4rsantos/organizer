@@ -9,6 +9,6 @@
     android:targetCellWidth="3"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
-    android:previewLayout="@layout/widget_pomodoro"
+    android:previewLayout="@layout/widget_pomodoro_preview"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

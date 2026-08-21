@@ -34,6 +34,17 @@ export async function clearProjection(now = new Date()) {
   }
 }
 
+export async function widgetCount() {
+  const api = plugin()
+  if (!api) return 0
+  try {
+    const result = await api.widgetCount()
+    return Number.isFinite(result?.count) ? result.count : 0
+  } catch {
+    return 0
+  }
+}
+
 export async function consumeLaunchTab() {
   const api = plugin()
   if (!api) return null

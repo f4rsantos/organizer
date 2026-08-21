@@ -73,7 +73,7 @@ export const es = {
     obInfoTasksTitle: 'Tareas y Kanban', obInfoTasksDesc: 'Añade tareas por semana o fecha y arrástralas por tu tablero kanban.',
     obInfoCalTitle: 'Calendario y Enfoque', obInfoCalDesc: 'Ve todo en el calendario y ejecuta sesiones de enfoque para avanzar.',
     obInfoDoneTitle: 'Todo listo', obInfoDoneDesc: 'Puedes cambiar todo esto más tarde en los ajustes.',
-    shareLink: 'Copiar enlace para compartir', qrCode: 'Código QR', linkCopied: '¡Enlace copiado!',
+    shareLink: 'Enlace para compartir', qrCode: 'Código QR', linkCopied: '¡Enlace copiado!',
     high: 'Alta', medium: 'Media', low: 'Baja', none: 'Ninguna',
     addSemester: 'Añadir semestre', semesterName: 'Nombre del semestre', startDate: 'Fecha de inicio', endDate: 'Fecha de fin',
     weeks: n => `${n} semanas`, addAClass: 'Añadir asignatura', className: 'Nombre de la asignatura', ects: 'ECTS', colour: 'Color',

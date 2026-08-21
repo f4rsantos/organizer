@@ -73,7 +73,7 @@ export const de = {
     obInfoTasksTitle: 'Aufgaben & Kanban', obInfoTasksDesc: 'Füge Aufgaben pro Woche oder Datum hinzu und ziehe sie über dein Kanban-Board.',
     obInfoCalTitle: 'Kalender & Fokus', obInfoCalDesc: 'Sieh alles im Kalender und starte Fokus-Sessions, um Dinge zu erledigen.',
     obInfoDoneTitle: 'Alles bereit', obInfoDoneDesc: 'Du kannst all das später in den Einstellungen ändern.',
-    shareLink: 'Freigabelink kopieren', qrCode: 'QR-Code', linkCopied: 'Link kopiert!',
+    shareLink: 'Freigabelink', qrCode: 'QR-Code', linkCopied: 'Link kopiert!',
     high: 'Hoch', medium: 'Mittel', low: 'Niedrig', none: 'Keine',
     addSemester: 'Semester hinzufügen', semesterName: 'Semestername', startDate: 'Startdatum', endDate: 'Enddatum',
     weeks: n => `${n} Wochen`, addAClass: 'Fach hinzufügen', className: 'Fachname', ects: 'ECTS', colour: 'Farbe',

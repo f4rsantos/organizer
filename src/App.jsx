@@ -164,9 +164,17 @@ export default function App() {
     writeLastTab(activeTab)
   }, [activeTab])
   useEffect(() => {
-    consumeLaunchTab().then(tab => {
-      if (tab) useStore.getState().setActiveTab(tab)
-    })
+    const apply = () => {
+      consumeLaunchTab().then(tab => {
+        if (tab) useStore.getState().setActiveTab(tab)
+      })
+    }
+    apply()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') apply()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
   const requestedTab = useStore(s => s.activeTab)

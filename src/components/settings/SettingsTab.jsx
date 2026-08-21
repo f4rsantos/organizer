@@ -18,6 +18,7 @@ import { EncryptionButton } from '@/components/crypto/EncryptionSettings'
 import { FirebaseGuideModal } from './FirebaseSyncPanel'
 import { DangerZone } from './DangerZone'
 import { GeneralSettings } from './GeneralSettings'
+import { TaskSettings } from './TaskSettings'
 import { WidgetSettings } from './WidgetSettings'
 import { NavbarSettings } from './NavbarSettings'
 import { AppsGrid } from './AppsGrid'
@@ -324,6 +325,13 @@ export function SettingsTab({ syncStatus }) {
               </AccordionContent>
             </AccordionItem>
           )}
+
+          <AccordionItem value="tasks" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.tasks}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <TaskSettings />
+            </AccordionContent>
+          </AccordionItem>
 
           {hasValidDates && (
             <AccordionItem value="kanban" className="rounded-xl border border-border bg-card px-4">

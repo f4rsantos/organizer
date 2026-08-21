@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, Lock, LockOpen, ShieldAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
+import { widgetCount } from '@/lib/widgets/bridge'
 import { useStrings } from '@/lib/strings'
 import { forceSaveState } from '@/store/persist'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -66,7 +67,13 @@ function EncryptionModal({ onClose }) {
       return (
         <EnableEncryptionDialog
           t={t}
-          onEnable={args => enableLocalEncryption({ ...args, resave, syncTarget: syncTargetForEnable() })}
+          onEnable={async args => {
+            const result = await enableLocalEncryption({ ...args, resave, syncTarget: syncTargetForEnable() })
+            if (await widgetCount() === 0) {
+              useStore.getState().updateSettings({ widgetsEnabled: false })
+            }
+            return result
+          }}
           onDone={() => { setEnabling(false); refresh() }}
           onCancel={() => { setEnabling(false); refresh() }}
         />
