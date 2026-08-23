@@ -182,6 +182,25 @@
             padding-top: 0;
         }
     }
+    @media (display-mode: standalone) {
+        .safe-top-host {
+            padding-top: env(safe-area-inset-top);
+        }
+        .safe-top-host .h-tab-pane {
+            height: calc(
+                100dvh - 5rem - env(safe-area-inset-bottom) -
+                    env(safe-area-inset-top)
+            );
+        }
+    }
+    @media (display-mode: standalone) and (width >= 48rem) {
+        .safe-top-host {
+            padding-top: 0;
+        }
+        .safe-top-host .h-tab-pane {
+            height: 100dvh;
+        }
+    }
     .h-tab-pane {
         height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
     }

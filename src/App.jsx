@@ -272,7 +272,7 @@ export default function App() {
     <AppShell>
       <div className="flex h-dvh overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative flex-1 overflow-hidden md:pb-0', IS_NATIVE && 'native-safe-top', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
+        <div className={cn('relative flex-1 overflow-hidden md:pb-0', IS_NATIVE ? 'native-safe-top' : 'safe-top-host', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component

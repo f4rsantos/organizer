@@ -51,7 +51,6 @@ export function EditorToolbar({ editor, t, lang }) {
   const [linkOpen, setLinkOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
   const [hex, setHex] = useState('')
-  const customRef = useRef(null)
 
   const chain = () => editor.chain().focus()
 
@@ -150,12 +149,13 @@ export function EditorToolbar({ editor, t, lang }) {
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { chain().setColor(color).run(); setPalette(false) }} />
               ))}
-              <button type="button" title={t.notesColorCustom}
-                className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-muted-foreground/60 text-muted-foreground hover:text-foreground"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => customRef.current?.click()}>
+              <label title={t.notesColorCustom}
+                className="relative flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-dashed border-muted-foreground/60 text-muted-foreground hover:text-foreground">
                 <Plus className="h-3 w-3" />
-              </button>
+                <input type="color"
+                  className="absolute inset-0 h-full w-full cursor-pointer appearance-none border-0 bg-transparent p-0 opacity-0"
+                  onChange={e => { chain().setColor(e.target.value).run(); setPalette(false) }} />
+              </label>
             </div>
             <div className="mt-2 flex items-center gap-1.5">
               <span className="text-[11px] text-muted-foreground">#</span>
@@ -171,8 +171,6 @@ export function EditorToolbar({ editor, t, lang }) {
                 {t.notesColorApply}
               </Button>
             </div>
-            <input ref={customRef} type="color" className="sr-only" tabIndex={-1}
-              onChange={e => { chain().setColor(e.target.value).run(); setPalette(false) }} />
             <button type="button"
               className="mt-2 w-full rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent"
               onMouseDown={e => e.preventDefault()}
