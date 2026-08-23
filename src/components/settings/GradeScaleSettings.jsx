@@ -3,25 +3,24 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { DEFAULT_GRADE_SCALE, DEFAULT_PASS_THRESHOLD, gradeScaleOf, passThresholdOf } from '@/lib/gradeUtils'
+import { DEFAULT_GRADE_SCALE, DEFAULT_PASS_THRESHOLD, gradeScaleOf, passThresholdOf, parseGradeInput, isPartialDecimal } from '@/lib/gradeUtils'
 
-function NumberField({ value, onCommit, min, max, step }) {
+function NumberField({ value, onCommit, min, max }) {
   const [raw, setRaw] = useState(null)
 
   const commit = () => {
-    const parsed = Number(raw)
-    onCommit(raw !== '' && Number.isFinite(parsed) ? parsed : null)
+    onCommit(parseGradeInput(raw, { min, max }))
     setRaw(null)
   }
 
   return (
     <Input
-      type="number" min={min} max={max} step={step}
+      type="text" inputMode="decimal"
       className="w-24 h-8 text-sm text-center"
       value={raw ?? value}
       onFocus={() => setRaw(String(value))}
       onBlur={commit}
-      onChange={e => setRaw(e.target.value)}
+      onChange={e => { if (isPartialDecimal(e.target.value)) setRaw(e.target.value) }}
     />
   )
 }
@@ -53,13 +52,13 @@ export function GradeScaleSettings() {
       <div className="space-y-1.5">
         <Label>{t.gradeScaleLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.gradeScaleDesc}</p>
-        <NumberField value={scale} onCommit={handleScale} min={1} max={1000} step={1} />
+        <NumberField value={scale} onCommit={handleScale} min={1} max={1000} />
       </div>
 
       <div className="space-y-1.5">
         <Label>{t.passingGradeLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.passingGradeDesc}</p>
-        <NumberField value={passThreshold} onCommit={handlePassThreshold} min={0} max={scale} step={0.1} />
+        <NumberField value={passThreshold} onCommit={handlePassThreshold} min={0} max={scale} />
       </div>
     </div>
   )

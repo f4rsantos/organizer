@@ -9,9 +9,14 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
+import { useMergedEvents } from '@/hooks/useMergedEvents'
 import { CalendarEventProviders } from '@/apps/CalendarEventProviders'
 import { EventForm } from './EventForm'
 import { DayDetailDialog } from './DayDetailDialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { TaskForm } from '@/components/tasks/TaskForm'
+import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
+import { useCollabActions } from '@/hooks/useCollabActions'
 import { MonthView } from './MonthView'
 import { itemsForDay } from './calendarUtils'
 import { DayView } from './DayView'
@@ -57,14 +62,15 @@ function eventDateRange(event) {
 }
 
 export function CalendarTab() {
-  const { mode, semester } = useWeekContext()
+  const weekCtx = useWeekContext()
+  const { mode, semester } = weekCtx
   const noneMode = mode === 'none'
   const storeActiveSemesterId = useStore(s => s.activeSemesterId)
   const activeSemesterId = noneMode ? null : storeActiveSemesterId
   const allClasses = useStore(s => s.classes)
   const allTasks = useMergedTasks(activeSemesterId)
   const allHolidays = useStore(s => s.holidays)
-  const allEvents = useStore(s => s.events ?? [])
+  const allEvents = useMergedEvents()
   const [pluginEvents, setPluginEvents] = useState({})
   const handleProviderEvents = useCallback((id, events) => {
     setPluginEvents(prev => (prev[id] === events ? prev : { ...prev, [id]: events }))
@@ -92,6 +98,11 @@ export function CalendarTab() {
   })
   const [dayDetail, setDayDetail] = useState(null)
   const [eventForm, setEventForm] = useState(null)
+  const [taskEdit, setTaskEdit] = useState(null)
+  const updateTask = useStore(s => s.updateTask)
+  const { updateSharedTask, teams, shareEventToTeam } = useCollabActions()
+  const [shareEvent, setShareEvent] = useState(null)
+  const [shareTeamId, setShareTeamId] = useState('')
 
   const classes = hasScope ? allClasses.filter(c => c.semesterId === activeSemesterId) : []
   const holidays = hasScope ? (allHolidays ?? []).filter(h => h.semesterId === activeSemesterId) : []
@@ -147,6 +158,42 @@ export function CalendarTab() {
     setDayDetail(null)
     setEventForm({ key: `new:${nanoid()}`, event: null, defaultDate: date, defaultStartTime: startTime, defaultEndTime: endTime, defaultEndDate: endDate })
   }
+  const openEditTask = task => {
+    const target = task.isRecurringOccurrence
+      ? allTasks.find(tk => tk.id === task.templateId) ?? task
+      : task
+    setDayDetail(null)
+    setTaskEdit(target)
+  }
+
+  const submitTaskEdit = async data => {
+    if (!taskEdit) return
+    const shared = taskEdit.sharedMeta
+    if (shared?.remote) {
+      await updateSharedTask({ teamId: shared.teamId, sharedTaskId: shared.sharedTaskId, patch: data })
+      return
+    }
+    updateTask(taskEdit.isRecurringOccurrence ? taskEdit.templateId : taskEdit.id, data)
+  }
+
+  const openShareEvent = async event => {
+    if (!teams.length) return
+    if (teams.length === 1) {
+      setDayDetail(null)
+      await shareEventToTeam({ event, teamId: teams[0].teamId })
+      return
+    }
+    setDayDetail(null)
+    setShareEvent(event)
+  }
+
+  const confirmShareEvent = async () => {
+    if (!shareTeamId || !shareEvent) return
+    await shareEventToTeam({ event: shareEvent, teamId: shareTeamId })
+    setShareEvent(null)
+    setShareTeamId('')
+  }
+
   const openEditEvent = event => {
     if (event._remote) return
     setDayDetail(null)
@@ -182,9 +229,9 @@ export function CalendarTab() {
       </div>
 
       <div className="flex items-center justify-center px-4 py-1.5 border-b border-border/50 shrink-0">
-        <div className="relative grid grid-cols-4 w-full max-w-xs rounded-md bg-accent/30 p-0.5">
+        <div className="relative grid grid-cols-4 w-full max-w-xs rounded-md border border-border bg-muted/50 p-0.5">
           <div
-            className="absolute inset-y-0.5 rounded-[5px] bg-secondary transition-[left] duration-200 ease-out"
+            className="absolute inset-y-0.5 rounded-[5px] bg-background shadow-sm transition-[left] duration-200 ease-out"
             style={{ width: `calc(25% - 4px)`, left: `calc(${VIEWS.indexOf(view)} * 25% + 2px)` }}
           />
           {VIEWS.map(v => (
@@ -201,13 +248,13 @@ export function CalendarTab() {
       )}
       {view === 'day' && (
         <DayView day={anchor} tasks={tasks} holidays={holidays} events={events} classes={classes}
-          onOpenEvent={openEditEvent} onCreateRange={(day, startTime, endTime, endDay) =>
+          onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
             openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
       )}
       {view === 'week' && (
         <WeekView weekStart={startOfWeek(anchor, { weekStartsOn: 1 })} weekEnd={endOfWeek(anchor, { weekStartsOn: 1 })}
           tasks={tasks} holidays={holidays} events={events} classes={classes}
-          onOpenEvent={openEditEvent} onCreateRange={(day, startTime, endTime, endDay) =>
+          onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
             openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
       )}
       {view === 'year' && (
@@ -225,7 +272,41 @@ export function CalendarTab() {
         day={dayDetail} holidays={detail?.dayHolidays ?? []} events={detail?.dayEvents ?? []}
         tasks={detail?.dayTasks ?? []} classes={classes}
         onAddEvent={() => openNewEvent(dayDetail ? format(dayDetail, 'yyyy-MM-dd') : null)}
-        onEditEvent={openEditEvent} />
+        onEditEvent={openEditEvent} onEditTask={openEditTask}
+        onShareEvent={openShareEvent} canShare={teams.length > 0} />
+
+      <ShareToTeamDialog
+        open={Boolean(shareEvent)}
+        onOpenChange={v => { if (!v) { setShareEvent(null); setShareTeamId('') } }}
+        title={t.collabShareEvent}
+        teams={teams}
+        value={shareTeamId}
+        onValueChange={setShareTeamId}
+        onConfirm={confirmShareEvent}
+      />
+
+      <Dialog open={Boolean(taskEdit)} onOpenChange={v => !v && setTaskEdit(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t.editTask}</DialogTitle>
+          </DialogHeader>
+          {taskEdit && (
+            <TaskForm
+              semesterId={taskEdit.semesterId ?? activeSemesterId}
+              classes={classes}
+              weekCount={weekCtx.weekCount}
+              defaultWeek={taskEdit.weekStart ?? 1}
+              startDate={noneMode ? null : (semester?.startDate ?? null)}
+              rangeFor={noneMode ? weekCtx.weekDateRange : null}
+              dateToWeekFn={noneMode ? weekCtx.dateToWeek : null}
+              initialData={taskEdit}
+              submitLabel={t.save}
+              onSubmitTask={submitTaskEdit}
+              onDone={() => setTaskEdit(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {eventForm && (
         <EventForm key={eventForm.key} open onOpenChange={v => !v && setEventForm(null)}

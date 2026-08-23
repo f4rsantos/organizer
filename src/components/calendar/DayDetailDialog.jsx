@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Share2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 
-export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, events, classes, onAddEvent, onEditEvent }) {
+export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, events, classes, onAddEvent, onEditEvent, onEditTask, onShareEvent, canShare = false }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   if (!day) return null
@@ -29,21 +29,38 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
                 {e.note ? <span className="block opacity-70">{e.note}</span> : null}
               </div>
             )
+            const shareable = canShare && onShareEvent && !e.sharedMeta && !e.sharedRef
             return (
-              <button key={e.id} onClick={() => onEditEvent(e)}
-                className="text-xs px-2 py-1.5 rounded-md text-left transition-opacity hover:opacity-80" style={style}>
-                <span className="font-medium">{e.title}</span>
-                {e.note ? <span className="block opacity-70">{e.note}</span> : null}
-              </button>
+              <div key={e.id} className="flex items-stretch gap-1">
+                <button onClick={() => onEditEvent(e)}
+                  className="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-md text-left transition-opacity hover:opacity-80" style={style}>
+                  <span className="font-medium">{e.title}</span>
+                  {e.note ? <span className="block opacity-70">{e.note}</span> : null}
+                </button>
+                {shareable && (
+                  <button onClick={() => onShareEvent(e)} title={t.collabShareEvent}
+                    className="shrink-0 px-2 rounded-md transition-opacity hover:opacity-80" style={style}>
+                    <Share2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             )
           })}
           {tasks.map(tk => {
             const cls = classes.find(c => c.id === tk.classId)
             const color = cls?.color ?? '#6366f1'
-            return (
-              <div key={tk.id} className="text-xs px-2 py-1.5 rounded-md" style={{ backgroundColor: color + '22', color }}>
-                {cls ? `${tk.title} - ${cls.name}` : tk.title}
+            const style = { backgroundColor: color + '22', color }
+            const label = cls ? `${tk.title} - ${cls.name}` : tk.title
+            if (!onEditTask || tk._remote) return (
+              <div key={tk.id} className="text-xs px-2 py-1.5 rounded-md" style={style}>
+                {label}
               </div>
+            )
+            return (
+              <button key={tk.id} onClick={() => onEditTask(tk)}
+                className="text-xs px-2 py-1.5 rounded-md text-left transition-opacity hover:opacity-80" style={style}>
+                {label}
+              </button>
             )
           })}
           {!holidays.length && !events.length && !tasks.length && (

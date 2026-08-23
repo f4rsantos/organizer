@@ -280,7 +280,7 @@ export function NotesTab() {
             {viewMode === 'list' ? <LayoutGrid className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 space-y-1">
           {showArchived ? (
             <ul className="space-y-0.5 min-h-6">
               {filtered.slice().sort(noteOrder).map(n => (
@@ -317,7 +317,7 @@ export function NotesTab() {
           )}
         </div>
       </aside>
-      <main className={cn('flex-1 p-4 overflow-y-auto', selected ? 'flex flex-col' : mosaic ? 'hidden' : 'hidden md:block')}>
+      <main className={cn('flex-1 min-h-0 p-4 overflow-y-auto', selected ? 'flex flex-col' : mosaic ? 'hidden' : 'hidden md:block')}>
         {selected ? (
           <>
             <Button variant="ghost" size="sm" className={cn('self-start mb-2 gap-1 -ml-2', !mosaic && 'md:hidden')}

@@ -33,10 +33,13 @@ import { useStrings } from '@/lib/strings'
 import { collabErrorTextForCode } from '@/lib/collab/errors'
 import { matchesShortcut, defaultQuickActionShortcut } from '@/lib/shortcuts'
 
-// Only the Android build draws under the status bar and camera cutout. The web
-// app -- in a browser or installed as a PWA -- keeps its own top chrome, so
-// adding the inset there would double the spacing.
 const IS_NATIVE = typeof __NATIVE_BUILD__ !== 'undefined' && __NATIVE_BUILD__ === true
+const IS_IOS_STANDALONE =
+  typeof navigator !== 'undefined' &&
+  /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+  (window.navigator.standalone === true ||
+    window.matchMedia?.('(display-mode: standalone)').matches === true)
+const SAFE_TOP = IS_NATIVE || IS_IOS_STANDALONE
 
 const STORAGE_LIMIT = 5 * 1024 * 1024
 const TRIPLE_TAP_WINDOW_MS = 450
@@ -261,7 +264,7 @@ export default function App() {
     }
   }, [])
 
-  if (!hydrated) return <AppShell><div className="min-h-dvh" /></AppShell>
+  if (!hydrated) return <AppShell><div className="h-full" /></AppShell>
 
   if (!onboardingDone) return <AppShell><Onboarding onDone={completeOnboarding} /></AppShell>
 
@@ -270,9 +273,9 @@ export default function App() {
   const mobileSide = navbarMobilePosition === 'side'
   return (
     <AppShell>
-      <div className="flex h-dvh overflow-hidden">
+      <div className="flex h-full overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative flex-1 overflow-hidden md:pb-0', IS_NATIVE && 'native-safe-top', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
+        <div className={cn('relative min-w-0 flex-1 overflow-hidden md:pb-0', SAFE_TOP && 'native-safe-top', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component

@@ -71,3 +71,22 @@ export function formatGrade(value) {
   if (value === null || value === undefined) return '—'
   return value.toFixed(1)
 }
+
+const DECIMAL_TYPING_RE = /^-?\d*(?:[.,]\d*)?$/
+
+export function isPartialDecimal(raw) {
+  if (typeof raw !== 'string') return false
+  return DECIMAL_TYPING_RE.test(raw)
+}
+
+export function parseGradeInput(raw, { min, max } = {}) {
+  if (raw === null || raw === undefined) return null
+  const trimmed = String(raw).trim()
+  if (trimmed === '') return null
+  const parsed = parseFloat(trimmed.replace(',', '.'))
+  if (!Number.isFinite(parsed)) return null
+  let value = parsed
+  if (Number.isFinite(min)) value = Math.max(min, value)
+  if (Number.isFinite(max)) value = Math.min(max, value)
+  return value
+}
