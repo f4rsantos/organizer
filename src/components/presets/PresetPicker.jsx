@@ -86,7 +86,7 @@ export function PresetPicker({ onBack, onLoaded }) {
   const cardProps = { available, checked, loading, onSelect: handleSelect, lang }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-10 px-8 py-16">
+    <div className="flex h-full min-h-full flex-col items-center justify-center gap-10 overflow-y-auto px-8 py-16">
       <div className="w-full max-w-xs space-y-8">
 
         <button onClick={onBack}

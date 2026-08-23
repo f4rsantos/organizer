@@ -204,3 +204,37 @@ describe('assignColumns is pure', () => {
     expect(segments[0]).toEqual({ startMinutes: 0, endMinutes: 60 })
   })
 })
+
+describe('all-day segments', () => {
+  const target = day(2026, 3, 10)
+
+  it('is ignored by default', () => {
+    expect(segmentForDay(event('a', target, target, null, null), target)).toBe(null)
+  })
+
+  it('covers the whole day when included', () => {
+    expect(segmentForDay(event('a', target, target, null, null), target, { includeAllDay: true }))
+      .toMatchObject({ startMinutes: 0, endMinutes: 1440, allDay: true })
+  })
+
+  it('marks continuation across a multi-day span', () => {
+    const spanning = event('a', day(2026, 3, 9), day(2026, 3, 11), null, null)
+    expect(segmentForDay(spanning, target, { includeAllDay: true }))
+      .toMatchObject({ continuesBefore: true, continuesAfter: true })
+  })
+
+  it('skips a day outside the range', () => {
+    const e = event('a', target, target, null, null)
+    expect(segmentForDay(e, day(2026, 3, 12), { includeAllDay: true })).toBe(null)
+  })
+
+  it('shares columns with a timed event', () => {
+    const laid = layoutDayEvents([
+      event('allday', target, target, null, null),
+      event('timed', target, target, '09:00', '10:00'),
+    ], target, { includeAllDay: true })
+    expect(laid).toHaveLength(2)
+    expect(laid.every(item => item.columnCount === 2)).toBe(true)
+    expect(new Set(laid.map(item => item.column)).size).toBe(2)
+  })
+})

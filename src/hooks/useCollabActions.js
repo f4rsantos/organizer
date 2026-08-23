@@ -44,6 +44,7 @@ export function useCollabActions() {
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
   const setCollabError = useStore(s => s.setCollabError)
   const updateTask = useStore(s => s.updateTask)
+  const updateEvent = useStore(s => s.updateEvent)
   const updateKanbanCard = useStore(s => s.updateKanbanCard)
   const clearKanbanCardSharedRef = useStore(s => s.clearKanbanCardSharedRef)
 
@@ -153,6 +154,58 @@ export function useCollabActions() {
     })
 
     await writeShared(teamId, membership, applyPatch, applyPatch)
+  }
+
+  const shareEventToTeam = async ({ event, teamId }) => {
+    const me = teamUserId(teamId)
+    const ctx = guard(teamId)
+    if (!ctx) return
+    const { membership } = ctx
+
+    const sharedEventId = nanoid()
+    const remoteEvent = {
+      ...event,
+      id: sharedEventId,
+      semesterId: null,
+      sharedByUserId: me,
+      updatedAt: Date.now(),
+    }
+
+    const addEventState = state => ({ ...state, events: [...(state?.events ?? []), remoteEvent] })
+
+    updateEvent(event.id, { sharedRef: { teamId, sharedEventId } })
+
+    await writeShared(teamId, membership, addEventState, addEventState, () => {
+      updateEvent(event.id, { sharedRef: null })
+    })
+  }
+
+  const updateSharedEvent = async ({ teamId, sharedEventId, patch }) => {
+    const ctx = guard(teamId)
+    if (!ctx) return
+    const { membership } = ctx
+
+    const applyPatch = state => ({
+      ...state,
+      events: (state?.events ?? []).map(event => (
+        event.id === sharedEventId ? { ...event, ...patch, updatedAt: Date.now() } : event
+      )),
+    })
+
+    await writeShared(teamId, membership, applyPatch, applyPatch)
+  }
+
+  const deleteSharedEvent = async ({ teamId, sharedEventId }) => {
+    const ctx = guard(teamId)
+    if (!ctx) return
+    const { membership } = ctx
+
+    const applyDelete = state => ({
+      ...state,
+      events: (state?.events ?? []).filter(event => event.id !== sharedEventId),
+    })
+
+    await writeShared(teamId, membership, applyDelete, applyDelete)
   }
 
   const toggleSharedTask = async ({ teamId, sharedTaskId }) => {
@@ -378,6 +431,9 @@ export function useCollabActions() {
     teams,
     getTeamName,
     shareTaskToTeam,
+    shareEventToTeam,
+    updateSharedEvent,
+    deleteSharedEvent,
     updateSharedTask,
     toggleSharedTask,
     deleteSharedTask,

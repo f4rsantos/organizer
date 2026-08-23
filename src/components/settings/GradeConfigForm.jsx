@@ -5,6 +5,7 @@ import { Trash2, Plus } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { nanoid } from '@/lib/ids'
+import { parseGradeInput, isPartialDecimal } from '@/lib/gradeUtils'
 
 function WeightInput({ weight, onChange }) {
   const [raw, setRaw] = useState(null)
@@ -12,11 +13,11 @@ function WeightInput({ weight, onChange }) {
 
   return (
     <Input
-      className="w-16 h-8 text-sm text-center" type="number" min={0} max={100} step={0.1} placeholder="%"
+      className="w-16 h-8 text-sm text-center" type="text" inputMode="decimal" placeholder="%"
       value={raw ?? pct}
-      onFocus={() => setRaw(pct)}
-      onBlur={() => { onChange(Number(raw) / 100); setRaw(null) }}
-      onChange={e => setRaw(e.target.value)}
+      onFocus={() => setRaw(String(pct))}
+      onBlur={() => { onChange((parseGradeInput(raw, { min: 0, max: 100 }) ?? 0) / 100); setRaw(null) }}
+      onChange={e => { if (isPartialDecimal(e.target.value)) setRaw(e.target.value) }}
     />
   )
 }
