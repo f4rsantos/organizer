@@ -60,29 +60,31 @@ export function GeneralSettings() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label>{t.themeColor}</Label>
-            <button onClick={() => updateSettings({ themeFontColor: null, themeBgColor: null, themeHighlightColor: null })} className="text-xs text-primary hover:underline">
+            <button onClick={() => updateSettings({ themeFontColor: null, themeBgColor: null, themeHighlightColor: null, themeDoneColor: null })} className="text-xs text-primary hover:underline">
               {t.themeColorReset}
             </button>
           </div>
           <p className="text-xs text-muted-foreground">{t.themeColorDesc}</p>
           <div className="pt-2 flex flex-col gap-3">
             <ColorSwatch
-              key={`font-${settings.themeFontColor ?? ''}`}
               label={t.themeFontColor}
               value={settings.themeFontColor ?? '#3b5ea8'}
               onChange={hex => updateSettings({ themeFontColor: hex })}
             />
             <ColorSwatch
-              key={`highlight-${settings.themeHighlightColor ?? ''}`}
               label={t.themeHighlightColor}
               value={settings.themeHighlightColor ?? '#e8e6f0'}
               onChange={hex => updateSettings({ themeHighlightColor: hex })}
             />
             <ColorSwatch
-              key={`bg-${settings.themeBgColor ?? ''}`}
               label={t.themeBgColor}
               value={settings.themeBgColor ?? '#fafaf9'}
               onChange={hex => updateSettings({ themeBgColor: hex })}
+            />
+            <ColorSwatch
+              label={t.themeDoneColor}
+              value={settings.themeDoneColor ?? '#22c55e'}
+              onChange={hex => updateSettings({ themeDoneColor: hex })}
             />
           </div>
         </div>

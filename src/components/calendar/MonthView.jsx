@@ -61,7 +61,7 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
   const DOW = t.weekdaysShort
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 min-h-0 overflow-auto">
       <div className="grid grid-cols-7 border-t border-l border-border/40">
         {DOW.map(d => (
           <div key={d} className="text-[10px] font-semibold text-muted-foreground text-center py-1.5 border-b border-r border-border/40 uppercase tracking-wide">

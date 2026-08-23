@@ -7,7 +7,7 @@ export function UnlockGate({ lang = 'en', hint, storeError, onUnlock }) {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background p-safe">
-      <div className="flex min-h-dvh flex-col items-center justify-center px-8 py-16">
+      <div className="flex min-h-full flex-col items-center justify-center px-8 py-16">
         <div className="w-full max-w-xs space-y-6">
           <div className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />

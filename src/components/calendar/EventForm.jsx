@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Mic, Circle, CircleCheck } from 'lucide-react'
+import { Mic, Circle, CircleCheck, Share2 } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
+import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
+import { useCollabActions } from '@/hooks/useCollabActions'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { parseTaskText } from '@/lib/parser/nlpParse'
@@ -41,6 +43,12 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
   const addEvent = useStore(s => s.addEvent)
   const updateEvent = useStore(s => s.updateEvent)
   const deleteEvent = useStore(s => s.deleteEvent)
+  const { teams, shareEventToTeam, updateSharedEvent, deleteSharedEvent } = useCollabActions()
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareTeamId, setShareTeamId] = useState('')
+  const sharedMeta = event?.sharedMeta ?? null
+  const isSharedRemote = Boolean(sharedMeta?.remote)
+  const isShared = isSharedRemote || Boolean(event?.sharedRef)
   const googleCalendarEnabled = useStore(s => s.settings?.apps?.googleCalendar === true) && Boolean(loadGoogleClientId())
   const initialForm = () => {
     if (event) return formFromEvent(event)
@@ -183,21 +191,49 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
 
   const valid = rawTitle.trim() && (form.multiDay ? form.startDate : form.date)
 
-  const submit = () => {
+  const submit = async () => {
     if (!valid) return
     const finalForm = rawTitle !== form.title ? parseTitle(rawTitle) : form
     const payload = buildPayload(finalForm)
-    if (event) updateEvent(event.id, payload)
-    else addEvent(payload)
+    if (isSharedRemote) {
+      await updateSharedEvent({ teamId: sharedMeta.teamId, sharedEventId: sharedMeta.sharedEventId, patch: payload })
+    } else if (event) {
+      updateEvent(event.id, payload)
+    } else {
+      addEvent(payload)
+    }
     onOpenChange(false)
   }
 
-  const remove = () => {
+  const remove = async () => {
     if (event) {
+      if (isSharedRemote) {
+        await deleteSharedEvent({ teamId: sharedMeta.teamId, sharedEventId: sharedMeta.sharedEventId })
+        onOpenChange(false)
+        return
+      }
       if (event.googleEventId) void pushEventDeletion(event.googleEventId)
       deleteEvent(event.id)
     }
     onOpenChange(false)
+  }
+
+  const handleShare = async () => {
+    if (!shareTeamId) return
+    await shareEventToTeam({ event, teamId: shareTeamId })
+    setShareOpen(false)
+    setShareTeamId('')
+    onOpenChange(false)
+  }
+
+  const openShare = async () => {
+    if (!teams.length) return
+    if (teams.length === 1) {
+      await shareEventToTeam({ event, teamId: teams[0].teamId })
+      onOpenChange(false)
+      return
+    }
+    setShareOpen(true)
   }
 
   return (
@@ -230,11 +266,11 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
           </div>
           {form.multiDay ? (
             <div className="flex gap-2">
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                 <Label>{t.eventDate}</Label>
                 <Input type="date" value={form.startDate} onChange={e => set({ startDate: e.target.value })} />
               </div>
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                 <Label>{t.eventRange}</Label>
                 <Input type="date" value={form.endDate} min={form.startDate} onChange={e => set({ endDate: e.target.value })} />
               </div>
@@ -260,10 +296,10 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
 
               {form.recurrence && (
                 <div className="grid grid-cols-2 gap-3 p-3 mt-1.5 rounded-lg border border-border/50 bg-secondary/20">
-                  <div className="space-y-1.5">
+                  <div className="min-w-0 space-y-1.5">
                     <Label>{t.repeatFreqLabel}</Label>
                     <Select value={form.recurrence.freq} onValueChange={v => handleRecurrenceChange({ freq: v })}>
-                      <SelectTrigger className="bg-background">
+                      <SelectTrigger className="w-full bg-background">
                         <span>{{ daily: t.repeatFreqDaily, weekly: t.repeatFreqWeekly, monthly: t.repeatFreqMonthly }[form.recurrence.freq]}</span>
                       </SelectTrigger>
                       <SelectContent>
@@ -273,14 +309,14 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="min-w-0 space-y-1.5">
                     <Label>{t.repeatEvery(form.recurrence.freq)}</Label>
                     <Input type="number" min="1" value={localInterval}
                       onChange={e => setLocalInterval(e.target.value)}
                       onBlur={handleIntervalBlur}
                       className="bg-background" />
                   </div>
-                  <div className="col-span-2 space-y-1.5">
+                  <div className="col-span-2 min-w-0 space-y-1.5">
                     <Label>{t.repeatUntil}</Label>
                     <Input type="date" value={form.recurrence.until ?? ''}
                       onChange={e => handleRecurrenceChange({ until: e.target.value || null })}
@@ -291,11 +327,11 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
             </>
           )}
           <div className="flex gap-2">
-            <div className="flex-1 flex flex-col gap-1.5">
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
               <Label>{form.multiDay ? t.eventStartTimeFirstDay : t.eventStartTime}</Label>
               <Input type="time" value={form.startTime} onChange={handleStartTimeChange} />
             </div>
-            <div className="flex-1 flex flex-col gap-1.5">
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
               <Label>{form.multiDay ? t.eventEndTimeLastDay : t.eventEndTime}</Label>
               <Input type="time" value={form.endTime} min={form.multiDay ? undefined : form.startTime}
                 onChange={handleEndTimeChange} />
@@ -325,10 +361,25 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
               {t.delete}
             </Button>
           )}
+          {event && !isShared && teams.length > 0 && (
+            <Button variant="outline" className="gap-1.5" onClick={openShare}>
+              <Share2 className="h-3.5 w-3.5" /> {t.collabShare}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t.cancel}</Button>
           <Button disabled={!valid} onClick={submit}>{t.save}</Button>
         </DialogFooter>
       </DialogContent>
+
+      <ShareToTeamDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title={t.collabShareEvent}
+        teams={teams}
+        value={shareTeamId}
+        onValueChange={setShareTeamId}
+        onConfirm={handleShare}
+      />
     </Dialog>
   )
 }

@@ -5,7 +5,7 @@ import { groupPeriodsForCalendar } from '@/lib/habits'
 import { cellSizeFor } from './cellSize'
 
 function Cell({ period, color, size, restLabel }) {
-  const accent = color ?? '#22c55e'
+  const accent = color ?? 'var(--done, #22c55e)'
   const style = { width: size, height: size }
   if (period.done) {
     style.borderColor = accent
@@ -22,8 +22,8 @@ function Cell({ period, color, size, restLabel }) {
         'rounded-full flex items-center justify-center shrink-0 transition-colors',
         period.done && (size >= 48 ? 'border-4 bg-transparent' : 'border-[3px] bg-transparent'),
         period.rest && 'border-2 opacity-25',
-        !period.done && !period.rest && period.current && 'border-2 border-dashed border-primary/50 bg-transparent',
-        !period.done && !period.rest && !period.current && 'border border-border bg-transparent opacity-40',
+        !period.done && !period.rest && period.current && 'border-2 border-dashed border-primary/50 dark:border-primary/70 bg-transparent',
+        !period.done && !period.rest && !period.current && 'border border-border/70 bg-transparent opacity-60 dark:border-white/25 dark:opacity-100',
       )}
     >
       {period.done && <Check style={{ width: size * 0.45, height: size * 0.45 }} strokeWidth={3} />}
@@ -34,7 +34,7 @@ function Cell({ period, color, size, restLabel }) {
 function FillerCell({ size }) {
   return (
     <div className="flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <div className="w-1.5 h-1.5 rounded-full bg-border/50" />
+      <div className="w-1.5 h-1.5 rounded-full bg-border/50 dark:bg-white/20" />
     </div>
   )
 }
