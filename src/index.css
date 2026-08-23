@@ -85,10 +85,46 @@
     * {
         @apply border-border outline-ring/50;
     }
+    html, body {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
     body {
         @apply bg-background text-foreground;
-        overscroll-behavior-y: none;
         -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    #root {
+        height: 100%;
+        overflow: hidden;
+    }
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
+    input[type="month"],
+    input[type="week"],
+    select {
+        -webkit-appearance: none;
+        appearance: none;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    input[type="date"]::-webkit-date-and-time-value,
+    input[type="time"]::-webkit-date-and-time-value,
+    input[type="datetime-local"]::-webkit-date-and-time-value {
+        text-align: left;
+        min-width: 0;
+    }
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit,
+    input[type="datetime-local"]::-webkit-datetime-edit {
+        padding: 0;
+        min-width: 0;
     }
     html {
         @apply font-sans;
@@ -112,6 +148,12 @@
     }
     *::-webkit-scrollbar-thumb:hover {
         background-color: var(--muted-foreground);
+    }
+    [class*="overflow-y-auto"],
+    [class*="overflow-auto"],
+    [class*="overflow-x-auto"] {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
     input[type="time"]::-webkit-calendar-picker-indicator,
     input[type="date"]::-webkit-calendar-picker-indicator {
@@ -172,8 +214,6 @@
             bottom: 1.5rem;
         }
     }
-    /* The Android build draws under the status bar, so panes lose the top
-       inset as well as the tab bar. On web the inset is 0 and this is a no-op. */
     .native-safe-top {
         padding-top: env(safe-area-inset-top);
     }
@@ -182,20 +222,25 @@
             padding-top: 0;
         }
     }
-    .h-tab-pane {
-        height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
-    }
-    /* Native only: the wrapper adds the top inset as padding, so panes must
-       give that height back or their bottom slides under the tab bar. */
-    .native-safe-top .h-tab-pane {
-        height: calc(
-            100dvh - 5rem - env(safe-area-inset-bottom) - env(safe-area-inset-top)
-        );
+    .above-tab-bar {
+        bottom: calc(5rem + env(safe-area-inset-bottom));
     }
     @media (width >= 48rem) {
-        .h-tab-pane {
-            height: 100dvh;
+        .above-tab-bar {
+            bottom: 0;
         }
+    }
+    .inset-x-safe {
+        left: env(safe-area-inset-left);
+        right: env(safe-area-inset-right);
+    }
+    .h-tab-pane {
+        height: 100%;
+    }
+    .scroll-pane {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
 }
 

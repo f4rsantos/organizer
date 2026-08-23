@@ -20,7 +20,27 @@ function isTimed(event) {
   return Boolean(event?._range && event.startTime)
 }
 
-export function segmentForDay(event, day) {
+function isAllDaySpan(event) {
+  return Boolean(event?._range) && !event.startTime
+}
+
+function allDaySegmentForDay(event, day) {
+  const { start, end } = event._range
+  const onStart = isSameDay(start, day)
+  const onEnd = isSameDay(end, day)
+  if (!onStart && !onEnd && !(day > start && day < end)) return null
+  return {
+    event,
+    startMinutes: 0,
+    endMinutes: MINUTES_PER_DAY,
+    allDay: true,
+    continuesBefore: !onStart,
+    continuesAfter: !onEnd,
+  }
+}
+
+export function segmentForDay(event, day, { includeAllDay = false } = {}) {
+  if (includeAllDay && isAllDaySpan(event)) return allDaySegmentForDay(event, day)
   if (!isTimed(event)) return null
 
   const { start, end } = event._range
@@ -56,9 +76,9 @@ export function segmentForDay(event, day) {
   return { event, startMinutes: 0, endMinutes: MINUTES_PER_DAY, continuesBefore: true, continuesAfter: true }
 }
 
-export function segmentsForDay(events, day) {
+export function segmentsForDay(events, day, options) {
   return events
-    .map(event => segmentForDay(event, day))
+    .map(event => segmentForDay(event, day, options))
     .filter(Boolean)
     .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes)
 }
@@ -93,6 +113,6 @@ export function assignColumns(segments) {
   return laid
 }
 
-export function layoutDayEvents(events, day) {
-  return assignColumns(segmentsForDay(events, day))
+export function layoutDayEvents(events, day, options) {
+  return assignColumns(segmentsForDay(events, day, options))
 }

@@ -47,7 +47,7 @@ function MiniMonth({ year, monthIndex, tasks, holidays, events, onOpenMonth, onO
 export function YearView({ year, tasks, holidays, events, onOpenMonth, onOpenDay }) {
   const months = Array.from({ length: 12 }, (_, i) => i)
   return (
-    <div className="flex-1 overflow-auto p-3">
+    <div className="flex-1 min-h-0 overflow-auto p-3">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {months.map(m => (
           <MiniMonth key={m} year={year} monthIndex={m} tasks={tasks} holidays={holidays} events={events}
