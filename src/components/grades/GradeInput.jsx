@@ -1,31 +1,36 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
-import { gradeScaleOf } from '@/lib/gradeUtils'
+import { gradeScaleOf, parseGradeInput, isPartialDecimal } from '@/lib/gradeUtils'
 
 export function GradeInput({ value, onChange, className }) {
   const scale = useStore(s => gradeScaleOf(s.settings))
   const [raw, setRaw] = useState(null)
   const focused = raw !== null
+  const parsedValue = parseGradeInput(value)
   const display = focused
     ? raw
-    : (value !== null && value !== undefined && value !== '' ? Number(value).toFixed(1) : '')
+    : (parsedValue !== null ? parsedValue.toFixed(1) : '')
 
   const handleBlur = () => {
-    if (raw === '' || raw === null) onChange(null)
-    else onChange(Number(raw))
+    onChange(parseGradeInput(raw, { min: 0, max: scale }))
     setRaw(null)
+  }
+
+  const handleChange = e => {
+    const next = e.target.value
+    if (isPartialDecimal(next)) setRaw(next)
   }
 
   return (
     <Input
-      type="number" min={0} max={scale} step={0.1}
+      type="text" inputMode="decimal"
       placeholder="—"
       className={className}
       value={display}
       onFocus={() => setRaw(value !== null && value !== undefined ? String(value) : '')}
       onBlur={handleBlur}
-      onChange={e => setRaw(e.target.value)}
+      onChange={handleChange}
     />
   )
 }

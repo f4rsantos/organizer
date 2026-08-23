@@ -8,19 +8,33 @@ const DAY_HEIGHT = HOUR_HEIGHT * 24
 const SNAP_MINUTES = 15
 const MIN_DURATION_MINUTES = 30
 const DEFAULT_COLOR = '#6366f1'
+const BLOCK_GUTTER = 2
+const BLOCK_GUTTER_WIDE = 14
 
-function allDayItemsForDay(day, tasks, holidays, events) {
+function allDayItemsForDay(day, tasks, holidays) {
   const dayHolidays = holidays.filter(h => isWithinInterval(day, { start: parseISO(h.startDate), end: parseISO(h.endDate) }))
-  const dayEvents = events.filter(e => e._range && isWithinInterval(day, e._range) && !e.startTime)
-  const dayTasks = tasks.filter(tk => isWithinInterval(day, tk._range))
-  return { dayHolidays, dayEvents, dayTasks }
+  const dayTasks = tasks.filter(tk => !isGridTask(tk) && isWithinInterval(day, tk._range))
+  return { dayHolidays, dayTasks }
 }
 
-function AllDayStrip({ day, tasks, holidays, events, classes, onOpenEvent }) {
-  const { dayHolidays, dayEvents, dayTasks } = allDayItemsForDay(day, tasks, holidays, events)
+function isGridTask(task) {
+  return Boolean(task?.dueDate)
+}
+
+function gridTaskEntries(tasks, classes) {
+  return tasks
+    .filter(isGridTask)
+    .map(tk => ({
+      ...tk,
+      color: tk.color ?? classes.find(c => c.id === tk.classId)?.color ?? DEFAULT_COLOR,
+      _isTask: true,
+    }))
+}
+
+function AllDayStrip({ day, tasks, holidays, classes }) {
+  const { dayHolidays, dayTasks } = allDayItemsForDay(day, tasks, holidays)
   const chips = [
     ...dayHolidays.map(h => ({ key: 'h' + h.id, color: '#d97706', label: h.name })),
-    ...dayEvents.map(e => ({ key: 'e' + e.id, color: e.color ?? DEFAULT_COLOR, label: e.title, onClick: () => onOpenEvent?.(e) })),
     ...dayTasks.map(tk => {
       const cls = classes.find(c => c.id === tk.classId)
       return { key: 't' + tk.id, color: cls?.color ?? DEFAULT_COLOR, label: cls ? `${tk.title} - ${cls.name}` : tk.title }
@@ -40,8 +54,8 @@ function AllDayStrip({ day, tasks, holidays, events, classes, onOpenEvent }) {
   )
 }
 
-function EventBlock({ segment, onOpenEvent }) {
-  const { event, startMinutes, endMinutes, column, columnCount, continuesBefore, continuesAfter } = segment
+function EventBlock({ segment, onOpenEvent, gutter = BLOCK_GUTTER }) {
+  const { event, startMinutes, endMinutes, column, columnCount, continuesBefore, continuesAfter, allDay } = segment
   const color = event.color ?? DEFAULT_COLOR
   const width = 100 / columnCount
 
@@ -54,8 +68,9 @@ function EventBlock({ segment, onOpenEvent }) {
       style={{
         top: (startMinutes / 60) * HOUR_HEIGHT,
         height: Math.max(18, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT),
-        left: `calc(${column * width}% + 2px)`,
-        width: `calc(${width}% - 4px)`,
+        ...(allDay ? { backgroundImage: `repeating-linear-gradient(45deg, ${color}14 0 6px, transparent 6px 12px)` } : null),
+        left: `calc(${column * width}% + ${gutter}px)`,
+        width: `calc(${width}% - ${gutter * 2}px)`,
         backgroundColor: color + '33',
         color,
         border: `1px solid ${color}55`,
@@ -66,7 +81,7 @@ function EventBlock({ segment, onOpenEvent }) {
         borderTopWidth: continuesBefore ? 0 : 1,
         borderBottomWidth: continuesAfter ? 0 : 1,
       }}>
-      <span className="font-medium">{event.title}</span>
+      <span className="font-medium sticky top-0">{event.title}</span>
     </div>
   )
 }
@@ -80,8 +95,10 @@ function snapRange(startMinutes, endMinutes) {
   return { start, end: Math.min(end, MINUTES_PER_DAY) }
 }
 
-export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, onCreateRange }) {
+export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, onOpenTask, onCreateRange }) {
+  const gridTasks = gridTaskEntries(tasks, classes)
   const showHeader = days.length > 1
+  const blockGutter = days.length === 1 ? BLOCK_GUTTER_WIDE : BLOCK_GUTTER
   const columnsRef = useRef(null)
   const [drag, setDrag] = useState(null)
 
@@ -163,7 +180,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 min-h-0 overflow-auto">
       <div className="flex border-b border-border/40 sticky top-0 bg-background z-10">
         <div className="w-12 shrink-0" />
         {days.map(day => (
@@ -173,7 +190,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
                 {format(day, 'EEE d')}
               </div>
             )}
-            <AllDayStrip day={day} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenEvent={onOpenEvent} />
+            <AllDayStrip day={day} tasks={tasks} holidays={holidays} classes={classes} />
           </div>
         ))}
       </div>
@@ -200,8 +217,9 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
                   <div key={h} className="absolute inset-x-0 border-b border-border/30"
                     style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }} />
                 ))}
-                {layoutDayEvents(events, day).map(segment => (
-                  <EventBlock key={segment.event.id} segment={segment} onOpenEvent={onOpenEvent} />
+                {layoutDayEvents([...events, ...gridTasks], day, { includeAllDay: true }).map(segment => (
+                  <EventBlock key={segment.event.id} segment={segment} gutter={blockGutter}
+                    onOpenEvent={segment.event._isTask ? onOpenTask : onOpenEvent} />
                 ))}
                 {preview && (
                   <div className="absolute left-0.5 right-0.5 rounded bg-primary/20 border border-primary/40 pointer-events-none"

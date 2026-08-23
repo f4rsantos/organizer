@@ -7,6 +7,7 @@ export const DEFAULT_TEAM_COLUMNS = [
 export function createTeamState() {
   return {
     tasks: [],
+    events: [],
     kanban: {
       columns: DEFAULT_TEAM_COLUMNS,
       cards: [],

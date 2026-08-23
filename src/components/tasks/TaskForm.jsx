@@ -36,11 +36,14 @@ export function TaskForm({
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const taskDefaultToCalendar = useStore(s => s.settings?.taskDefaultToCalendar ?? false)
+  const taskTimesEnabled = useStore(s => s.settings?.taskTimes ?? false)
   const [form, setForm] = useState({
     title: initialData?.title ?? '',
     classId: initialData?.classId ?? null,
     priority: initialData?.priority ?? null,
     dueDate: initialData?.dueDate ?? '',
+    startTime: initialData?.startTime ?? '',
+    endTime: initialData?.endTime ?? '',
     weekStart: initialData?.weekStart ?? (defaultWeek ?? 1),
     weekEnd: initialData?.weekEnd ?? (defaultWeek ?? 1),
     views: {
@@ -158,7 +161,13 @@ export function TaskForm({
     e.preventDefault()
     if (!rawTitle.trim()) return
     const finalForm = rawTitle !== form.title ? parseTitle(rawTitle) : form
-    const payload = { semesterId, ...finalForm, dueDate: finalForm.dueDate || null }
+    const payload = {
+      semesterId,
+      ...finalForm,
+      dueDate: finalForm.dueDate || null,
+      startTime: taskTimesEnabled ? (finalForm.startTime || null) : (initialData?.startTime ?? null),
+      endTime: taskTimesEnabled ? (finalForm.startTime && finalForm.endTime ? finalForm.endTime : null) : (initialData?.endTime ?? null),
+    }
     if (defaultEisenhower && !initialData) payload.eisenhower = defaultEisenhower
     if (onSubmitTask) onSubmitTask(payload)
     else addTask(payload)
@@ -297,7 +306,7 @@ export function TaskForm({
               onBlur={handleIntervalBlur}
               className="bg-background" />
           </div>
-          <div className="col-span-2 space-y-1.5">
+          <div className="col-span-2 min-w-0 space-y-1.5">
             <Label>{t.repeatUntil}</Label>
             <Input type="date" value={form.recurrence.until ?? ''}
               onChange={e => handleRecurrenceChange({ until: e.target.value || null })}
@@ -306,12 +315,27 @@ export function TaskForm({
         </div>
       )}
 
+      {taskTimesEnabled && form.views.calendar && form.dueDate && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0 space-y-1.5">
+            <Label>{t.eventStartTime}</Label>
+            <Input type="time" value={form.startTime}
+              onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label>{t.eventEndTime}</Label>
+            <Input type="time" value={form.endTime} disabled={!form.startTime}
+              onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label>{t.dueDate}</Label>
           <Input type="date" value={form.dueDate} onChange={e => { setTouched(x => ({ ...x, dueDate: true })); handleDueDateChange(e) }} />
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label>{t.fromWeek}</Label>
           <Select value={String(form.weekStart)} onValueChange={handleWeekStart}>
             <SelectTrigger><span>W{form.weekStart}</span></SelectTrigger>
@@ -321,7 +345,7 @@ export function TaskForm({
             })}</SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label>{t.toWeek}</Label>
           <Select value={String(form.weekEnd)} onValueChange={handleWeekEnd}>
             <SelectTrigger><span>W{form.weekEnd}</span></SelectTrigger>

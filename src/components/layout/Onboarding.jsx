@@ -59,6 +59,7 @@ export function Onboarding({ onDone }) {
   }, [noneMode])
 
   const current = steps[step]
+  const activeSemester = semesters.find(s => s.id === activeSemesterId) ?? null
   const scopeId = noneMode ? null : activeSemesterId
   const scopedClasses = classes.filter(c => c.semesterId === scopeId)
   const datesReady = noneMode || (semesters.length > 0 && activeSemesterId)
@@ -146,10 +147,8 @@ export function Onboarding({ onDone }) {
 
         {current === 'dates' && (
           <div className="space-y-4">
-            {semesters.length > 0
-              ? <div className="rounded-lg bg-secondary/60 px-3 py-2.5 text-sm">
-                  {semesters.find(s => s.id === activeSemesterId)?.name}
-                </div>
+            {activeSemester
+              ? <SemesterDatesForm key={activeSemester.id} semester={activeSemester} />
               : <SemesterDatesForm />}
             <Button variant="ghost" className="w-full" onClick={() => setShowPresets(true)}>{t.loadPreset}</Button>
             <div className="pt-1">

@@ -98,9 +98,10 @@ export function GlobalTomatoLayer({ activeTab }) {
   return (
     <div
       ref={containerRef}
+      className="above-tab-bar inset-x-safe"
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
         zIndex: 30,

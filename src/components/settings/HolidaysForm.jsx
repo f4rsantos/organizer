@@ -31,12 +31,12 @@ export function HolidaysForm({ semesterId }) {
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+          <div className="min-w-0 space-y-1.5">
             <Label>{t.startDate}</Label>
             <Input type="date" value={form.startDate}
               onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
           </div>
-          <div className="space-y-1.5">
+          <div className="min-w-0 space-y-1.5">
             <Label>{t.endDate}</Label>
             <Input type="date" value={form.endDate}
               onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />

@@ -3,8 +3,9 @@ export function isSharedLocalHidden(entity, activeTeamIds, runtimeTeams) {
   if (!teamId || !activeTeamIds.has(teamId)) return false
   const team = runtimeTeams[teamId]
   if (!team || team.syncStatus === 'error') return false
-  const { sharedTaskId, sharedCardId } = entity.sharedRef
+  const { sharedTaskId, sharedCardId, sharedEventId } = entity.sharedRef
   if (sharedTaskId) return (team.state?.tasks ?? []).some(t => t?.id === sharedTaskId)
   if (sharedCardId) return (team.state?.kanban?.cards ?? []).some(c => c?.id === sharedCardId)
+  if (sharedEventId) return (team.state?.events ?? []).some(e => e?.id === sharedEventId)
   return false
 }
