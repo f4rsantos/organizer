@@ -37,6 +37,47 @@ function contrastText(hex) {
   return relativeLuminance(hex) > 0.45 ? '#1a1a1a' : '#f5f5f5'
 }
 
+function rgbToHsl({ r, g, b }) {
+  const rn = r / 255, gn = g / 255, bn = b / 255
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn)
+  const l = (max + min) / 2
+  const d = max - min
+  if (d === 0) return { h: 0, s: 0, l }
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h
+  if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0))
+  else if (max === gn) h = (bn - rn) / d + 2
+  else h = (rn - gn) / d + 4
+  return { h: (h * 60 + 360) % 360, s, l }
+}
+
+function hslToHex({ h, s, l }) {
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const hp = ((h % 360) + 360) % 360 / 60
+  const x = c * (1 - Math.abs((hp % 2) - 1))
+  const [r1, g1, b1] =
+    hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x]
+    : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x]
+  const m = l - c / 2
+  const to = v => Math.round(Math.max(0, Math.min(1, v + m)) * 255)
+  return `#${[to(r1), to(g1), to(b1)].map(v => v.toString(16).padStart(2, '0')).join('')}`
+}
+
+function doneGradient(hex) {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return [hex, hex]
+  const { h, s, l } = rgbToHsl(rgb)
+  const up = l <= 0.62
+  const delta = 0.16 * (s < 0.12 ? 0.7 : 1)
+  const near = { h, s, l: Math.max(0.06, Math.min(0.94, l)) }
+  const far = {
+    h: h + (up ? 8 : -8),
+    s: Math.max(0, Math.min(1, s * (up ? 0.94 : 1.04))),
+    l: Math.max(0.06, Math.min(0.94, up ? l + delta : l - delta)),
+  }
+  return [hslToHex(near), hslToHex(far)]
+}
+
 function syncThemeColorMeta(root) {
   const meta = document.querySelector('meta[name="theme-color"]')
   if (!meta) return
@@ -51,6 +92,7 @@ export function useTheme() {
   const themeFontColor = useStore(s => s.settings?.themeFontColor)
   const themeBgColor = useStore(s => s.settings?.themeBgColor)
   const themeHighlightColor = useStore(s => s.settings?.themeHighlightColor)
+  const themeDoneColor = useStore(s => s.settings?.themeDoneColor)
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -97,15 +139,35 @@ export function useTheme() {
       }
 
       if (themeHighlightColor) {
-        root.style.setProperty('--secondary', themeHighlightColor)
-        root.style.setProperty('--secondary-foreground', contrastText(themeHighlightColor))
-        root.style.setProperty('--muted', themeHighlightColor)
-        root.style.setProperty('--muted-foreground', contrastText(themeHighlightColor))
+        const surface = isDark
+          ? mix(themeHighlightColor, '#000000', 0.72)
+          : mix(themeHighlightColor, '#ffffff', 0.08)
+        const surfaceText = contrastText(surface)
+        const pageBg = themeBgColor || (isDark ? '#0b0b0c' : '#ffffff')
+        const pageFg = themeBgColor ? contrastText(themeBgColor) : (isDark ? '#f5f5f5' : '#1a1a1a')
+        root.style.setProperty('--secondary', surface)
+        root.style.setProperty('--secondary-foreground', surfaceText)
+        root.style.setProperty('--muted', surface)
+        root.style.setProperty('--muted-foreground', mix(pageFg, pageBg, isDark ? 0.35 : 0.4))
       } else {
         root.style.removeProperty('--secondary')
         root.style.removeProperty('--secondary-foreground')
         root.style.removeProperty('--muted')
         root.style.removeProperty('--muted-foreground')
+      }
+
+      if (themeDoneColor) {
+        const done = isDark ? mix(themeDoneColor, '#ffffff', 0.12) : themeDoneColor
+        const [from, to] = doneGradient(done)
+        root.style.setProperty('--done', done)
+        root.style.setProperty('--done-foreground', contrastText(done))
+        root.style.setProperty('--done-from', from)
+        root.style.setProperty('--done-to', to)
+      } else {
+        root.style.removeProperty('--done')
+        root.style.removeProperty('--done-foreground')
+        root.style.removeProperty('--done-from')
+        root.style.removeProperty('--done-to')
       }
 
       syncThemeColorMeta(root)
@@ -119,7 +181,7 @@ export function useTheme() {
     const onChange = () => applyTheme()
     media.addEventListener('change', onChange)
     return () => media.removeEventListener('change', onChange)
-  }, [theme, themeFontColor, themeBgColor, themeHighlightColor])
+  }, [theme, themeFontColor, themeBgColor, themeHighlightColor, themeDoneColor])
 
   const toggle = () => {
     const current = THEME_ORDER.includes(theme) ? theme : 'system'

@@ -36,8 +36,8 @@ export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label,
             animationTimingFunction: 'ease-in-out' }}>
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={done ? '#22c55e' : 'var(--wheel-primary)'} />
-              <stop offset="100%" stopColor={done ? '#86efac' : 'oklch(0.65 0.15 280)'} />
+              <stop offset="0%" stopColor={done ? 'var(--done-from, var(--done, #22c55e))' : 'var(--wheel-primary)'} />
+              <stop offset="100%" stopColor={done ? 'var(--done-to, #86efac)' : 'oklch(0.65 0.15 280)'} />
             </linearGradient>
           </defs>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none"
@@ -54,7 +54,7 @@ export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label,
         {center && <div className="absolute inset-0 flex items-center justify-center">{center}</div>}
         {done && !center && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Check className="text-emerald-500" style={{ width: size * 0.35, height: size * 0.35 }}
+            <Check style={{ width: size * 0.35, height: size * 0.35, color: 'var(--done, #22c55e)' }}
               strokeWidth={2.5} />
           </div>
         )}
