@@ -1,8 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'fs'
 import { buildRowsFromLines } from './scheduleGrid'
 
-const words = JSON.parse(fs.readFileSync('src/lib/calendar/__words.json', 'utf8'))
+const HOUR_PX = 60
+
+function word(text, x0, y0, { width = 40, height = 14 } = {}) {
+  return { text, x0, y0, x1: x0 + width, y1: y0 + height }
+}
+
+function gutter(hour) {
+  return word(`${String(hour).padStart(2, '0')}:00`, 10, (hour - 9) * HOUR_PX + 100, { width: 34 })
+}
+
+const RAW_WORDS = [
+  word('MON', 200, 50),
+  word('TUE', 400, 50),
+  ...[9, 10, 11, 12, 13].map(gutter),
+  word('ALGO', 200, 160),
+  word('sala', 200, 178, { width: 30 }),
+  word('BASE', 400, 220),
+  word('P1', 400, 238, { width: 20 }),
+]
 
 function mapLikeOcrModule(raw) {
   return raw
@@ -16,7 +33,7 @@ function mapLikeOcrModule(raw) {
 
 describe('ocr to grid contract', () => {
   it('consumes the exact shape ocrScheduleImage emits', () => {
-    const tesseractShape = words.map(w => ({
+    const tesseractShape = RAW_WORDS.map(w => ({
       text: w.text,
       bbox: { x0: w.x0, y0: w.y0, x1: w.x1, y1: w.y1 },
     }))
