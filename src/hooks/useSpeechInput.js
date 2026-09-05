@@ -7,6 +7,11 @@ function getSpeechRecognitionCtor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null
 }
 
+function hasKeyboardDictation() {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(pointer: coarse)').matches
+}
+
 export function useSpeechInput({ lang, onResult } = {}) {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
@@ -15,7 +20,10 @@ export function useSpeechInput({ lang, onResult } = {}) {
   useEffect(() => { onResultRef.current = onResult }, [onResult])
 
   const enabled = useStore(s => s.settings?.speechInputEnabled === true)
-  const isSupported = enabled && typeof window !== 'undefined' && Boolean(getSpeechRecognitionCtor())
+  const isSupported = enabled
+    && typeof window !== 'undefined'
+    && Boolean(getSpeechRecognitionCtor())
+    && !hasKeyboardDictation()
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop()
