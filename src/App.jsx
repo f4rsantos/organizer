@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useStore } from '@/store/useStore'
 import { useFirebaseSync } from '@/hooks/useFirebaseSync'
 import { useCollabSync } from '@/hooks/useCollabSync'
@@ -164,6 +164,21 @@ export default function App() {
   useEffect(() => {
     writeLastTab(activeTab)
   }, [activeTab])
+
+  // State loads from IndexedDB after the first render, so the tab chosen by the
+  // initializer predates defaultTab being known. Resolve it once on hydration.
+  const defaultTabApplied = useRef(false)
+  if (hydrated && !defaultTabApplied.current) {
+    defaultTabApplied.current = true
+    if (!new URLSearchParams(window.location.search).get('tab')) {
+      const state = useStore.getState()
+      const preferred = state.settings?.defaultTab ?? 'last'
+      const known = [...CORE_TABS, ...enabledPluginTabIds(state)]
+      if (preferred !== 'last' && known.includes(preferred) && preferred !== activeTab) {
+        setActiveTab(preferred)
+      }
+    }
+  }
   useEffect(() => {
     const apply = () => {
       consumeLaunchTab().then(tab => {

@@ -41,6 +41,17 @@ const POMODORO_KEYS = [
   'tasksNotifTitle', 'taskReminderTitle',
 ]
 
+const CALENDAR_NOTE_KEYS = ['calendarCreateNote', 'calendarOpenNote', 'notesCalendarLink', 'notesCalendarLinkDesc']
+
+const SCHEDULE_IMPORT_KEYS = [
+  'scheduleImportTitle', 'scheduleImportDesc', 'scheduleImportPick', 'scheduleImportError',
+  'scheduleImportRepeatLabel', 'scheduleImportEveryWeek', 'scheduleImportThisWeek',
+  'scheduleImportPreview', 'scheduleImportConfirm',
+  'scheduleImportTitleField', 'scheduleImportNoteField',
+  'scheduleImportHistory', 'scheduleImportUndo',
+  'calendarNowColor', 'calendarNowColorDesc', 'calendarColors',
+]
+
 const EISENHOWER_KEYS = [
   'eisenhower', 'eisenhowerEnable', 'eisenhowerEnableDesc',
   'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate', 'eisenhowerEliminate',
@@ -129,7 +140,7 @@ describe('pomodoro and eisenhower strings are defined everywhere', () => {
     .filter(([name]) => !IN_TRANSLATION.has(name))
     .forEach(([name, strings]) => {
       it(`${name} defines every pomodoro and eisenhower key`, () => {
-        const missing = [...POMODORO_KEYS, ...EISENHOWER_KEYS]
+        const missing = [...POMODORO_KEYS, ...EISENHOWER_KEYS, ...CALENDAR_NOTE_KEYS, ...SCHEDULE_IMPORT_KEYS]
           .filter(key => typeof strings[key] !== 'string' || !strings[key].trim())
         expect(missing).toEqual([])
       })

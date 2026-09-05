@@ -12,17 +12,18 @@ function dayHasItems(day, tasks, holidays, events) {
 function MiniMonth({ year, monthIndex, tasks, holidays, events, onOpenMonth, onOpenDay }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
   const monthDate = new Date(year, monthIndex, 1)
   const monthStart = startOfMonth(monthDate)
   const monthEnd = endOfMonth(monthDate)
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const gridStart = startOfWeek(monthStart, { weekStartsOn })
   const days = eachDayOfInterval({ start: gridStart, end: new Date(Math.min(monthEnd.getTime(), gridStart.getTime() + 41 * 86400000)) })
   while (days.length < 42) days.push(new Date(days[days.length - 1].getTime() + 86400000))
 
   return (
     <div className="flex flex-col gap-1">
       <button type="button" onClick={() => onOpenMonth(monthDate)}
-        className="text-xs font-semibold capitalize text-left hover:text-primary transition-colors">
+        className="text-xs font-semibold capitalize text-left tracking-tight hover:text-primary transition-colors">
         {t.months[monthIndex]}
       </button>
       <div className="grid grid-cols-7 gap-px">
@@ -32,10 +33,13 @@ function MiniMonth({ year, monthIndex, tasks, holidays, events, onOpenMonth, onO
           const hasItems = inMonth && dayHasItems(day, tasks, holidays, events)
           return (
             <button key={day.toISOString()} type="button" onClick={() => onOpenDay(day)}
-              className={`aspect-square text-[8px] flex items-center justify-center rounded-sm transition-colors
-                ${!inMonth ? 'opacity-20' : ''}
-                ${isToday ? 'bg-primary text-primary-foreground' : hasItems ? 'bg-primary/20 text-foreground' : 'text-muted-foreground hover:bg-accent/40'}`}>
+              className={`relative aspect-square text-[8px] flex items-center justify-center rounded-full transition-colors
+                ${!inMonth ? 'opacity-25' : ''}
+                ${isToday ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:bg-accent/40'}`}>
               {day.getDate()}
+              {hasItems && !isToday && (
+                <span className="absolute bottom-[1px] left-1/2 -translate-x-1/2 h-[2px] w-[2px] rounded-full bg-primary" />
+              )}
             </button>
           )
         })}

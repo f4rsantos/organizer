@@ -201,8 +201,59 @@ function resolveBodyCollisions(bodies) {
   }
 }
 
+function resolveObstacleCollisions(bodies, obstacles) {
+  if (!obstacles || !obstacles.length) return
+  for (let i = 0; i < bodies.length; i++) {
+    const body = bodies[i]
+    const radius = body.radius ?? TOMATO_RADIUS
+    for (let o = 0; o < obstacles.length; o++) {
+      const rect = obstacles[o]
+      const closestX = Math.max(rect.left, Math.min(body.x, rect.right))
+      const closestY = Math.max(rect.top, Math.min(body.y, rect.bottom))
+      const dx = body.x - closestX
+      const dy = body.y - closestY
+      const distSq = dx * dx + dy * dy
+      if (distSq >= radius * radius) continue
+
+      const dist = Math.sqrt(distSq)
+      let nx, ny, overlap
+      if (dist > 0.0001) {
+        nx = dx / dist
+        ny = dy / dist
+        overlap = radius - dist
+      } else {
+        // center inside rect: push out along the shortest axis
+        const penLeft = body.x - rect.left
+        const penRight = rect.right - body.x
+        const penTop = body.y - rect.top
+        const penBottom = rect.bottom - body.y
+        const minPen = Math.min(penLeft, penRight, penTop, penBottom)
+        if (minPen === penLeft) { nx = -1; ny = 0 }
+        else if (minPen === penRight) { nx = 1; ny = 0 }
+        else if (minPen === penTop) { nx = 0; ny = -1 }
+        else { nx = 0; ny = 1 }
+        overlap = radius + minPen
+      }
+
+      const vn = body.vx * nx + body.vy * ny
+      const wobbleLeft = Number.isFinite(body.wobbleLeft) ? body.wobbleLeft : MAX_WOBBLE_SECONDS
+      bodies[i] = {
+        ...body,
+        x: body.x + nx * overlap,
+        y: body.y + ny * overlap,
+        vx: body.vx - (vn < 0 ? vn * nx * (1 + DAMPING) : 0),
+        vy: body.vy - (vn < 0 ? vn * ny * (1 + DAMPING) : 0),
+        omega: wobbleLeft > 0
+          ? Math.max(-MAX_SPIN, Math.min(MAX_SPIN, (body.omega ?? 0) - vn * nx * 6))
+          : 0,
+      }
+    }
+  }
+}
+
 function stepBodies(prevBodies, dt, env) {
   const moved = prevBodies.map(body => moveBody(body, dt, env))
+  resolveObstacleCollisions(moved, env.obstacles)
   resolveBodyCollisions(moved)
   return moved
 }
@@ -228,6 +279,33 @@ function createOrientationHandler(gravityRef) {
   }
 }
 
+const OBSTACLE_REFRESH_MS = 200
+
+function isObstacleVisible(node) {
+  if (typeof node.checkVisibility === 'function') {
+    return node.checkVisibility({ checkVisibilityCSS: true, checkOpacity: true })
+  }
+  const style = window.getComputedStyle(node)
+  return style.visibility !== 'hidden' && style.display !== 'none'
+}
+
+function collectObstacleRects(containerBounds) {
+  const nodes = document.querySelectorAll('[data-tomato-obstacle]')
+  const rects = []
+  nodes.forEach(node => {
+    if (!isObstacleVisible(node)) return
+    const rect = node.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
+    rects.push({
+      left: rect.left - containerBounds.left,
+      top: rect.top - containerBounds.top,
+      right: rect.right - containerBounds.left,
+      bottom: rect.bottom - containerBounds.top,
+    })
+  })
+  return rects
+}
+
 export function usePomodoroBodies({
   containerRef,
   pomodoros,
@@ -250,6 +328,8 @@ export function usePomodoroBodies({
   const draggingRef = useRef(null)
   const orientationEnabledRef = useRef(false)
   const orientationHandlerRef = useRef(null)
+  const obstaclesRef = useRef([])
+  const lastObstacleRefreshRef = useRef(0)
   const hasActiveBodies = bodies.length > 0
 
   const getBounds = useCallback(() => {
@@ -380,6 +460,12 @@ export function usePomodoroBodies({
       lastTimeRef.current = time
 
       const bounds = getBounds()
+
+      if (time - lastObstacleRefreshRef.current > OBSTACLE_REFRESH_MS) {
+        lastObstacleRefreshRef.current = time
+        obstaclesRef.current = collectObstacleRects(bounds)
+      }
+
       const env = {
         gx: gravityRef.current.x * GRAVITY,
         gy: gravityRef.current.y * GRAVITY,
@@ -387,6 +473,7 @@ export function usePomodoroBodies({
         wallLeft: 0,
         wallRight: bounds.width || 400,
         draggingId: draggingRef.current?.id,
+        obstacles: obstaclesRef.current,
       }
 
       setBodies(prev => stepBodies(prev, dt, env))

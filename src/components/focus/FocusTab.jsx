@@ -28,7 +28,7 @@ export function FocusTab() {
       <div className="relative flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 select-none overflow-hidden">
         {pomodoroEnabled && <FocusPomodoroStats />}
 
-        <FocusWheel pct={ringPct} isBreak={isBreak}
+        <FocusWheel data-tomato-obstacle pct={ringPct} isBreak={isBreak}
           label={isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)}
           centerOverlay={pomodoroEnabled && phase === 'focus' && (running || cycleElapsed > 0)
             ? <CenterPomodoro
@@ -40,7 +40,7 @@ export function FocusTab() {
             : null}
           sublabel={isBreak ? displayBreakLabel : running ? activeFocusText : t.focusReady} />
 
-        <div className="relative z-20 flex items-center gap-3">
+        <div data-tomato-obstacle className="relative z-20 flex items-center gap-3">
           {!running && totalElapsed === 0 && !isBreak && (
             <Button onClick={start} className="w-28">{t.focusStart}</Button>
           )}
@@ -64,7 +64,7 @@ export function FocusTab() {
           </p>
         )}
 
-        <div className="relative z-20 flex items-center justify-center">
+        <div data-tomato-obstacle className="relative z-20 flex items-center justify-center">
           <button onClick={() => setShowSettings(v => !v)}
             className="text-muted-foreground hover:text-foreground transition-colors p-1">
             <SlidersHorizontal className="h-4 w-4" />

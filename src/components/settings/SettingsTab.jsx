@@ -25,6 +25,7 @@ import { AppsGrid } from './AppsGrid'
 import { KanbanSettings } from './KanbanSettings'
 import { FocusSettings } from './FocusSettings'
 import { HolidaysForm } from './HolidaysForm'
+import { CalendarSettings } from './CalendarSettings'
 import { PresetOverlay } from '@/components/presets/PresetOverlay'
 import { GuidesOverlay } from '@/components/guides/GuidesOverlay'
 import { exportState, importState } from '@/store/persist'
@@ -341,6 +342,17 @@ export function SettingsTab({ syncStatus }) {
               </AccordionContent>
             </AccordionItem>
           )}
+
+          <AccordionItem value="calendar" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.calendar}</AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <CalendarSettings
+                semesterId={activeSemesterId}
+                semesterStart={semester?.startDate ?? null}
+                semesterEnd={semester?.endDate ?? null}
+              />
+            </AccordionContent>
+          </AccordionItem>
 
           <AccordionItem value="focus" className="rounded-xl border border-border bg-card px-4">
             <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>

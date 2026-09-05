@@ -12,6 +12,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Organizer" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      connect-src 'self' data: blob: https://firestore.googleapis.com wss://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com capacitor://localhost https://localhost;
+      script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.googletagmanager.com https://accounts.google.com blob:;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      img-src 'self' data: blob:;
+      font-src 'self' data: https://fonts.gstatic.com;
+      worker-src 'self' blob:;
+      object-src 'none';
+      base-uri 'self';
+    " />
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9N9DYBZN6X"></script>
     <script>

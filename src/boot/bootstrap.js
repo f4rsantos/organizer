@@ -21,11 +21,12 @@ async function hydrateFromFirebase() {
 
   try {
     const { pullFromFirebase } = await import('../lib/firebase')
-    const remote = await Promise.race([
+    const pulled = await Promise.race([
       pullFromFirebase(config),
       new Promise(resolve => setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS)),
     ])
 
+    const remote = pulled?.state
     if (!remote?.version) return
     const { state, status } = migrateState(remote)
     if (status === 'newer') sessionStorage.setItem('organizer:remote-newer', '1')

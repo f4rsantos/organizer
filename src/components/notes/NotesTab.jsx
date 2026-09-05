@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, Star, Pencil, ChevronDown, ChevronRight, ChevronLeft, FolderPlus, GripVertical, X, Check, Folder, FolderOpen, Archive, FileText, StickyNote, Search, LayoutGrid, List } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
@@ -173,6 +173,16 @@ export function NotesTab() {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
+
+  // A calendar event can ask for its linked note; consume the request once so
+  // reopening the tab later doesn't force the same note back open.
+  const requestedNoteId = useStore(s => s.requestedNoteId)
+  const setRequestedNote = useStore(s => s.setRequestedNote)
+  useEffect(() => {
+    if (!requestedNoteId) return
+    setSelectedId(requestedNoteId)
+    setRequestedNote(null)
+  }, [requestedNoteId, setRequestedNote])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
