@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { format, isSameDay, isWithinInterval, parseISO } from 'date-fns'
 import { layoutDayEvents, minutesToTime, MINUTES_PER_DAY } from '@/lib/calendar/eventLayout'
+import { useStore } from '@/store/useStore'
+import { readableTextColor } from '@/lib/calendar/contrast'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 48
@@ -58,30 +60,35 @@ function EventBlock({ segment, onOpenEvent, gutter = BLOCK_GUTTER }) {
   const { event, startMinutes, endMinutes, column, columnCount, continuesBefore, continuesAfter, allDay } = segment
   const color = event.color ?? DEFAULT_COLOR
   const width = 100 / columnCount
+  const blockHeight = ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT
+  const showNote = Boolean(event.note) && blockHeight >= 34
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  const textColor = readableTextColor(color, { background: isDark ? '#1a1a1a' : '#ffffff' })
 
   return (
     <div
       onPointerDown={e => e.stopPropagation()}
       onClick={() => onOpenEvent?.(event)}
       title={event.title}
-      className="absolute overflow-hidden px-1 py-0.5 text-[10px] leading-tight cursor-pointer"
+      className="absolute overflow-hidden pl-1.5 pr-1 py-0.5 text-[10px] leading-tight cursor-pointer"
       style={{
         top: (startMinutes / 60) * HOUR_HEIGHT,
         height: Math.max(18, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT),
         ...(allDay ? { backgroundImage: `repeating-linear-gradient(45deg, ${color}14 0 6px, transparent 6px 12px)` } : null),
         left: `calc(${column * width}% + ${gutter}px)`,
         width: `calc(${width}% - ${gutter * 2}px)`,
-        backgroundColor: color + '33',
-        color,
-        border: `1px solid ${color}55`,
-        borderTopLeftRadius: continuesBefore ? 0 : 4,
-        borderTopRightRadius: continuesBefore ? 0 : 4,
-        borderBottomLeftRadius: continuesAfter ? 0 : 4,
-        borderBottomRightRadius: continuesAfter ? 0 : 4,
-        borderTopWidth: continuesBefore ? 0 : 1,
-        borderBottomWidth: continuesAfter ? 0 : 1,
+        backgroundColor: color + '26',
+        color: textColor,
+        borderLeft: `3px solid ${color}`,
+        borderTopLeftRadius: continuesBefore ? 0 : 3,
+        borderTopRightRadius: continuesBefore ? 0 : 3,
+        borderBottomLeftRadius: continuesAfter ? 0 : 3,
+        borderBottomRightRadius: continuesAfter ? 0 : 3,
       }}>
-      <span className="font-medium sticky top-0">{event.title}</span>
+      <span className="font-medium sticky top-0 block truncate">{event.title}</span>
+      {showNote && (
+        <span className="block truncate opacity-70">{event.note}</span>
+      )}
     </div>
   )
 }
@@ -95,12 +102,38 @@ function snapRange(startMinutes, endMinutes) {
   return { start, end: Math.min(end, MINUTES_PER_DAY) }
 }
 
+function useMinuteTick() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(id)
+  }, [])
+  return now
+}
+
 export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, onOpenTask, onCreateRange }) {
+  const now = useMinuteTick()
+  const nowColor = useStore(s => s.settings?.calendarNowColor ?? '#ef4444')
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const gridTasks = gridTaskEntries(tasks, classes)
   const showHeader = days.length > 1
   const blockGutter = days.length === 1 ? BLOCK_GUTTER_WIDE : BLOCK_GUTTER
   const columnsRef = useRef(null)
+  const scrollRef = useRef(null)
   const [drag, setDrag] = useState(null)
+
+  const rangeKey = days.length ? `${days[0].toDateString()}|${days[days.length - 1].toDateString()}` : ''
+  const todayIndex = days.findIndex(d => isSameDay(d, new Date()))
+  const hasToday = todayIndex !== -1
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+    const current = new Date()
+    const minutes = hasToday ? current.getHours() * 60 + current.getMinutes() : 8 * 60
+    const target = (minutes / 60) * HOUR_HEIGHT - node.clientHeight / 2
+    node.scrollTop = Math.max(0, Math.min(target, node.scrollHeight - node.clientHeight))
+  }, [rangeKey, hasToday])
 
   const pointToPosition = (clientX, clientY) => {
     const container = columnsRef.current
@@ -180,30 +213,41 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto">
       <div className="flex border-b border-border/40 sticky top-0 bg-background z-10">
         <div className="w-12 shrink-0" />
-        {days.map(day => (
-          <div key={day.toISOString()} className="flex-1 border-r border-border/40 border-l border-l-border/40 min-w-0">
-            {showHeader && (
-              <div className={`text-[10px] font-semibold text-center py-1 uppercase tracking-wide ${isSameDay(day, new Date()) ? 'text-primary' : 'text-muted-foreground'}`}>
-                {format(day, 'EEE d')}
-              </div>
-            )}
-            <AllDayStrip day={day} tasks={tasks} holidays={holidays} classes={classes} />
-          </div>
-        ))}
+        {days.map(day => {
+          const isToday = isSameDay(day, new Date())
+          return (
+            <div key={day.toISOString()} className="flex-1 min-w-0">
+              {showHeader && (
+                <div className="flex flex-col items-center gap-0.5 py-1.5">
+                  <span className={`text-[9px] uppercase tracking-wide ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {format(day, 'EEE')}
+                  </span>
+                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
+                    {format(day, 'd')}
+                  </span>
+                </div>
+              )}
+              <AllDayStrip day={day} tasks={tasks} holidays={holidays} classes={classes} />
+            </div>
+          )
+        })}
       </div>
       <div className="flex">
         <div className="w-12 shrink-0">
           {HOURS.map(h => (
-            <div key={h} className="text-[10px] text-muted-foreground text-right pr-1 border-b border-transparent"
-              style={{ height: HOUR_HEIGHT }}>
-              {String(h).padStart(2, '0')}:00
+            <div key={h} className="relative" style={{ height: HOUR_HEIGHT }}>
+              {h > 0 && (
+                <span className="absolute right-1.5 -top-1.5 text-[10px] text-muted-foreground tabular-nums">
+                  {String(h).padStart(2, '0')}:00
+                </span>
+              )}
             </div>
           ))}
         </div>
-        <div ref={columnsRef} className="flex flex-1 border-l border-border/40 touch-none"
+        <div ref={columnsRef} className="flex flex-1 touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -211,16 +255,25 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
           {days.map((day, dayIndex) => {
             const preview = previewFor(dayIndex)
             return (
-              <div key={day.toISOString()} className="relative flex-1 border-r border-border/40 select-none"
+              <div key={day.toISOString()} className="relative flex-1 select-none"
                 style={{ height: DAY_HEIGHT }}>
                 {HOURS.map(h => (
-                  <div key={h} className="absolute inset-x-0 border-b border-border/30"
-                    style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }} />
+                  <div key={h} className="absolute inset-x-0 border-t border-border/25"
+                    style={{ top: h * HOUR_HEIGHT }} />
                 ))}
                 {layoutDayEvents([...events, ...gridTasks], day, { includeAllDay: true }).map(segment => (
                   <EventBlock key={segment.event.id} segment={segment} gutter={blockGutter}
                     onOpenEvent={segment.event._isTask ? onOpenTask : onOpenEvent} />
                 ))}
+                {isSameDay(day, now) && (
+                  <div className="absolute inset-x-0 z-[5] pointer-events-none"
+                    style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}>
+                    <div className="relative h-px" style={{ backgroundColor: nowColor }}>
+                      <span className="absolute -left-1 -top-[3px] h-[7px] w-[7px] rounded-full"
+                        style={{ backgroundColor: nowColor }} />
+                    </div>
+                  </div>
+                )}
                 {preview && (
                   <div className="absolute left-0.5 right-0.5 rounded bg-primary/20 border border-primary/40 pointer-events-none"
                     style={{

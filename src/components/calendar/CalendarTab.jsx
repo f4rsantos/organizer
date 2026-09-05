@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
+import { SwipePager } from './SwipePager'
 import { useMergedTasks } from '@/hooks/useMergedTasks'
 import { useMergedEvents } from '@/hooks/useMergedEvents'
 import { CalendarEventProviders } from '@/apps/CalendarEventProviders'
@@ -82,6 +83,7 @@ export function CalendarTab() {
   const providerEvents = useMemo(() => Object.values(pluginEvents).flat(), [pluginEvents])
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
 
   const hasScope = Boolean(semester) || noneMode
   const semStart = semester ? parseISO(semester.startDate) : null
@@ -151,6 +153,14 @@ export function CalendarTab() {
   const canPrev = view === 'month' ? (!semStart || startOfMonth(anchor) > startOfMonth(semStart)) : true
   const canNext = view === 'month' ? (!semEnd || startOfMonth(anchor) < startOfMonth(semEnd)) : true
 
+  const shiftAnchor = (base, step) => {
+    if (step === 0) return base
+    if (view === 'day') return addDays(base, step)
+    if (view === 'week') return addDays(base, step * 7)
+    if (view === 'year') return new Date(base.getFullYear() + step, base.getMonth(), base.getDate())
+    return addMonths(base, step)
+  }
+
   const detail = dayDetail ? itemsForDay(dayDetail, tasks, holidays, events) : null
 
   // EventForm reads props once at mount, so each open needs a distinct key.
@@ -207,8 +217,8 @@ export function CalendarTab() {
   const headerLabel = () => {
     if (view === 'day') return `${t.weekdays[(anchor.getDay() + 6) % 7]}, ${anchor.getDate()} ${t.months[anchor.getMonth()]} ${anchor.getFullYear()}`
     if (view === 'week') {
-      const ws = startOfWeek(anchor, { weekStartsOn: 1 })
-      const we = endOfWeek(anchor, { weekStartsOn: 1 })
+      const ws = startOfWeek(anchor, { weekStartsOn })
+      const we = endOfWeek(anchor, { weekStartsOn })
       return `${format(ws, 'd MMM')} – ${format(we, 'd MMM yyyy')}`
     }
     if (view === 'year') return String(anchor.getFullYear())
@@ -218,52 +228,60 @@ export function CalendarTab() {
   return (
     <div className="flex flex-col h-tab-pane select-none relative">
       <CalendarEventProviders onEvents={handleWidgetProviderEvents} />
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 shrink-0">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} disabled={!canPrev}>
+      <div className="flex items-center gap-1 px-4 pt-3 pb-2 shrink-0">
+        <p className="flex-1 text-xl font-semibold capitalize truncate tracking-tight">{headerLabel()}</p>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev} disabled={!canPrev}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <p className="flex-1 text-center font-semibold text-sm capitalize truncate">{headerLabel()}</p>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext} disabled={!canNext}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext} disabled={!canNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="flex items-center justify-center px-4 py-1.5 border-b border-border/50 shrink-0">
-        <div className="relative grid grid-cols-4 w-full max-w-xs rounded-md border border-border bg-muted/50 p-0.5">
+      <div className="flex items-center justify-center px-4 pb-2 shrink-0">
+        <div className="relative grid grid-cols-4 w-full max-w-xs rounded-full bg-muted/60 p-0.5">
           <div
-            className="absolute inset-y-0.5 rounded-[5px] bg-background shadow-sm transition-[left] duration-200 ease-out"
+            className="absolute inset-y-0.5 rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
             style={{ width: `calc(25% - 4px)`, left: `calc(${VIEWS.indexOf(view)} * 25% + 2px)` }}
           />
           {VIEWS.map(v => (
             <button key={v} type="button" onClick={() => setView(v)}
-              className={`relative z-10 flex items-center justify-center min-w-0 text-xs px-2.5 py-1 rounded-md transition-colors ${view === v ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+              className={`relative z-10 flex items-center justify-center min-w-0 text-xs px-2.5 py-1.5 rounded-full transition-colors ${view === v ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
               {{ day: t.viewDay, week: t.viewWeek, month: t.viewMonth, year: t.viewYear }[v]}
             </button>
           ))}
         </div>
       </div>
 
-      {view === 'month' && (
-        <MonthView month={anchor} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenDay={setDayDetail} />
-      )}
-      {view === 'day' && (
-        <DayView day={anchor} tasks={tasks} holidays={holidays} events={events} classes={classes}
-          onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
-            openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
-      )}
-      {view === 'week' && (
-        <WeekView weekStart={startOfWeek(anchor, { weekStartsOn: 1 })} weekEnd={endOfWeek(anchor, { weekStartsOn: 1 })}
-          tasks={tasks} holidays={holidays} events={events} classes={classes}
-          onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
-            openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
-      )}
-      {view === 'year' && (
-        <YearView year={anchor.getFullYear()} tasks={tasks} holidays={holidays} events={events}
-          onOpenMonth={openMonth} onOpenDay={openDay} />
-      )}
+      <SwipePager
+        pageKey={`${view}:${format(anchor, 'yyyy-MM-dd')}`}
+        canPrev={canPrev} canNext={canNext}
+        onPrev={goPrev} onNext={goNext}
+        renderPage={step => {
+          const pageAnchor = shiftAnchor(anchor, step)
+          if (view === 'month') return (
+            <MonthView month={pageAnchor} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenDay={setDayDetail} />
+          )
+          if (view === 'day') return (
+            <DayView day={pageAnchor} tasks={tasks} holidays={holidays} events={events} classes={classes}
+              onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
+                openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
+          )
+          if (view === 'week') return (
+            <WeekView weekStart={startOfWeek(pageAnchor, { weekStartsOn })} weekEnd={endOfWeek(pageAnchor, { weekStartsOn })}
+              tasks={tasks} holidays={holidays} events={events} classes={classes}
+              onOpenEvent={openEditEvent} onOpenTask={openEditTask} onCreateRange={(day, startTime, endTime, endDay) =>
+                openNewEvent(format(day, 'yyyy-MM-dd'), startTime, endTime, endDay ? format(endDay, 'yyyy-MM-dd') : null)} />
+          )
+          return (
+            <YearView year={pageAnchor.getFullYear()} tasks={tasks} holidays={holidays} events={events}
+              onOpenMonth={openMonth} onOpenDay={openDay} />
+          )
+        }}
+      />
 
       {hasScope && (
-        <Button size="icon" className="absolute bottom-6 right-6 h-12 w-12 rounded-full shadow-lg" onClick={() => openNewEvent(format(new Date(), 'yyyy-MM-dd'))}>
+        <Button size="icon" className="absolute bottom-6 right-6 z-20 h-12 w-12 rounded-full shadow-lg" onClick={() => openNewEvent(format(new Date(), 'yyyy-MM-dd'))}>
           <Plus className="h-5 w-5" />
         </Button>
       )}

@@ -17,6 +17,7 @@ export function NotesAppModal({ open, onOpenChange }) {
   const t = useStrings(lang)
   const apps = useStore(s => s.settings?.apps) ?? { notes: false }
   const mathEnabled = useStore(s => s.settings?.notesMathEnabled ?? false)
+  const calendarLinkEnabled = useStore(s => s.settings?.notesCalendarLink ?? false)
   const math = {
     notesMathSolveEquations: useStore(s => s.settings?.notesMathSolveEquations ?? true),
     notesMathSelectionGraph: useStore(s => s.settings?.notesMathSelectionGraph ?? true),
@@ -51,6 +52,14 @@ export function NotesAppModal({ open, onOpenChange }) {
           </div>
           {apps.notes && (
             <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{t.notesCalendarLink}</p>
+                  <p className="text-xs text-muted-foreground">{t.notesCalendarLinkDesc}</p>
+                </div>
+                <Switch checked={calendarLinkEnabled}
+                  onCheckedChange={v => updateSettings({ notesCalendarLink: v })} />
+              </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{t.notesMathEnable}</p>

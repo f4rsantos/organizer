@@ -3,13 +3,13 @@ const SW = 12
 const R = (SIZE - SW) / 2
 const CIRC = 2 * Math.PI * R
 
-export function FocusWheel({ pct, isBreak, label, sublabel, centerOverlay = null }) {
+export function FocusWheel({ pct, isBreak, label, sublabel, centerOverlay = null, ...rest }) {
   const offset = CIRC * (1 - Math.min(1, Math.max(0, pct)))
   const color = isBreak ? '#f59e0b' : 'url(#focusGrad)'
 
   return (
     <div className="relative z-20 flex flex-col items-center gap-1">
-      <div className="relative" style={{ width: SIZE, height: SIZE }}>
+      <div className="relative" style={{ width: SIZE, height: SIZE, borderRadius: '50%' }} {...rest}>
         <svg width={SIZE} height={SIZE}>
           <defs>
             <linearGradient id="focusGrad" x1="0%" y1="0%" x2="100%" y2="100%">

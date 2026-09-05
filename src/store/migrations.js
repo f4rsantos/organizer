@@ -135,6 +135,8 @@ function normalizeEvent(event) {
     updatedAt: Number.isFinite(event.updatedAt) ? event.updatedAt : 0,
     googleEventId: typeof event.googleEventId === 'string' ? event.googleEventId : null,
     syncToGoogle: Boolean(event.syncToGoogle),
+    recurrence: normalizeRecurrence(event.recurrence),
+    importId: typeof event.importId === 'string' ? event.importId : null,
   }
 }
 
@@ -437,6 +439,8 @@ function normalizeSettings(settings) {
   if (typeof s.kanbanAutoAddToFirstColumn !== 'boolean') s.kanbanAutoAddToFirstColumn = false
   if (!['list', 'mosaic'].includes(s.notesViewMode)) s.notesViewMode = 'list'
   if (typeof s.notesMathEnabled !== 'boolean') s.notesMathEnabled = false
+  if (typeof s.notesCalendarLink !== 'boolean') s.notesCalendarLink = false
+  if (s.calendarNowColor != null && typeof s.calendarNowColor !== 'string') s.calendarNowColor = null
   if (typeof s.speechInputEnabled !== 'boolean') s.speechInputEnabled = false
   if (typeof s.notesMathSolveEquations !== 'boolean') s.notesMathSolveEquations = true
   if (typeof s.notesMathSelectionGraph !== 'boolean') s.notesMathSelectionGraph = true
@@ -491,6 +495,7 @@ export function normalizeState(state) {
   state.notes = (Array.isArray(state.notes) ? state.notes : []).map(normalizeNote).filter(Boolean)
   state.noteFolders = (Array.isArray(state.noteFolders) ? state.noteFolders : []).map(normalizeNoteFolder).filter(Boolean)
   state.habits = (Array.isArray(state.habits) ? state.habits : []).map(normalizeHabit).filter(Boolean)
+  if (!Array.isArray(state.scheduleImports)) state.scheduleImports = []
   if (!state.kanban || typeof state.kanban !== 'object') state.kanban = {}
   if (!state.grades || typeof state.grades !== 'object') state.grades = {}
 

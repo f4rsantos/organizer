@@ -1,5 +1,5 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
+import { getFirestore, doc, setDoc, getDoc, runTransaction } from 'firebase/firestore'
 import { getAuth, signInAnonymously } from 'firebase/auth'
 import {
   loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
@@ -12,6 +12,7 @@ import { readDevicePref, writeDevicePref } from './devicePrefs'
 export { loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig } from './firebaseConfig'
 
 const DOC_PATH = { collection: 'organizer', id: 'state' }
+export const REV_CONFLICT = 'sync-rev-conflict'
 const PERSONAL_AAD = aadForPersonalSlice(WHOLE_STATE)
 const COLLAB_RULES_PREF = 'collabRules'
 const COLLAB_GUIDE_SEEN_PREF = 'collabGuideSeen'
@@ -173,6 +174,31 @@ async function writeStateDoc(config, payload) {
   await runSyncOperation(app, () => setDoc(stateDoc(db), payload))
 }
 
+function readRev(data) {
+  const rev = Number(data?.rev)
+  return Number.isFinite(rev) ? rev : 0
+}
+
+// Compare-and-swap on `rev`. `baseRev` is the revision this device last saw;
+// if the remote moved past it another device wrote in between, so the caller
+// must re-pull instead of overwriting work it never read.
+async function writeStateDocGuarded(config, buildPayload, baseRev) {
+  const app = getApp(config)
+  const db = getFirestore(app)
+  return runSyncOperation(app, () => runTransaction(db, async tx => {
+    const ref = stateDoc(db)
+    const snap = await tx.get(ref)
+    const existing = snap.exists() ? snap.data() : null
+    const remoteRev = readRev(existing)
+    if (existing && baseRev !== null && remoteRev > baseRev) {
+      throw new Error(REV_CONFLICT)
+    }
+    const payload = await buildPayload(existing, remoteRev)
+    tx.set(ref, payload)
+    return payload.rev ?? null
+  }))
+}
+
 function describeStateDoc(data) {
   if (!data) {
     return { exists: false, encrypted: false, hasWraps: false, wraps: null, dekId: null, meta: null, encMode: null }
@@ -190,36 +216,40 @@ function describeStateDoc(data) {
   }
 }
 
-export async function pushToFirebase(config, state) {
+// Returns the `rev` written, so the caller can track what this device last
+// saw. Throws REV_CONFLICT when another device wrote since `baseRev`.
+export async function pushToFirebase(config, state, { baseRev = null } = {}) {
   const dek = getCachedDek()
   if (!dek) {
     assertKeyExpected()
     const legacyKey = loadKeyString()
     if (legacyKey) {
+      // Legacy whole-doc envelopes carry no rev, so there is nothing to guard on.
       await writeStateDoc(config, await encryptForSlot(state, legacyKey, PERSONAL_AAD))
-      return
+      return null
     }
-    const existing = await readStateDoc(config)
-    if (describeStateDoc(existing).encrypted) throw new Error('encryption-key-required')
-    await writeStateDoc(config, await buildContainer(state, null))
-    return
+    return writeStateDocGuarded(config, async existing => {
+      if (describeStateDoc(existing).encrypted) throw new Error('encryption-key-required')
+      return buildContainer(state, null)
+    }, baseRev)
   }
 
-  const existing = await readStateDoc(config)
-  const wraps = existing?.wraps ?? (hasAnySlot(loadLocalWraps()) ? loadLocalWraps() : null)
-  if (!hasAnySlot(wraps)) throw new Error('sync-wraps-missing')
+  return writeStateDocGuarded(config, async existing => {
+    const wraps = existing?.wraps ?? (hasAnySlot(loadLocalWraps()) ? loadLocalWraps() : null)
+    if (!hasAnySlot(wraps)) throw new Error('sync-wraps-missing')
 
-  const localDekId = loadDekId()
-  if (existing?.dekId && localDekId && existing.dekId !== localDekId) {
-    throw new Error('dek-id-mismatch')
-  }
+    const localDekId = loadDekId()
+    if (existing?.dekId && localDekId && existing.dekId !== localDekId) {
+      throw new Error('dek-id-mismatch')
+    }
 
-  await writeStateDoc(config, {
-    ...await buildContainer(state, dek),
-    encMode: MODE_SYNC,
-    wraps,
-    dekId: existing?.dekId ?? localDekId ?? null,
-  })
+    return {
+      ...await buildContainer(state, dek),
+      encMode: MODE_SYNC,
+      wraps,
+      dekId: existing?.dekId ?? localDekId ?? null,
+    }
+  }, baseRev)
 }
 
 async function buildContainer(state, dek) {
@@ -264,23 +294,26 @@ export async function inspectRemoteState(config) {
   return describeStateDoc(await readStateDoc(config))
 }
 
+// Resolves to `{ state, rev }` so the caller can guard its next push against
+// the exact revision it read.
 export async function pullFromFirebase(config) {
   const data = await readStateDoc(config)
   if (!data) return null
+  const rev = readRev(data)
 
   if (isContainer(data)) {
     if (!isEncryptedContainer(data)) {
-      return decodeSlices({ container: data, key: null, aadFor: aadForPersonalSlice })
+      return { state: await decodeSlices({ container: data, key: null, aadFor: aadForPersonalSlice }), rev }
     }
     const dek = getCachedDek()
     if (!dek) throw new Error('encryption-key-required')
-    return decodeSlices({ container: data, key: dek, aadFor: aadForPersonalSlice })
+    return { state: await decodeSlices({ container: data, key: dek, aadFor: aadForPersonalSlice }), rev }
   }
 
-  if (!isEnvelope(data)) return data
+  if (!isEnvelope(data)) return { state: data, rev }
   const keyString = loadKeyString()
   if (!keyString) throw new Error('encryption-key-required')
-  return decryptForSlot(data, keyString, PERSONAL_AAD)
+  return { state: await decryptForSlot(data, keyString, PERSONAL_AAD), rev }
 }
 
 export async function validateFirebaseConfig(config) {

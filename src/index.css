@@ -167,6 +167,14 @@
 }
 
 @layer utilities {
+    .swiping,
+    .swiping * {
+        scrollbar-color: transparent transparent;
+    }
+    .swiping::-webkit-scrollbar-thumb,
+    .swiping *::-webkit-scrollbar-thumb {
+        background-color: transparent;
+    }
     .pt-safe {
         padding-top: env(safe-area-inset-top);
     }
