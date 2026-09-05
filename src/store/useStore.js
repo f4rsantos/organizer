@@ -139,6 +139,8 @@ function buildInitialState() {
     lang: 'pt',
     onboardingDone: false,
     activeTab: null,
+    requestedNoteId: null,
+    scheduleImports: [],
     activeSemesterId: null,
     semesters: [],
     classes: [],
@@ -161,6 +163,9 @@ function buildInitialState() {
       kanbanSeparateByClass: false,
       notesViewMode: 'list',
       notesMathEnabled: false,
+      notesCalendarLink: false,
+      calendarNowColor: null,
+      weekStartsOn: 1,
       speechInputEnabled: false,
       notesMathSolveEquations: true,
       notesMathSelectionGraph: true,
@@ -222,7 +227,7 @@ function buildInitialState() {
 
 const initialState = buildInitialState()
 
-export const useStore = create((set, _get) => ({
+export const useStore = create((set, get) => ({
   ...initialState,
 
   // --- Theme ---
@@ -232,6 +237,57 @@ export const useStore = create((set, _get) => ({
   setLang: lang => set(s => persist({ ...s, lang })),
 
   setActiveTab: tab => set(s => ({ ...s, activeTab: tab })),
+  setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
+
+  // Find-or-create the note linked to a calendar event/occurrence. `key` is
+  // stable per occurrence so a recurring class gets one note per date rather
+  // than one shared across every week. Returns the note id either way.
+  openNoteForEvent: ({ key, title, seriesKey, seriesName }) => {
+    const existing = (get().notes ?? []).find(n => n.linkedEventKey === key)
+    if (existing) {
+      set(s => persist({ ...s, notes: (s.notes ?? []).map(n => (
+        n.id === existing.id && n.archived ? { ...n, archived: false, archivedAt: null } : n
+      )), activeTab: 'notes', requestedNoteId: existing.id }))
+      return existing.id
+    }
+
+    const id = nanoid()
+    const now = Date.now()
+    set(s => {
+      const order = (s.notes ?? []).reduce((m, n) => Math.min(m, n.order ?? 0), 0) - 1
+
+      // A repeating event produces one note per date, so group them under a
+      // folder named for the series. One-off events stay at the root.
+      let folders = s.noteFolders ?? []
+      let folderId = null
+      if (seriesKey) {
+        const found = folders.find(f => f.linkedSeriesKey === seriesKey)
+        if (found) {
+          folderId = found.id
+        } else {
+          const folderOrder = folders.reduce((m, f) => Math.min(m, f.order ?? 0), 0) - 1
+          folderId = nanoid()
+          folders = [...folders, {
+            id: folderId, name: seriesName || 'Event', parentId: null,
+            order: folderOrder, linkedSeriesKey: seriesKey,
+          }]
+        }
+      }
+
+      return persist({
+        ...s,
+        noteFolders: folders,
+        notes: [...(s.notes ?? []), {
+          id, title: title ?? '', kind: 'text', body: '', doc: null, strokes: [],
+          favorite: false, archived: false, archivedAt: null, folderId,
+          order, createdAt: now, updatedAt: now, linkedEventKey: key,
+        }],
+        activeTab: 'notes',
+        requestedNoteId: id,
+      })
+    })
+    return id
+  },
 
   wipeAppData: wipeFn => set(s => persist(wipeFn(s))),
   wipeCollabData: () => set(s => persist({
@@ -411,6 +467,14 @@ export const useStore = create((set, _get) => ({
     ...s, events: (s.events ?? []).map(e => e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e),
   })),
   deleteEvent: id => set(s => persist({ ...s, events: (s.events ?? []).filter(e => e.id !== id) })),
+  recordScheduleImport: entry => set(s => persist({
+    ...s, scheduleImports: [...(s.scheduleImports ?? []), entry],
+  })),
+  removeImportedEvents: importId => set(s => persist({
+    ...s,
+    events: (s.events ?? []).filter(e => e.importId !== importId),
+    scheduleImports: (s.scheduleImports ?? []).filter(i => i.id !== importId),
+  })),
   upsertGoogleEvent: event => set(s => {
     const events = s.events ?? []
     const idx = events.findIndex(e => e.googleEventId === event.googleEventId)
@@ -861,6 +925,8 @@ export const useStore = create((set, _get) => ({
       },
       collabRuntime: s.collabRuntime ?? { teams: {} },
       activeTab: s.activeTab,
+      requestedNoteId: s.requestedNoteId,
+      scheduleImports: s.scheduleImports,
       // `hydrated` is transient, so it is absent from the imported state.
       // Without carrying it over, persist() treats the import as pre-hydration
       // and never writes it to disk.
