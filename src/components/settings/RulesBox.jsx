@@ -86,7 +86,7 @@ export function RulesBox({ label, snippet = RULES_SNIPPET }) {
           }
         </Button>
       </div>
-      <pre className="text-[11px] leading-relaxed overflow-x-auto">{snippet}</pre>
+      <pre className="text-[11px] leading-relaxed overflow-x-auto max-w-full min-w-0" style={{ width: '100%' }}>{snippet}</pre>
     </div>
   )
 }
