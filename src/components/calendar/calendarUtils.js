@@ -6,3 +6,16 @@ export function itemsForDay(day, tasks, holidays, events) {
   const dayTasks = tasks.filter(tk => isWithinInterval(day, tk._range))
   return { dayHolidays, dayEvents, dayTasks }
 }
+
+// Stable identity for the note attached to a calendar entry. Recurring events
+// expand into per-date occurrences that share a templateId, so the date is part
+// of the key: "class every Monday" gets one note per Monday, not one overall.
+export function noteKeyForEvent(event, day) {
+  if (!event) return null
+  const base = event.isRecurringOccurrence ? (event.templateId ?? event.id) : event.id
+  if (!base) return null
+  const date = event.date
+    ?? event.startDate
+    ?? (day instanceof Date && !Number.isNaN(day) ? day.toISOString().slice(0, 10) : null)
+  return date ? `event:${base}:${date}` : `event:${base}`
+}
