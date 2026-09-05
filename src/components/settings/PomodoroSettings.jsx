@@ -56,28 +56,28 @@ export function PomodoroSettings() {
 
       <div className="space-y-2">
         <button type="button" onClick={() => toggle('showPeriodStats')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showPeriodStats ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
+          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
+          {pom.showPeriodStats ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
           <span>{t.pomodoroShowPeriodPomodoros}</span>
         </button>
 
         <button type="button" onClick={() => toggle('showOverlay')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showOverlay === true ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
+          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
+          {pom.showOverlay === true ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
           <span>{t.pomodoroShowOverlay}</span>
         </button>
 
         <button type="button" onClick={() => toggle('trackStats')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!pom.showPeriodStats}>
-          {pom.trackStats ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
-          {t.pomodoroTrackPeriodStats}
+          {pom.trackStats ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
+          <span>{t.pomodoroTrackPeriodStats}</span>
         </button>
 
         <button type="button" onClick={() => toggle('showAbandoned')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showAbandoned ? <CircleCheck className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4" />}
-          {t.pomodoroShowAbandoned}
+          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
+          {pom.showAbandoned ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
+          <span>{t.pomodoroShowAbandoned}</span>
         </button>
 
         <Button type="button" variant="outline" size="sm"
