@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { loadFirebaseConfig, pushToFirebase, pullFromFirebase } from '@/lib/firebase'
+import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
 import { stripTransient } from '@/lib/crypto'
 
@@ -23,6 +23,12 @@ export function useFirebaseSync() {
     remoteNewer: false,
     lastLocalUpdateAt: 0,
     lastPullAt: 0,
+    retryingConflict: false,
+    // Revision of the remote doc this device last read. Until a pull succeeds
+    // it is null, which blocks pushing: local state is whatever was on disk at
+    // boot, so pushing it would overwrite newer work from another device.
+    baseRev: null,
+    hasPulled: false,
   })
   const [status, setStatus] = useState('idle')
 
@@ -36,7 +42,13 @@ export function useFirebaseSync() {
     const pullStartTime = Date.now()
     try {
       setStatus('syncing')
-      const remote = await pullFromFirebase(config)
+      const pulled = await pullFromFirebase(config)
+      const remote = pulled?.state
+
+      // An empty remote is still a successful read: this device now knows the
+      // doc's revision (0) and may push its local state to seed it.
+      refs.current.baseRev = pulled?.rev ?? 0
+      refs.current.hasPulled = true
 
       if (refs.current.lastLocalUpdateAt > pullStartTime) {
         setStatus('ok')
@@ -67,14 +79,36 @@ export function useFirebaseSync() {
     const config = loadFirebaseConfig()
     if (!config) return
     if (refs.current.remoteNewer) return
+    // Never write before reading. The push scheduled by hydration would
+    // otherwise race the opening pull and clobber the remote with stale
+    // on-disk state.
+    if (!refs.current.hasPulled) return
     try {
       setStatus('syncing')
-      await pushToFirebase(config, getSerializableState())
+      const rev = await pushToFirebase(config, getSerializableState(), {
+        baseRev: refs.current.baseRev,
+      })
+      if (rev !== null) refs.current.baseRev = rev
       setStatus('ok')
     } catch (err) {
+      if (err?.message === REV_CONFLICT && !refs.current.retryingConflict) {
+        // Another device wrote while this one was editing. Re-read to adopt the
+        // new base revision, then push once more so the local edit is not
+        // stranded waiting on a future store change. Guarded against recursing
+        // if the remote keeps moving.
+        refs.current.retryingConflict = true
+        try {
+          setStatus('conflict')
+          await pull()
+          await push()
+        } finally {
+          refs.current.retryingConflict = false
+        }
+        return
+      }
       setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
     }
-  }, [hydrated])
+  }, [hydrated, pull])
 
   const pushNow = useCallback(() => {
     clearTimeout(refs.current.pushTimeout)

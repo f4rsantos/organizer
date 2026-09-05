@@ -47,6 +47,10 @@ describe('locked second device must not clobber the encrypted remote', () => {
       doc: () => ({}),
       getDoc: async () => ({ exists: () => true, data: () => encryptedRemote() }),
       setDoc: async (_ref, payload) => { written.push(payload) },
+      runTransaction: async (_db, run) => run({
+        get: async () => ({ exists: () => true, data: () => encryptedRemote() }),
+        set: (_ref, payload) => { written.push(payload) },
+      }),
     }))
 
     const { pushToFirebase } = await import('../lib/firebase.js')
