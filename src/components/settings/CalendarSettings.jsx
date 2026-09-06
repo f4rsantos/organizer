@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Circle, CircleCheck } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -53,11 +53,15 @@ function WeatherCitySetting({ t }) {
 
   return (
     <div className="space-y-1.5 border-t border-border/60 pt-4">
-      <div className="flex items-center gap-2">
-        <Checkbox checked={enabled} onCheckedChange={v => updateSettings({ weatherEnabled: v })} />
-        <Label>{t.weatherPreview}</Label>
-      </div>
+      <Label>{t.weatherPreview}</Label>
       <p className="text-xs text-muted-foreground">{t.weatherPreviewDesc}</p>
+      <button type="button" onClick={() => updateSettings({ weatherEnabled: !enabled })}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        {enabled
+          ? <CircleCheck className="h-4 w-4 text-primary" />
+          : <Circle className="h-4 w-4" />}
+        {enabled ? t.settingEnabled : t.settingDisabled}
+      </button>
       {enabled && (
         <>
           <Input value={input} onChange={e => setInput(e.target.value)}
