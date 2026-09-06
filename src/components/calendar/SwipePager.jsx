@@ -114,16 +114,12 @@ export function SwipePager({ pageKey, renderPage, onPrev, onNext, canPrev = true
       document.body.style.webkitUserSelect = 'none'
       window.getSelection?.()?.removeAllRanges?.()
 
-      viewport.setPointerCapture?.(e.pointerId)
-
       const captor = e.target
       if (captor?.hasPointerCapture?.(e.pointerId)) captor.releasePointerCapture?.(e.pointerId)
-      for (const el of new Set([captor, drag.target])) {
-        el?.dispatchEvent?.(new PointerEvent('pointercancel', { bubbles: true, pointerId: drag.pointerId }))
-      }
     }
 
     const onUp = e => {
+      if (e.isTrusted === false) return
       const drag = dragRef.current
       if (drag && e.pointerId === drag.pointerId) drag.dx = e.clientX - drag.x
       settle()
@@ -142,7 +138,7 @@ export function SwipePager({ pageKey, renderPage, onPrev, onNext, canPrev = true
     viewport.addEventListener('pointerup', onUp, true)
     viewport.addEventListener('pointercancel', onCancel, true)
     window.addEventListener('pointerup', onWindowUp, true)
-    window.addEventListener('pointercancel', onWindowUp, true)
+    window.addEventListener('pointercancel', onCancel, true)
     window.addEventListener('blur', onWindowBlur)
     return () => {
       viewport.removeEventListener('pointerdown', onDown, true)
@@ -150,7 +146,7 @@ export function SwipePager({ pageKey, renderPage, onPrev, onNext, canPrev = true
       viewport.removeEventListener('pointerup', onUp, true)
       viewport.removeEventListener('pointercancel', onCancel, true)
       window.removeEventListener('pointerup', onWindowUp, true)
-      window.removeEventListener('pointercancel', onWindowUp, true)
+      window.removeEventListener('pointercancel', onCancel, true)
       window.removeEventListener('blur', onWindowBlur)
       viewport.classList.remove('swiping')
       release()
@@ -158,7 +154,7 @@ export function SwipePager({ pageKey, renderPage, onPrev, onNext, canPrev = true
   }, [])
 
   return (
-    <div ref={viewportRef} className="flex-1 min-h-0 overflow-hidden" style={{ touchAction: 'pan-y' }}>
+    <div ref={viewportRef} className="flex-1 min-h-0 overflow-hidden swipe-viewport">
       <div ref={trackRef} className="flex h-full w-[300%]"
         style={{ transform: 'translate3d(-33.3333%, 0, 0)' }}>
         <div className="w-1/3 h-full flex flex-col" aria-hidden>{renderPage(-1)}</div>

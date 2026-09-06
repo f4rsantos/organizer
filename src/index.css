@@ -253,16 +253,24 @@
     .pb-tab-bar {
         height: calc(100% - 5rem - env(safe-area-inset-bottom));
     }
+    .pb-tab-bar-compact {
+        height: calc(100% - 3.25rem - env(safe-area-inset-bottom));
+    }
     @media (width >= 48rem) {
-        .pb-tab-bar {
+        .pb-tab-bar,
+        .pb-tab-bar-compact {
             height: 100%;
         }
     }
     .bottom-above-tab-bar {
         bottom: calc(6rem + env(safe-area-inset-bottom));
     }
+    .bottom-above-tab-bar-compact {
+        bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    }
     @media (width >= 48rem) {
-        .bottom-above-tab-bar {
+        .bottom-above-tab-bar,
+        .bottom-above-tab-bar-compact {
             bottom: 1.5rem;
         }
     }
