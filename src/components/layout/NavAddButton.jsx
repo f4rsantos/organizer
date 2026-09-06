@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
@@ -89,7 +89,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       </button>
     ) : (
       <button onClick={onClick}
-        className={cn('flex min-w-0 flex-1 flex-col items-center gap-1 py-3 text-xs text-primary')}>
+        className={cn('flex min-w-0 flex-1 flex-col items-center text-primary', showLabel ? 'gap-1 py-3 text-xs' : 'py-2')}>
         {showIcon && <Plus className="h-5 w-5" />}
         {showLabel && <span className="font-medium truncate max-w-full">{label}</span>}
       </button>
@@ -101,6 +101,19 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
     : 'right-0 bottom-full mb-2'
 
   const navbarShortcut = quickActionApps.quickActionNavbarShortcut
+
+  const pickerRef = useRef(null)
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    const onDown = e => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setPickerOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [pickerOpen])
 
   useEffect(() => {
     if (!quickActionAppEnabled || !navbarShortcut) return
@@ -117,12 +130,12 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   if (!navbarVisible) return null
 
   return (
-    <div className={cn('relative', (variant === 'bottom') && 'min-w-0 flex-1 flex')}>
+    <div ref={pickerRef} className={cn('relative', (variant === 'bottom') && 'min-w-0 flex-1 flex')}>
       {trigger}
 
       {pickerOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setPickerOpen(false)} />
+          <div className="fixed inset-0 z-40 cursor-pointer" onClick={() => setPickerOpen(false)} onPointerDown={() => setPickerOpen(false)} />
           <div className={cn('absolute z-50 min-w-40 rounded-xl border border-border bg-background p-1 shadow-lg', menuAnchor)}>
             {pickerActions.map(a => {
               const Icon = ACTION_META[a].icon

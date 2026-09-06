@@ -1,9 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Plus, Star, Pencil, ChevronDown, ChevronRight, ChevronLeft, FolderPlus, GripVertical, X, Check, Folder, FolderOpen, Archive, FileText, StickyNote, Search, LayoutGrid, List } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useEffect, useMemo, useState, useRef } from 'react'
+import { Plus, FolderPlus, Archive, FileText, StickyNote, Search } from 'lucide-react'
+import { DndContext, DragOverlay, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
@@ -12,149 +9,16 @@ import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/common/EmptyState'
 import { NoteEditor } from './NoteEditor'
 import { NoteGrid } from './NoteGrid'
-
-const EMPTY = []
-const ROOT = '__root__'
-
-function noteOrder(a, b) {
-  return (b.favorite - a.favorite) || ((a.order ?? 0) - (b.order ?? 0)) || (b.updatedAt - a.updatedAt)
-}
-function folderOrder(a, b) {
-  return (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)
-}
-
-function noteSnippet(body) {
-  if (!body) return ''
-  return body
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/[*_`~>]/g, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80)
-}
-
-function NoteRow({ n, selected, onSelect, t }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: n.id, data: { type: 'note' }, animateLayoutChanges: () => false,
-  })
-  const style = { transform: CSS.Transform.toString(transform), transition: isDragging ? 'none' : transition }
-  const snippet = noteSnippet(n.body)
-  const KindIcon = n.kind === 'canvas' ? Pencil : FileText
-  return (
-    <li ref={setNodeRef} style={style} className={cn(isDragging && 'opacity-40')}>
-      <div className={cn(
-        'group flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors cursor-pointer',
-        selected
-          ? 'bg-primary/15'
-          : 'hover:bg-accent/50'
-      )}>
-        <button className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground touch-none shrink-0 opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity mt-0.5"
-          {...attributes} {...listeners}>
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-        <button onClick={() => onSelect(n.id)} className="flex flex-1 min-w-0 flex-col gap-0.5">
-          <span className="flex w-full items-center gap-1.5">
-            <KindIcon className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-            <span className="truncate flex-1 font-medium">{n.title || t.notesNew}</span>
-            <Star className={cn(
-              'h-3 w-3 shrink-0 transition-colors',
-              n.favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'
-            )} />
-          </span>
-          <span className="flex w-full items-center gap-1.5 pl-[18px]">
-            {snippet && <span className="truncate text-xs text-muted-foreground/70 flex-1">{snippet}</span>}
-            <span className="text-[10px] text-muted-foreground/50 shrink-0 whitespace-nowrap">{formatDistanceToNow(n.updatedAt, { addSuffix: true })}</span>
-          </span>
-        </button>
-      </div>
-    </li>
-  )
-}
-
-function FolderNode({ folder, depth, tree, notesByFolder, selectedId, onSelect, onRename, onDelete, t }) {
-  const [open, setOpen] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(folder.name)
-  const { setNodeRef, isOver } = useDroppable({ id: folder.id, data: { type: 'folder' } })
-  const {
-    attributes: sortableAttributes,
-    listeners: sortableListeners,
-    setNodeRef: setSortableNodeRef,
-    transform: sortableTransform,
-    transition: sortableTransition,
-    isDragging: sortableIsDragging,
-  } = useSortable({ id: folder.id, data: { type: 'folder' }, animateLayoutChanges: () => false })
-  const style = { transform: CSS.Transform.toString(sortableTransform), transition: sortableIsDragging ? 'none' : sortableTransition }
-  const saveName = () => { onRename(folder.id, name.trim() || folder.name); setEditing(false) }
-  const childFolders = (tree[folder.id] ?? []).sort(folderOrder)
-  const notes = (notesByFolder[folder.id] ?? []).sort(noteOrder)
-  const FolderIcon = open ? FolderOpen : Folder
-
-  return (
-    <div ref={setSortableNodeRef} style={style} className={cn(sortableIsDragging && 'opacity-40')}>
-      <div ref={setNodeRef} className={cn('rounded-lg', isOver && 'ring-2 ring-primary/40 bg-primary/5')}>
-        <div className="group flex items-center gap-1 px-1 py-1.5 text-xs text-muted-foreground" style={{ paddingLeft: depth * 16 }}>
-          <button className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"
-            {...sortableAttributes} {...sortableListeners}>
-            <GripVertical className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => setOpen(v => !v)} className="shrink-0 hover:text-foreground transition-colors">
-            {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-          </button>
-          <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-          {editing ? (
-            <>
-              <Input value={name} autoFocus className="h-6 flex-1 text-xs"
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditing(false) }} />
-              <button onClick={saveName} className="hover:text-foreground"><Check className="h-3.5 w-3.5" /></button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setOpen(v => !v)} className="flex-1 truncate text-left font-medium hover:text-foreground transition-colors"
-                onDoubleClick={() => { setName(folder.name); setEditing(true) }}>{folder.name}</button>
-              <button onClick={() => { setName(folder.name); setEditing(true) }} title={t.notesRenameFolder}
-                className="text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"><Pencil className="h-3 w-3" /></button>
-              <button onClick={() => onDelete(folder.id)} title={t.notesDeleteFolder}
-                className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
-            </>
-          )}
-        </div>
-        {open && (
-          <div className="relative" style={{ paddingLeft: (depth + 1) * 16 }}>
-            {(childFolders.length > 0 || notes.length > 0) && (
-              <div className="absolute left-0 top-0 bottom-0 border-l border-border/40" style={{ marginLeft: depth * 16 + 20 }} />
-            )}
-            {childFolders.map(cf => (
-              <FolderNode key={cf.id} folder={cf} depth={depth + 1} tree={tree} notesByFolder={notesByFolder}
-                selectedId={selectedId} onSelect={onSelect} onRename={onRename} onDelete={onDelete} t={t} />
-            ))}
-            <SortableContext items={notes.map(n => n.id)} strategy={verticalListSortingStrategy}>
-              <ul className="space-y-0.5 min-h-6">
-                {notes.map(n => <NoteRow key={n.id} n={n} selected={selectedId === n.id} onSelect={onSelect} t={t} />)}
-                {!notes.length && !childFolders.length && <li className="px-2 py-1 text-[10px] text-muted-foreground/40 italic">{t.notesFilterEmpty}</li>}
-              </ul>
-            </SortableContext>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function RootDropZone({ notes, selectedId, onSelect, t }) {
-  const { setNodeRef, isOver } = useDroppable({ id: ROOT, data: { type: 'folder' } })
-  return (
-    <div ref={setNodeRef} className={cn('rounded-lg', isOver && 'ring-2 ring-primary/40 bg-primary/5')}>
-      <SortableContext items={notes.map(n => n.id)} strategy={verticalListSortingStrategy}>
-        <ul className="space-y-0.5 min-h-6">
-          {notes.map(n => <NoteRow key={n.id} n={n} selected={selectedId === n.id} onSelect={onSelect} t={t} />)}
-        </ul>
-      </SortableContext>
-    </div>
-  )
-}
+import { DragOverlayItem } from './DragOverlayItem'
+import {
+  EMPTY,
+  ROOT,
+  noteOrder,
+  sortMosaicItems,
+  computeReorderTarget,
+  reorderArray,
+  resolveFolderHoverAction,
+} from './notesUtils'
 
 export function NotesTab() {
   const lang = useStore(s => s.lang ?? 'en')
@@ -164,18 +28,23 @@ export function NotesTab() {
   const addNote = useStore(s => s.addNote)
   const addNoteFolder = useStore(s => s.addNoteFolder)
   const reorderNotes = useStore(s => s.reorderNotes)
+  const reorderNoteFolders = useStore(s => s.reorderNoteFolders)
   const moveNoteToFolder = useStore(s => s.moveNoteToFolder)
   const moveNoteFolder = useStore(s => s.moveNoteFolder)
   const renameNoteFolder = useStore(s => s.renameNoteFolder)
   const deleteNoteFolder = useStore(s => s.deleteNoteFolder)
-  const updateSettings = useStore(s => s.updateSettings)
-  const viewMode = useStore(s => s.settings?.notesViewMode ?? 'list')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [mosaicFolderId, setMosaicFolderId] = useState(null)
+  const [activeDrag, setActiveDrag] = useState(null)
+  const [dragHover, setDragHover] = useState(null)
+  const [navDirection, setNavDirection] = useState(null)
+  const hoverTargetRef = useRef(null)
+  const lastPointerXRef = useRef(null)
+  const dragDirectionRef = useRef(null)
+  const folderEntryRef = useRef({})
 
-  // A calendar event can ask for its linked note; consume the request once so
-  // reopening the tab later doesn't force the same note back open.
   const requestedNoteId = useStore(s => s.requestedNoteId)
   const setRequestedNote = useStore(s => s.setRequestedNote)
   useEffect(() => {
@@ -185,8 +54,8 @@ export function NotesTab() {
   }, [requestedNoteId, setRequestedNote])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   )
 
   const filtered = useMemo(() => {
@@ -197,83 +66,286 @@ export function NotesTab() {
   }, [notes, query, showArchived])
 
   const archivedCount = useMemo(() => notes.filter(n => n.archived).length, [notes])
-
-  const notesByFolder = useMemo(() => {
-    const map = {}
-    for (const n of filtered) (map[n.folderId ?? ROOT] ??= []).push(n)
-    return map
-  }, [filtered])
-
-  const tree = useMemo(() => {
-    const map = {}
-    for (const f of folders) (map[f.parentId ?? ROOT] ??= []).push(f)
-    return map
-  }, [folders])
-
   const selected = notes.find(n => n.id === selectedId) ?? null
 
   const create = kind => {
     const id = crypto.randomUUID?.() ?? String(Date.now())
-    addNote({ id, kind })
+    const folderId = !query.trim() ? mosaicFolderId : null
+    addNote({ id, kind, folderId })
+    setNavDirection('next')
     setSelectedId(id)
   }
 
-  const folderIdOf = id => (id === ROOT ? null : id)
-
-  const onDragEnd = ({ active, over }) => {
-    if (!over) return
-    const type = active.data.current?.type
-    const overType = over.data.current?.type
-    const targetFolder = overType === 'folder' ? folderIdOf(over.id)
-      : (type === 'note' ? (notes.find(n => n.id === over.id)?.folderId ?? null) : null)
-
-    if (type === 'folder') {
-      if (over.id === active.id) return
-      const parent = overType === 'folder' ? folderIdOf(over.id) : (folders.find(f => f.id === over.id)?.parentId ?? null)
-      moveNoteFolder(active.id, parent)
-      return
+  const deleteMosaicFolder = id => {
+    if (mosaicFolderId === id) {
+      setMosaicFolderId(folders.find(f => f.id === id)?.parentId ?? null)
     }
-    const sourceFolder = notes.find(n => n.id === active.id)?.folderId ?? null
-    if (targetFolder !== sourceFolder) {
-      moveNoteToFolder(active.id, targetFolder)
-      return
+    deleteNoteFolder(id)
+  }
+
+  const mosaicCollision = args => {
+    const { pointerCoordinates, droppableContainers, droppableRects, collisionRect, active } = args
+    if (!pointerCoordinates) {
+      hoverTargetRef.current = null
+      const sortableContainers = droppableContainers.filter(c => !String(c.id).startsWith('__'))
+      return closestCenter({ ...args, droppableContainers: sortableContainers })
     }
-    if (active.id !== over.id) {
-      const ids = filtered.filter(n => (n.folderId ?? null) === sourceFolder).sort(noteOrder).map(n => n.id)
-      const from = ids.indexOf(active.id)
-      const to = ids.indexOf(over.id)
-      if (from !== -1 && to !== -1) {
-        const next = [...ids]
-        next.splice(to, 0, next.splice(from, 1)[0])
-        reorderNotes(next)
+
+    const px = pointerCoordinates.x
+    const py = pointerCoordinates.y
+    const cx = collisionRect ? collisionRect.left + collisionRect.width / 2 : px
+    const lastX = lastPointerXRef.current
+    if (lastX !== null) {
+      const dx = px - lastX
+      if (dx < -1) dragDirectionRef.current = 'left'
+      else if (dx > 1) dragDirectionRef.current = 'right'
+    }
+    lastPointerXRef.current = px
+    const isNote = active.data?.current?.type === 'note'
+
+    for (const container of droppableContainers) {
+      if (container.data?.current?.type === 'breadcrumb_drop') {
+        const rect = droppableRects.get(container.id)
+        if (rect && px >= rect.left && px <= rect.right && py >= rect.top && py <= rect.bottom) {
+          hoverTargetRef.current = null
+          return [{ id: container.id, data: container.data }]
+        }
+      }
+    }
+
+    const sortableContainers = droppableContainers.filter(c => !String(c.id).startsWith('__'))
+    const closest = closestCenter({ ...args, droppableContainers: sortableContainers })
+    if (!closest || !closest.length) {
+      hoverTargetRef.current = null
+      return []
+    }
+
+    const overId = closest[0].id
+    if (overId === active.id) {
+      hoverTargetRef.current = null
+      return closest
+    }
+
+    if (isNote) {
+      const targetFolder = folders.find(f => f.id === overId)
+      if (targetFolder) {
+        const rect = droppableRects.get(overId)
+        if (rect) {
+          const action = resolveFolderHoverAction({
+            folderId: overId,
+            rect,
+            px,
+            cx,
+            lastX,
+            dragDirection: dragDirectionRef.current,
+            folderEntryMap: folderEntryRef.current,
+          })
+          hoverTargetRef.current = { folderId: overId, action }
+          return [{
+            id: overId,
+            data: {
+              current: {
+                ...(closest[0].data?.current || {}),
+                dropAction: action,
+                ...(action === 'move_inside' ? { folderId: overId } : {}),
+              },
+            },
+          }]
+        }
+      }
+    }
+
+    for (const key of Object.keys(folderEntryRef.current)) {
+      if (key !== overId) delete folderEntryRef.current[key]
+    }
+
+    hoverTargetRef.current = null
+    return closest
+  }
+
+  const onDragStart = ({ active }) => {
+    lastPointerXRef.current = null
+    dragDirectionRef.current = null
+    folderEntryRef.current = {}
+    const data = active.data.current ?? {}
+    const note = notes.find(n => n.id === active.id)
+    const folder = folders.find(f => f.id === active.id)
+    const rect = active.rect.current?.initial
+    const width = rect?.width ? Math.round(rect.width) : null
+    const height = rect?.height ? Math.round(rect.height) : null
+
+    setActiveDrag({
+      id: active.id,
+      type: data.type || (folder ? 'folder' : 'note'),
+      note: data.note || note,
+      folder: data.folder || folder,
+      width,
+      height,
+    })
+  }
+
+  const onDragMove = () => {
+    const target = hoverTargetRef.current
+    if (target?.action === 'move_inside') {
+      if (dragHover?.folderId !== target.folderId) {
+        setDragHover({ folderId: target.folderId, action: 'move_inside' })
+      }
+    } else {
+      if (dragHover) {
+        setDragHover(null)
       }
     }
   }
 
-  const rootFolders = (tree[ROOT] ?? []).sort(folderOrder)
-  const rootNotes = (notesByFolder[ROOT] ?? []).sort(noteOrder)
-  const mosaic = viewMode === 'mosaic'
-  const mosaicNotes = useMemo(() => filtered.slice().sort(noteOrder), [filtered])
+  const onDragOver = ({ active, over }) => {
+    if (!over) {
+      if (dragHover) setDragHover(null)
+      return
+    }
+    const target = hoverTargetRef.current
+    if (target?.action === 'move_inside') {
+      if (dragHover?.folderId !== target.folderId) {
+        setDragHover({ folderId: target.folderId, action: 'move_inside' })
+      }
+    } else {
+      if (dragHover) setDragHover(null)
+    }
+  }
+
+  const onDragCancel = () => {
+    setActiveDrag(null)
+    setDragHover(null)
+    hoverTargetRef.current = null
+    lastPointerXRef.current = null
+    dragDirectionRef.current = null
+    folderEntryRef.current = {}
+  }
+
+  const onDragEnd = ({ active, over }) => {
+    const target = hoverTargetRef.current
+    const currentHover = dragHover
+    setActiveDrag(null)
+    setDragHover(null)
+    hoverTargetRef.current = null
+    lastPointerXRef.current = null
+    dragDirectionRef.current = null
+    folderEntryRef.current = {}
+
+    if (!over || over.id === active.id) return
+    const activeType = active.data?.current?.type
+    const overData = over.data?.current ?? {}
+    const overId = String(over.id)
+
+    if (overData.type === 'breadcrumb_drop' || overId.startsWith('__crumb__') || overId.startsWith('__move_out__')) {
+      const targetFolderId = overData.folderId ?? null
+      if (activeType === 'folder') {
+        moveNoteFolder(active.id, targetFolderId)
+      } else {
+        moveNoteToFolder(active.id, targetFolderId)
+      }
+      return
+    }
+
+    const isTargetFolder = folders.some(f => f.id === over.id)
+    const isMoveInside = target?.action === 'move_inside' || currentHover?.action === 'move_inside'
+
+    if (activeType === 'note' && isTargetFolder && isMoveInside) {
+      const targetFolderId = target?.folderId ?? currentHover?.folderId ?? over.id
+      if (targetFolderId) {
+        moveNoteToFolder(active.id, targetFolderId)
+      }
+      return
+    }
+
+    const currentFolderNotes = mosaicNotes
+    const currentChildFolders = folders.filter(f => (f.parentId ?? null) === mosaicFolderId)
+    const combined = sortMosaicItems(currentChildFolders, currentFolderNotes)
+    const itemIds = combined.map(item => item.id)
+    const { from, to } = computeReorderTarget(itemIds, active.id, over.id, target?.action)
+
+    if (from !== -1 && to !== -1 && from !== to) {
+      const next = reorderArray(itemIds, from, to)
+      reorderNotes(next)
+      reorderNoteFolders(next)
+    }
+  }
+
+  const searching = Boolean(query.trim())
+  const currentFolder = mosaicFolderId
+    ? (folders.find(f => f.id === mosaicFolderId) ? mosaicFolderId : null)
+    : null
+  const mosaicNotes = useMemo(() => {
+    const sorted = filtered.slice().sort(noteOrder)
+    if (searching) return sorted
+    return sorted.filter(n => (n.folderId ?? null) === currentFolder)
+  }, [filtered, searching, currentFolder])
+  const noteCountFor = useMemo(() => {
+    const counts = new Map()
+    for (const n of filtered) {
+      const key = n.folderId ?? ROOT
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return id => counts.get(id) ?? 0
+  }, [filtered])
+
+  const visibleNotes = useMemo(() => {
+    if (searching) return filtered
+    return mosaicNotes
+  }, [searching, filtered, mosaicNotes])
+
+  const activeNoteList = visibleNotes.length ? visibleNotes : filtered
+  const currentIndex = activeNoteList.findIndex(n => n.id === selectedId)
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex >= 0 && currentIndex < activeNoteList.length - 1
+  const prevNote = hasPrev ? activeNoteList[currentIndex - 1] : null
+  const nextNote = hasNext ? activeNoteList[currentIndex + 1] : null
+
+  const handlePrev = () => {
+    if (!prevNote) return
+    setNavDirection('prev')
+    setSelectedId(prevNote.id)
+  }
+
+  const handleNext = () => {
+    if (!nextNote) return
+    setNavDirection('next')
+    setSelectedId(nextNote.id)
+  }
+
+  const handleSelectNote = id => {
+    if (id === selectedId) return
+    const newIdx = activeNoteList.findIndex(n => n.id === id)
+    if (newIdx !== -1 && currentIndex !== -1) {
+      setNavDirection(newIdx > currentIndex ? 'next' : 'prev')
+    } else {
+      setNavDirection(null)
+    }
+    setSelectedId(id)
+  }
+
+  const selectedFolder = selected?.folderId
+    ? folders.find(f => f.id === selected.folderId)?.name
+    : null
+
+  const dropOverlayConfig = {
+    duration: 280,
+    easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+  }
+
+  const activeItemData = activeDrag?.note || activeDrag?.folder
 
   return (
-    <div className="flex flex-col md:flex-row h-tab-pane">
-      <aside className={cn('w-full shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex-col',
-        mosaic ? 'md:w-auto md:flex-1' : 'md:w-72',
-        selected ? (mosaic ? 'hidden' : 'hidden md:flex') : 'flex')}>
+    <div className="relative flex flex-col md:flex-row h-tab-pane">
+      <aside className={cn('w-full shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex flex-col md:w-auto md:flex-1',
+        selected ? 'hidden' : 'flex')}>
         <div className="p-3 flex items-center gap-2 shrink-0">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
             <Input value={query} placeholder={t.notesSearch} className="h-8 pl-8" onChange={e => setQuery(e.target.value)} />
           </div>
-          <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" title={t.notesNewFolder}
-            onClick={() => addNoteFolder(t.notesNewFolder)}>
+          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" title={t.notesNewFolder}
+            onClick={() => addNoteFolder(t.notesNewFolder, !searching ? mosaicFolderId : null)}>
             <FolderPlus className="h-4 w-4" />
-          </Button>
-          <Button size="icon" className="h-8 w-8 shrink-0" onClick={() => create('text')}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t.notesCanvas} onClick={() => create('canvas')}>
-            <Pencil className="h-4 w-4" />
           </Button>
         </div>
         <div className="px-3 pb-2 shrink-0 flex items-center gap-2">
@@ -284,37 +356,31 @@ export function NotesTab() {
             {t.notesArchived}
             {archivedCount > 0 && <span className="text-[10px] opacity-70">({archivedCount})</span>}
           </button>
-          <button title={viewMode === 'list' ? t.notesViewMosaic : t.notesViewList}
-            onClick={() => updateSettings({ notesViewMode: viewMode === 'list' ? 'mosaic' : 'list' })}
-            className="ml-auto flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary">
-            {viewMode === 'list' ? <LayoutGrid className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
-          </button>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 space-y-1">
           {showArchived ? (
-            <ul className="space-y-0.5 min-h-6">
-              {filtered.slice().sort(noteOrder).map(n => (
-                <NoteRow key={n.id} n={n} selected={selectedId === n.id} onSelect={setSelectedId} t={t} />
-              ))}
-              {!filtered.length && (
-                <li className="py-8">
+            <div>
+              {filtered.length > 0 ? (
+                <NoteGrid notes={filtered.slice().sort(noteOrder)} folders={EMPTY} selectedId={selectedId} onSelect={handleSelectNote} t={t} flat={true} />
+              ) : (
+                <div className="py-8">
                   <EmptyState icon={Archive} title={t.notesArchivedEmpty} />
-                </li>
+                </div>
               )}
-            </ul>
+            </div>
           ) : (
             <>
-              {mosaic ? (
-                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={setSelectedId} t={t} />
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-                  <RootDropZone notes={rootNotes} selectedId={selectedId} onSelect={setSelectedId} t={t} />
-                  {rootFolders.map(f => (
-                    <FolderNode key={f.id} folder={f} depth={0} tree={tree} notesByFolder={notesByFolder}
-                      selectedId={selectedId} onSelect={setSelectedId} onRename={renameNoteFolder} onDelete={deleteNoteFolder} t={t} />
-                  ))}
-                </DndContext>
-              )}
+              <DndContext sensors={sensors} collisionDetection={mosaicCollision} onDragStart={onDragStart} onDragMove={onDragMove} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
+                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} t={t}
+                  currentFolderId={mosaicFolderId} onOpenFolder={setMosaicFolderId}
+                  flat={searching} noteCountFor={noteCountFor} onRenameFolder={renameNoteFolder}
+                  onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} />
+                <DragOverlay dropAnimation={dropOverlayConfig}>
+                  {activeDrag ? (
+                    <DragOverlayItem item={activeItemData} count={noteCountFor(activeDrag.id)} width={activeDrag?.width} height={activeDrag?.height} t={t} />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
               {!filtered.length && !folders.length && (
                 <div className="py-8">
                   <EmptyState icon={FileText} title={t.notesEmptyTitle} description={t.notesEmptyDesc} />
@@ -327,17 +393,29 @@ export function NotesTab() {
           )}
         </div>
       </aside>
-      <main className={cn('flex-1 min-h-0 p-4 overflow-y-auto', selected ? 'flex flex-col' : mosaic ? 'hidden' : 'hidden md:block')}>
+      <main className={cn('flex-1 min-h-0 p-4 overflow-y-auto', selected ? 'flex flex-col' : 'hidden')}>
         {selected ? (
-          <>
-            <Button variant="ghost" size="sm" className={cn('self-start mb-2 gap-1 -ml-2', !mosaic && 'md:hidden')}
-              onClick={() => setSelectedId(null)}>
-              <ChevronLeft className="h-4 w-4" /> {t.notesBack}
-            </Button>
-            <div className="flex-1 min-h-0">
-              <NoteEditor key={selected.id} note={selected} onDeleted={() => setSelectedId(null)} />
-            </div>
-          </>
+          <div
+            key={selected.id}
+            className={cn(
+              'flex-1 min-h-0 flex flex-col',
+              navDirection === 'next' && 'animate-note-next',
+              navDirection === 'prev' && 'animate-note-prev',
+            )}
+          >
+            <NoteEditor
+              note={selected}
+              onDeleted={() => setSelectedId(null)}
+              onPrev={handlePrev}
+              onNext={handleNext}
+              hasPrev={hasPrev}
+              hasNext={hasNext}
+              currentIndex={currentIndex}
+              totalCount={activeNoteList.length}
+              folderName={selectedFolder}
+              onBack={() => setSelectedId(null)}
+            />
+          </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center gap-3">
             <StickyNote className="h-10 w-10 text-muted-foreground/30" />
@@ -345,6 +423,13 @@ export function NotesTab() {
           </div>
         )}
       </main>
+
+      {!selected && (
+        <Button size="icon" className="absolute bottom-6 right-6 z-20 h-12 w-12 rounded-full shadow-lg"
+          title={t.notesNew} onClick={() => create('text')}>
+          <Plus className="h-5 w-5" />
+        </Button>
+      )}
     </div>
   )
 }

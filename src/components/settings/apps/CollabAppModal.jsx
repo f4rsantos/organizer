@@ -25,15 +25,27 @@ export function CollabAppModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t.collabApp}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 max-h-[85vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-2">
-            <CollabConnectButton firebaseConnected={firebaseConnected} collabEnabled={collabEnabled} />
+        <div className="max-h-[85vh] overflow-y-auto">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="md:w-[320px] shrink-0 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <CollabConnectButton firebaseConnected={firebaseConnected} collabEnabled={collabEnabled} />
+              </div>
+              {collabEnabled && <CollabPanel section="setup" />}
+            </div>
+            {collabEnabled && (
+              <>
+                <div className="hidden md:block w-px bg-border self-stretch" />
+                <div className="flex-1 min-w-0">
+                  <CollabPanel section="teams" />
+                </div>
+              </>
+            )}
           </div>
-          {collabEnabled && <CollabPanel />}
           <CollabGuideModal open={showGuide} onOpenChange={o => { if (!o) dismissGuide() }} onEnable={dismissGuide} confirmLabel={t.collabGuideGotIt} />
         </div>
       </DialogContent>

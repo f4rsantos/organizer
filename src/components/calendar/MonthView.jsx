@@ -3,6 +3,8 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { itemsForDay } from './calendarUtils'
 import { readableTextColor } from '@/lib/calendar/contrast'
+import { useWeatherForecast } from '@/hooks/useWeatherForecast'
+import { WeatherIcon } from './WeatherIcon'
 
 const MAX_CHIPS = 3
 
@@ -19,11 +21,12 @@ function Chip({ color, children, onClick }) {
   )
 }
 
-function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen }) {
+function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen, weatherByDate }) {
   const isToday = isSameDay(day, new Date())
   const { dayHolidays, dayEvents, dayTasks } = itemsForDay(day, tasks, holidays, events)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const weather = weatherByDate?.get(format(day, 'yyyy-MM-dd'))
 
   const chips = [
     ...dayHolidays.map(h => ({ key: 'h' + h.id, color: '#d97706', label: h.name })),
@@ -40,9 +43,12 @@ function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen
     <div role="button" tabIndex={0} onClick={() => onOpen(day)}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(day) } }}
       className={`min-h-[76px] h-full text-left px-0.5 pt-1 pb-0.5 border-t border-border/25 flex flex-col gap-0.5 overflow-hidden transition-colors hover:bg-accent/30 cursor-pointer ${!isCurrentMonth ? 'opacity-35' : ''}`}>
-      <span className={`text-[11px] font-medium self-center leading-none mb-0.5 w-[22px] h-[22px] flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
-        {format(day, 'd')}
-      </span>
+      <div className="flex items-center justify-center gap-1 mb-0.5">
+        <span className={`text-[11px] font-medium leading-none w-[22px] h-[22px] flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
+          {format(day, 'd')}
+        </span>
+        {weather && <WeatherIcon code={weather.code} className="h-3 w-3 text-muted-foreground" />}
+      </div>
       {shown.map(c => <Chip key={c.key} color={c.color}>{c.label}</Chip>)}
       {overflow > 0 && (
         <span className="text-[9px] leading-tight px-1 text-muted-foreground">+{overflow} {t.more}</span>
@@ -55,6 +61,8 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
+  const forecast = useWeatherForecast()
+  const weatherByDate = forecast ? new Map(forecast.map(d => [d.date, d])) : null
 
   const monthStart = startOfMonth(month)
   const gridStart = startOfWeek(monthStart, { weekStartsOn })
@@ -81,7 +89,8 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
       <div className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
         {visibleDays.map(day => (
           <DayCell key={day.toISOString()} day={day} isCurrentMonth={isSameMonth(day, month)}
-            tasks={tasks} holidays={holidays} events={events} classes={classes} onOpen={onOpenDay} />
+            tasks={tasks} holidays={holidays} events={events} classes={classes} onOpen={onOpenDay}
+            weatherByDate={weatherByDate} />
         ))}
       </div>
     </div>

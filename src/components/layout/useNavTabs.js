@@ -59,14 +59,19 @@ export function useNavTabs() {
     && !(hideGrades && id === 'grades')
   const visible = order.filter(isVisible)
 
-  const folders = folderDefs.map(f => ({
-    id: f.id,
-    label: f.label,
-    iconKey: f.icon ?? 'folder',
-    icon: FOLDER_ICONS[f.icon] ?? Folder,
-    isFolder: true,
-    items: (f.children ?? []).filter(isVisible).map(build),
-  })).filter(f => f.items.length > 0)
+  const folders = folderDefs.map(f => {
+    const childrenSet = new Set(f.children ?? [])
+    const orderedChildren = order.filter(id => childrenSet.has(id))
+    const remainingChildren = (f.children ?? []).filter(id => !order.includes(id))
+    return {
+      id: f.id,
+      label: f.label,
+      iconKey: f.icon ?? 'folder',
+      icon: FOLDER_ICONS[f.icon] ?? Folder,
+      isFolder: true,
+      items: [...orderedChildren, ...remainingChildren].filter(isVisible).map(build),
+    }
+  }).filter(f => f.items.length > 0)
 
   return {
     primary: visible.filter(id => !inFolder.has(id)).map(build),

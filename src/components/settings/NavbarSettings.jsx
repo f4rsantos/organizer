@@ -134,7 +134,14 @@ export function NavbarSettings() {
 
   const onDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return
-    save({ order: arrayMove(order, order.indexOf(active.id), order.indexOf(over.id)) })
+    const newOrder = arrayMove(order, order.indexOf(active.id), order.indexOf(over.id))
+    save({
+      order: newOrder,
+      folders: folders.map(f => ({
+        ...f,
+        children: [...(f.children ?? [])].sort((a, b) => newOrder.indexOf(a) - newOrder.indexOf(b)),
+      })),
+    })
   }
 
   const cycleVisibility = id => {
@@ -152,9 +159,10 @@ export function NavbarSettings() {
   const assignFolder = (tabId, fid) => save({
     folders: folders.map(f => ({
       ...f,
-      children: f.id === fid
+      children: (f.id === fid
         ? [...new Set([...(f.children ?? []), tabId])]
-        : (f.children ?? []).filter(c => c !== tabId),
+        : (f.children ?? []).filter(c => c !== tabId)
+      ).sort((a, b) => order.indexOf(a) - order.indexOf(b)),
     })),
   })
   const renameTab = (id, name) => save({ customNames: { ...(navbar.customNames ?? {}), [id]: name } })

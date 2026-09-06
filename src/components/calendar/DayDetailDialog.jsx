@@ -1,3 +1,4 @@
+import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Plus, Share2, StickyNote } from 'lucide-react'
@@ -5,6 +6,8 @@ import { noteKeyForEvent } from './calendarUtils'
 import { readableTextColor } from '@/lib/calendar/contrast'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
+import { useWeatherForecast } from '@/hooks/useWeatherForecast'
+import { WeatherIcon } from './WeatherIcon'
 
 export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, events, classes, onAddEvent, onEditEvent, onEditTask, onShareEvent, canShare = false }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -15,6 +18,8 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
   const dialogBg = typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? '#1a1a1a' : '#ffffff'
   const notes = useStore(s => s.notes)
   const openNoteForEvent = useStore(s => s.openNoteForEvent)
+  const forecast = useWeatherForecast()
+  const dayWeather = day ? forecast?.find(d => d.date === format(day, 'yyyy-MM-dd')) : null
   if (!day) return null
 
   const openNote = event => {
@@ -42,7 +47,10 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="capitalize">{t.weekdays[(day.getDay() + 6) % 7]}, {day.getDate()} {t.months[day.getMonth()]} {day.getFullYear()}</DialogTitle>
+          <DialogTitle className="capitalize flex items-center gap-2">
+            <span>{t.weekdays[(day.getDay() + 6) % 7]}, {day.getDate()} {t.months[day.getMonth()]} {day.getFullYear()}</span>
+            {dayWeather && <WeatherIcon code={dayWeather.code} className="h-4 w-4 text-muted-foreground shrink-0" />}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
           {holidays.map(h => (

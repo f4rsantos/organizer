@@ -14,6 +14,7 @@ import { useMergedKanbanBoard } from '@/hooks/useMergedKanbanBoard'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { useCompactActions } from '@/hooks/useCompactActions'
 import { PRIORITY_COLORS } from '@/lib/constants'
+import { formatDueDate } from '@/lib/dueDate'
 import { getMemberColor } from '@/lib/collab/teamColors'
 import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
 
@@ -233,10 +234,10 @@ export function TaskItem({ task }) {
               <span className={cn('inline-block h-2 w-2 rounded-full mt-1 shrink-0', PRIORITY_COLORS[task.priority])} />
             )}
             {task.dueDate && (
-              <Badge variant="secondary" className="text-xs h-5">{task.dueDate}</Badge>
+              <Badge variant="secondary" className="text-xs h-5">{formatDueDate(task.dueDate)}</Badge>
             )}
             {task.weekStart !== task.weekEnd && (
-              <Badge variant="outline" className="text-xs h-5">W{task.weekStart}–W{task.weekEnd}</Badge>
+              <Badge variant="outline" className="text-xs h-5">{t.weekLabel(`${task.weekStart}–${task.weekEnd}`)}</Badge>
             )}
             {isShared && (
               <Badge variant="outline" className="text-xs h-5">{taskTeamName ?? 'shared'}</Badge>
