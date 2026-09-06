@@ -385,7 +385,9 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
   )
 }
 
-export function CollabPanel() {
+export function CollabPanel({ section = 'both' }) {
+  const showSetup = section === 'both' || section === 'setup'
+  const showTeams = section === 'both' || section === 'teams'
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const collab = useStore(s => s.collab ?? { userId: null, memberships: [] })
@@ -565,46 +567,48 @@ export function CollabPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <PanelCard icon={Users} title={t.collabCreateTeam} subtitle={t.collabPanelSubtitle}>
-          {disabled && <p className="text-xs text-muted-foreground">{t.collabRequiresFirebase}</p>}
+      {showSetup && (
+        <div className="space-y-3">
+          <PanelCard icon={Users} title={t.collabCreateTeam} subtitle={t.collabPanelSubtitle}>
+            {disabled && <p className="text-xs text-muted-foreground">{t.collabRequiresFirebase}</p>}
 
-          {!creating
-            ? <Button size="sm" variant="outline" disabled={disabled} className="gap-1.5" onClick={() => setCreating(true)}>
-                <Plus className="h-3.5 w-3.5" /> {t.collabCreateTeam}
-              </Button>
-            : (
-              <div className="space-y-2">
-                <Input placeholder={t.collabTeamName} value={name} onChange={e => setName(e.target.value)} />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    className="w-28"
-                    value={durationInput}
-                    onChange={e => setDurationInput(e.target.value)}
-                    onBlur={() => { if (durationInput === '') setDurationInput('365') }}
-                  />
-                  <span className="text-xs text-muted-foreground">{t.collabTeamDuration}</span>
+            {!creating
+              ? <Button size="sm" variant="outline" disabled={disabled} className="gap-1.5" onClick={() => setCreating(true)}>
+                  <Plus className="h-3.5 w-3.5" /> {t.collabCreateTeam}
+                </Button>
+              : (
+                <div className="space-y-2">
+                  <Input placeholder={t.collabTeamName} value={name} onChange={e => setName(e.target.value)} />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-28"
+                      value={durationInput}
+                      onChange={e => setDurationInput(e.target.value)}
+                      onBlur={() => { if (durationInput === '') setDurationInput('365') }}
+                    />
+                    <span className="text-xs text-muted-foreground">{t.collabTeamDuration}</span>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" disabled={!name.trim()} onClick={handleCreateTeam}>{t.collabCreateTeam}</Button>
+                    <Button size="sm" variant="outline" onClick={() => setCreating(false)}>{t.cancel}</Button>
+                  </div>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button size="sm" disabled={!name.trim()} onClick={handleCreateTeam}>{t.collabCreateTeam}</Button>
-                  <Button size="sm" variant="outline" onClick={() => setCreating(false)}>{t.cancel}</Button>
-                </div>
-              </div>
-            )
-          }
-        </PanelCard>
+              )
+            }
+          </PanelCard>
 
-        <PanelCard icon={Link2} title={t.collabJoinTeam}>
-          <Input placeholder={t.collabInvitePlaceholder} value={joinLink} onChange={e => setJoinLink(e.target.value)} />
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" disabled={!joinLink.trim()} onClick={handleJoin}>{t.collabJoinTeam}</Button>
-          </div>
-        </PanelCard>
-      </div>
+          <PanelCard icon={Link2} title={t.collabJoinTeam}>
+            <Input placeholder={t.collabInvitePlaceholder} value={joinLink} onChange={e => setJoinLink(e.target.value)} />
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" disabled={!joinLink.trim()} onClick={handleJoin}>{t.collabJoinTeam}</Button>
+            </div>
+          </PanelCard>
+        </div>
+      )}
 
-      <PanelCard icon={Users} title={t.collabYourTeams}>
+      {showTeams && (
         <div className="space-y-2">
           {teams.map(team => {
             const isHost = Boolean(userId) && team.hostPersonId === userId
@@ -635,51 +639,55 @@ export function CollabPanel() {
             )
           })}
           {teams.length === 0 && <p className="text-sm text-muted-foreground">{t.collabNoTeams}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-      </PanelCard>
+      )}
 
-      <Dialog open={!!leaveTeamId} onOpenChange={open => !open && setLeaveTeamId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t.confirm}</DialogTitle>
-          </DialogHeader>
-          {leavingSharedTasks.length > 0
-            ? <p className="text-sm text-muted-foreground">{t.collabLeaveWithLocalPrompt}</p>
-            : <p className="text-sm text-muted-foreground">{t.collabLeavePrompt}</p>
-          }
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLeaveTeamId(null)}>{t.cancel}</Button>
-            {leavingSharedTasks.length > 0 && (
-              <Button variant="outline" onClick={() => handleLeaveConfirmed(false)}>{t.collabKeepLocalTasks}</Button>
-            )}
-            <Button variant="destructive" onClick={() => handleLeaveConfirmed(leavingSharedTasks.length > 0)}>
-              {leavingSharedTasks.length > 0 ? t.collabDeleteLocalTasksToo : t.collabLeave}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {showTeams && (
+        <>
+          <Dialog open={!!leaveTeamId} onOpenChange={open => !open && setLeaveTeamId(null)}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{t.confirm}</DialogTitle>
+              </DialogHeader>
+              {leavingSharedTasks.length > 0
+                ? <p className="text-sm text-muted-foreground">{t.collabLeaveWithLocalPrompt}</p>
+                : <p className="text-sm text-muted-foreground">{t.collabLeavePrompt}</p>
+              }
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setLeaveTeamId(null)}>{t.cancel}</Button>
+                {leavingSharedTasks.length > 0 && (
+                  <Button variant="outline" onClick={() => handleLeaveConfirmed(false)}>{t.collabKeepLocalTasks}</Button>
+                )}
+                <Button variant="destructive" onClick={() => handleLeaveConfirmed(leavingSharedTasks.length > 0)}>
+                  {leavingSharedTasks.length > 0 ? t.collabDeleteLocalTasksToo : t.collabLeave}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={!!deleteTeamId} onOpenChange={open => !open && setDeleteTeamId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t.collabDeleteTeam}</DialogTitle>
-          </DialogHeader>
-          {deletingSharedTasks.length > 0
-            ? <p className="text-sm text-muted-foreground">{t.collabDeleteTeamWithLocalPrompt}</p>
-            : <p className="text-sm text-muted-foreground">{t.collabDeleteTeamPrompt}</p>
-          }
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTeamId(null)}>{t.cancel}</Button>
-            {deletingSharedTasks.length > 0 && (
-              <Button variant="outline" onClick={() => handleDeleteTeamConfirmed(false)}>{t.collabKeepLocalTasks}</Button>
-            )}
-            <Button variant="destructive" onClick={() => handleDeleteTeamConfirmed(deletingSharedTasks.length > 0)}>
-              {deletingSharedTasks.length > 0 ? t.collabDeleteLocalTasksToo : t.collabDeleteTeam}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <Dialog open={!!deleteTeamId} onOpenChange={open => !open && setDeleteTeamId(null)}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{t.collabDeleteTeam}</DialogTitle>
+              </DialogHeader>
+              {deletingSharedTasks.length > 0
+                ? <p className="text-sm text-muted-foreground">{t.collabDeleteTeamWithLocalPrompt}</p>
+                : <p className="text-sm text-muted-foreground">{t.collabDeleteTeamPrompt}</p>
+              }
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteTeamId(null)}>{t.cancel}</Button>
+                {deletingSharedTasks.length > 0 && (
+                  <Button variant="outline" onClick={() => handleDeleteTeamConfirmed(false)}>{t.collabKeepLocalTasks}</Button>
+                )}
+                <Button variant="destructive" onClick={() => handleDeleteTeamConfirmed(deletingSharedTasks.length > 0)}>
+                  {deletingSharedTasks.length > 0 ? t.collabDeleteLocalTasksToo : t.collabDeleteTeam}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   )
 }
