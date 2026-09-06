@@ -75,6 +75,7 @@ function CollabErrorToast() {
   const clearCollabError = useStore(s => s.clearCollabError)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const isIconsOnly = (useStore(s => s.settings?.navbar?.labelMode) ?? 'both') === 'icons'
   useEffect(() => {
     if (!lastError) return
     const id = setTimeout(() => clearCollabError(), 6000)
@@ -82,7 +83,7 @@ function CollabErrorToast() {
   }, [lastError, clearCollabError])
   if (!lastError) return null
   return (
-    <div className="fixed bottom-above-tab-bar inset-x-0 z-50 flex justify-center px-4-safe">
+    <div className={cn("fixed inset-x-0 z-50 flex justify-center px-4-safe", isIconsOnly ? "bottom-above-tab-bar-compact" : "bottom-above-tab-bar")}>
       <div className="flex items-center gap-3 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-xs shadow-lg max-w-sm">
         <span className="flex-1">{collabErrorTextForCode(lastError.code, t, t.collabSyncFailed)}</span>
         <button className="shrink-0 font-medium" onClick={clearCollabError}>×</button>
@@ -94,8 +95,9 @@ function CollabErrorToast() {
 function SyncLockedBanner({ onOpenSettings }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const isIconsOnly = (useStore(s => s.settings?.navbar?.labelMode) ?? 'both') === 'icons'
   return (
-    <div className="fixed bottom-above-tab-bar inset-x-0 z-50 flex justify-center px-4-safe">
+    <div className={cn("fixed inset-x-0 z-50 flex justify-center px-4-safe", isIconsOnly ? "bottom-above-tab-bar-compact" : "bottom-above-tab-bar")}>
       <button onClick={onOpenSettings}
         className="flex w-full max-w-sm items-center gap-3 rounded-lg bg-destructive px-4 py-2 text-left text-xs text-destructive-foreground shadow-lg">
         <span className="flex-1">{t.encRemoteAlreadyEncrypted}</span>
@@ -193,6 +195,8 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
   const navbarMobilePosition = useStore(s => s.settings?.navbar?.mobilePosition ?? 'bottom')
+  const navbarLabelMode = useStore(s => s.settings?.navbar?.labelMode ?? 'both')
+  const isIconsOnly = navbarLabelMode === 'icons'
   const requestedTab = useStore(s => s.activeTab)
   const clearRequestedTab = useStore(s => s.setActiveTab)
   if (requestedTab && tabs.includes(requestedTab)) {
@@ -297,7 +301,7 @@ export default function App() {
     <AppShell>
       <div className="flex h-full overflow-hidden">
         <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative min-w-0 flex-1 overflow-hidden md:pb-0', safeTop && 'native-safe-top', mobileSide ? 'pb-0' : 'pb-tab-bar')}>
+        <div className={cn('relative min-w-0 flex-1 overflow-hidden md:pb-0', safeTop && 'native-safe-top', mobileSide ? 'pb-0' : (isIconsOnly ? 'pb-tab-bar-compact' : 'pb-tab-bar'))}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component
