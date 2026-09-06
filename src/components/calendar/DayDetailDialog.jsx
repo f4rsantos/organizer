@@ -84,7 +84,7 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
                 )}
                 {shareable && (
                   <button onClick={() => onShareEvent(e)} title={t.collabShareEvent}
-                    className="shrink-0 px-2 rounded-sm transition-opacity hover:opacity-80" style={style}>
+                    className="shrink-0 flex items-center px-1.5 text-muted-foreground hover:text-foreground transition-colors">
                     <Share2 className="h-3.5 w-3.5" />
                   </button>
                 )}
