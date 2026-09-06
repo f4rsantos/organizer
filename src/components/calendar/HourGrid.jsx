@@ -3,6 +3,8 @@ import { format, isSameDay, isWithinInterval, parseISO } from 'date-fns'
 import { layoutDayEvents, minutesToTime, MINUTES_PER_DAY } from '@/lib/calendar/eventLayout'
 import { useStore } from '@/store/useStore'
 import { readableTextColor } from '@/lib/calendar/contrast'
+import { useWeatherForecast } from '@/hooks/useWeatherForecast'
+import { WeatherIcon } from './WeatherIcon'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 48
@@ -12,6 +14,7 @@ const MIN_DURATION_MINUTES = 30
 const DEFAULT_COLOR = '#6366f1'
 const BLOCK_GUTTER = 2
 const BLOCK_GUTTER_WIDE = 14
+const DRAG_STRIP_WIDTH = 8
 
 function allDayItemsForDay(day, tasks, holidays) {
   const dayHolidays = holidays.filter(h => isWithinInterval(day, { start: parseISO(h.startDate), end: parseISO(h.endDate) }))
@@ -76,7 +79,7 @@ function EventBlock({ segment, onOpenEvent, gutter = BLOCK_GUTTER }) {
         height: Math.max(18, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT),
         ...(allDay ? { backgroundImage: `repeating-linear-gradient(45deg, ${color}14 0 6px, transparent 6px 12px)` } : null),
         left: `calc(${column * width}% + ${gutter}px)`,
-        width: `calc(${width}% - ${gutter * 2}px)`,
+        width: `calc(${width}% - ${gutter * 2}px - ${DRAG_STRIP_WIDTH}px)`,
         backgroundColor: color + '26',
         color: textColor,
         borderLeft: `3px solid ${color}`,
@@ -114,6 +117,8 @@ function useMinuteTick() {
 export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, onOpenTask, onCreateRange }) {
   const now = useMinuteTick()
   const nowColor = useStore(s => s.settings?.calendarNowColor ?? '#ef4444')
+  const forecast = useWeatherForecast()
+  const weatherByDate = forecast ? new Map(forecast.map(d => [d.date, d])) : null
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const gridTasks = gridTaskEntries(tasks, classes)
   const showHeader = days.length > 1
@@ -218,6 +223,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
         <div className="w-12 shrink-0" />
         {days.map(day => {
           const isToday = isSameDay(day, new Date())
+          const weather = weatherByDate?.get(format(day, 'yyyy-MM-dd'))
           return (
             <div key={day.toISOString()} className="flex-1 min-w-0">
               {showHeader && (
@@ -228,6 +234,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
                   <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
                     {format(day, 'd')}
                   </span>
+                  {weather && <WeatherIcon code={weather.code} className="h-3 w-3 text-muted-foreground" />}
                 </div>
               )}
               <AllDayStrip day={day} tasks={tasks} holidays={holidays} classes={classes} />
