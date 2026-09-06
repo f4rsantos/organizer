@@ -3,7 +3,6 @@ import { useDroppable, useDndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
@@ -61,7 +60,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
     <div ref={setNodeRef}
       className={cn('relative flex w-full md:min-w-56 shrink-0 flex-col gap-2 rounded-xl p-2 transition-colors',
         isBanded ? 'md:grid md:[grid-row:1/-1] md:[grid-template-rows:subgrid] md:gap-0' : 'md:flex-1 md:h-full',
-        isOverColumn ? 'bg-accent/60 ring-2 ring-inset ring-primary' : 'bg-secondary/40')}>
+        isOverColumn ? 'bg-accent/60 ring-2 ring-inset ring-primary' : 'bg-board')}>
       <button type="button" onClick={() => setCollapsed(v => !v)}
         className={cn('flex items-center justify-between px-1 shrink-0 md:cursor-default', isBanded && 'md:pb-1')}
         style={isBanded ? { gridRow: 1 } : undefined}>
@@ -71,7 +70,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
           </span>
           <h3 className="text-sm font-semibold">{col.title}</h3>
         </span>
-        <Badge variant="secondary" className="text-xs h-5">{cards.length}</Badge>
+        <span className="text-xs text-muted-foreground">{cards.length}</span>
       </button>
       {!collapsed && (
         <>
