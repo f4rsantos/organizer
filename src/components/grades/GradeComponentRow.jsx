@@ -20,7 +20,7 @@ export function GradeComponentRow({ component, onChange, onAddSub, onRemoveSub, 
         </div>
         {subs.length === 0
           ? <GradeInput value={component.grade} onChange={v => onChange(component.id, v)} className="w-20 h-8 text-center text-sm" />
-          : <span className="w-20 text-center text-xs text-muted-foreground">{subs.length} parts</span>
+          : <span className="w-20 text-center text-xs text-muted-foreground">{t.gradeParts(subs.length)}</span>
         }
         <button onClick={() => onAddSub(component.id)}
           className="text-muted-foreground hover:text-primary p-1 rounded"
@@ -28,8 +28,8 @@ export function GradeComponentRow({ component, onChange, onAddSub, onRemoveSub, 
           <Plus size={14} />
         </button>
       </div>
-      {subs.map(s => (
-        <SubcomponentRow key={s.id} sub={s} subWeight={subWeight}
+      {subs.map((s, i) => (
+        <SubcomponentRow key={s.id} sub={s} subWeight={subWeight} index={i}
           onGradeChange={(id, v) => onSubGradeChange(component.id, id, v)}
           onRemove={id => onRemoveSub(component.id, id)}
         />

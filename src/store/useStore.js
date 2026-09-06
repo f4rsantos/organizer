@@ -161,7 +161,7 @@ function buildInitialState() {
       kanbanAutoAddToFirstColumn: false,
       kanbanSeparateByTeam: true,
       kanbanSeparateByClass: false,
-      notesViewMode: 'list',
+      notesViewMode: 'mosaic',
       notesMathEnabled: false,
       notesCalendarLink: false,
       calendarNowColor: null,
@@ -519,10 +519,10 @@ export const useStore = create((set, get) => ({
       notes: (s.notes ?? []).map(n => n.id in rank ? { ...n, order: rank[n.id] } : n),
     })
   }),
-  addNoteFolder: name => set(s => {
+  addNoteFolder: (name, parentId = null) => set(s => {
     const order = (s.noteFolders ?? []).reduce((m, f) => Math.min(m, f.order ?? 0), 0) - 1
     return persist({
-      ...s, noteFolders: [...(s.noteFolders ?? []), { id: nanoid(), name: name || 'Folder', parentId: null, order }],
+      ...s, noteFolders: [...(s.noteFolders ?? []), { id: nanoid(), name: name || 'Folder', parentId, order }],
     })
   }),
   renameNoteFolder: (id, name) => set(s => persist({
@@ -530,7 +530,13 @@ export const useStore = create((set, get) => ({
   })),
   moveNoteFolder: (id, parentId) => set(s => {
     if (id === parentId) return s
-    return persist({ ...s, noteFolders: (s.noteFolders ?? []).map(f => f.id === id ? { ...f, parentId } : f) })
+    const all = s.noteFolders ?? []
+    let cursor = parentId
+    while (cursor) {
+      if (cursor === id) return s
+      cursor = all.find(f => f.id === cursor)?.parentId ?? null
+    }
+    return persist({ ...s, noteFolders: all.map(f => f.id === id ? { ...f, parentId } : f) })
   }),
   reorderNoteFolders: orderedIds => set(s => {
     const rank = Object.fromEntries(orderedIds.map((id, i) => [id, i]))

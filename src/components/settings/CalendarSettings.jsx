@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Circle, CircleCheck } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { ScheduleImportPanel } from './ScheduleImportPanel'
+import { geocodeCity } from '@/lib/weather'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -14,6 +18,62 @@ function ColorSwatch({ label, value, onChange }) {
     <div className="flex items-center gap-2">
       <ClassColorDot compact color={value} onChange={onChange} />
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+function WeatherCitySetting({ t }) {
+  const enabled = useStore(s => s.settings?.weatherEnabled ?? false)
+  const savedCity = useStore(s => s.settings?.weatherCity ?? '')
+  const coords = useStore(s => s.settings?.weatherCoords ?? null)
+  const updateSettings = useStore(s => s.updateSettings)
+  const [input, setInput] = useState(savedCity)
+  const [status, setStatus] = useState('idle')
+
+  useEffect(() => { setInput(savedCity) }, [savedCity])
+
+  const save = async () => {
+    const city = input.trim()
+    if (city === savedCity) return
+    if (!city) {
+      updateSettings({ weatherCity: '', weatherCoords: null })
+      setStatus('idle')
+      return
+    }
+    setStatus('loading')
+    try {
+      const geo = await geocodeCity(city)
+      if (!geo) { setStatus('error'); return }
+      updateSettings({ weatherCity: city, weatherCoords: { lat: geo.lat, lon: geo.lon, city } })
+      setStatus('ok')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div className="space-y-1.5 border-t border-border/60 pt-4">
+      <Label>{t.weatherPreview}</Label>
+      <p className="text-xs text-muted-foreground">{t.weatherPreviewDesc}</p>
+      <button type="button" onClick={() => updateSettings({ weatherEnabled: !enabled })}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        {enabled
+          ? <CircleCheck className="h-4 w-4 text-primary" />
+          : <Circle className="h-4 w-4" />}
+        {enabled ? t.settingEnabled : t.settingDisabled}
+      </button>
+      {enabled && (
+        <>
+          <Input value={input} onChange={e => setInput(e.target.value)}
+            onBlur={save} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+            placeholder={t.weatherCityPlaceholder} className="mt-1" />
+          {status === 'loading' && <p className="text-xs text-muted-foreground">{t.weatherCityLoading}</p>}
+          {status === 'error' && <p className="text-xs text-destructive">{t.weatherCityError}</p>}
+          {status === 'ok' && coords && (
+            <p className="text-xs text-muted-foreground">{t.weatherCitySaved}</p>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -59,6 +119,8 @@ export function CalendarSettings({ semesterId, semesterStart, semesterEnd }) {
           </SelectContent>
         </Select>
       </div>
+
+      <WeatherCitySetting t={t} />
 
       <div className="space-y-2 border-t border-border/60 pt-4">
         <Label>{t.scheduleImportTitle}</Label>

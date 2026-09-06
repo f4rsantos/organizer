@@ -39,6 +39,16 @@ export function accumulatedScore(components) {
   return roundPT(graded.reduce((sum, c) => sum + c.grade * c.weight, 0))
 }
 
+export function gradedFraction(components) {
+  const flat = flattenComponents(components)
+  const total = flat.reduce((sum, c) => sum + (Number(c.weight) || 0), 0)
+  if (total <= 0) return 0
+  const done = flat
+    .filter(c => c.grade != null && c.grade !== '')
+    .reduce((sum, c) => sum + (Number(c.weight) || 0), 0)
+  return Math.min(1, done / total)
+}
+
 export function neededGrade(components, target) {
   const flat = flattenComponents(components)
   const doneWeight = flat

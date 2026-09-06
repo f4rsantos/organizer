@@ -1,5 +1,5 @@
-import { lazy, useRef, useState } from 'react'
-import { Star, Trash2, Archive, ArchiveRestore, Download, Upload } from 'lucide-react'
+import { lazy, useEffect, useRef, useState } from 'react'
+import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, ChevronRight, Folder } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -22,7 +22,10 @@ const EXPORT_FORMATS = [
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
-export function NoteEditor({ note, onDeleted }) {
+export function NoteEditor({
+  note, onDeleted, onPrev, onNext, hasPrev = false, hasNext = false,
+  currentIndex = 0, totalCount = 0, folderName = null, onBack = null,
+}) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const updateNote = useStore(s => s.updateNote)
@@ -34,6 +37,36 @@ export function NoteEditor({ note, onDeleted }) {
   const [editorRetry, setEditorRetry] = useState(0)
   const [exportOpen, setExportOpen] = useState(false)
   const importRef = useRef(null)
+  const touchStartRef = useRef(null)
+
+  useEffect(() => {
+    const onKeyDown = e => {
+      if (e.altKey && e.key === 'ArrowLeft' && hasPrev) {
+        e.preventDefault()
+        onPrev?.()
+      } else if (e.altKey && e.key === 'ArrowRight' && hasNext) {
+        e.preventDefault()
+        onNext?.()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [hasPrev, hasNext, onPrev, onNext])
+
+  const onHeaderTouchStart = e => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  const onHeaderTouchEnd = e => {
+    if (!touchStartRef.current) return
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y
+    touchStartRef.current = null
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && hasNext) onNext?.()
+      else if (dx > 0 && hasPrev) onPrev?.()
+    }
+  }
 
   const handleDelete = () => {
     deleteNote(note.id)
@@ -54,6 +87,64 @@ export function NoteEditor({ note, onDeleted }) {
 
   return (
     <div className="flex flex-col gap-2 h-full">
+      <div
+        className="flex items-center justify-between pb-1 select-none"
+        onTouchStart={onHeaderTouchStart}
+        onTouchEnd={onHeaderTouchEnd}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 -ml-1 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              onClick={onBack}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span>{t.notesBack || 'Back'}</span>
+            </Button>
+          )}
+          {folderName ? (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground/80 truncate max-w-[140px] md:max-w-[220px]">
+              <Folder className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+              <span className="truncate">{folderName}</span>
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground/60">{t.notes || 'Notes'}</span>
+          )}
+        </div>
+
+        {totalCount > 1 && (
+          <div className="flex items-center gap-1 bg-muted/40 rounded-full px-1.5 py-0.5 border border-border/50">
+            <span className="text-[11px] font-mono px-1 text-muted-foreground/70">
+              {currentIndex + 1} / {totalCount}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!hasPrev}
+              onClick={onPrev}
+              title="Previous note (Alt+←)"
+              className="h-5 w-5 rounded-full hover:bg-background disabled:opacity-30"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!hasNext}
+              onClick={onNext}
+              title="Next note (Alt+→)"
+              className="h-5 w-5 rounded-full hover:bg-background disabled:opacity-30"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="space-y-1">
         <input
           value={note.title}
@@ -68,6 +159,18 @@ export function NoteEditor({ note, onDeleted }) {
 
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-0.5 flex-1">
+          <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
+            <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
+              style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
+            {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
+              <button key={kind} type="button" title={label}
+                onClick={() => note.kind !== kind && updateNote(note.id, { kind })}
+                className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
+                  note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                <Icon className="h-3.5 w-3.5" />
+              </button>
+            ))}
+          </div>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleFavoriteNote(note.id)}>
             <Star className={cn('h-3.5 w-3.5', note.favorite && 'fill-amber-400 text-amber-400')} />
           </Button>
