@@ -3,7 +3,6 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ClassGradeCard } from './ClassGradeCard'
-import { GradeSummaryFooter } from './GradeSummaryFooter'
 import { PreviousSemestersSection } from './PreviousSemestersSection'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -27,7 +26,7 @@ export function GradesTab() {
     <div className="h-tab-pane overflow-y-auto">
     <div className="space-y-4 p-4 pt-6 pb-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{t.grades}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t.grades}</h1>
         {semesters.length > 1 && (
           <Select value={activeSemesterId} onValueChange={setActiveSemester} items={semesters.map(s => ({ value: s.id, label: s.name }))}>
             <SelectTrigger className="h-8 text-sm w-auto gap-1"><SelectValue /></SelectTrigger>
@@ -48,8 +47,7 @@ export function GradesTab() {
                   gradeData={grades[activeSemesterId]?.[cls.id]} />
               ))}
             </div>
-            <GradeSummaryFooter semId={activeSemesterId} />
-            <PreviousSemestersSection />
+            <PreviousSemestersSection semId={activeSemesterId} />
           </>
         )
       }

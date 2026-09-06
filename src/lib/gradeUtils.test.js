@@ -1,5 +1,41 @@
 import { describe, it, expect } from 'vitest'
-import { parseGradeInput, isPartialDecimal } from './gradeUtils'
+import { parseGradeInput, isPartialDecimal, gradedFraction } from './gradeUtils'
+
+describe('gradedFraction', () => {
+  it('is zero with no components', () => {
+    expect(gradedFraction([])).toBe(0)
+  })
+
+  it('is zero when nothing is graded', () => {
+    expect(gradedFraction([{ weight: 0.5 }, { weight: 0.5 }])).toBe(0)
+  })
+
+  it('counts graded weight against total weight', () => {
+    expect(gradedFraction([{ weight: 0.4, grade: 15 }, { weight: 0.6 }])).toBeCloseTo(0.4)
+  })
+
+  it('measures against the weight that exists, not against 1', () => {
+    expect(gradedFraction([{ weight: 0.3, grade: 12 }, { weight: 0.2 }])).toBeCloseTo(0.6)
+  })
+
+  it('splits weight across subcomponents', () => {
+    const components = [{
+      weight: 1,
+      subcomponents: [{ grade: 10 }, { grade: 14 }, {}, {}],
+    }]
+    expect(gradedFraction(components)).toBeCloseTo(0.5)
+  })
+
+  it('treats empty-string grades as ungraded', () => {
+    expect(gradedFraction([{ weight: 1, grade: '' }])).toBe(0)
+  })
+
+  it('never exceeds 1 and never returns NaN', () => {
+    expect(gradedFraction([{ weight: 0 }])).toBe(0)
+    expect(gradedFraction([{ grade: 12 }])).toBe(0)
+    expect(gradedFraction([{ weight: 2, grade: 12 }])).toBe(1)
+  })
+})
 
 describe('parseGradeInput', () => {
   it('parses dot decimals', () => {
