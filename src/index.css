@@ -83,6 +83,8 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+    --color-board: var(--board);
+    --color-board-border: var(--board-border);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -175,6 +177,10 @@
 }
 
 @layer utilities {
+    .swipe-viewport,
+    .swipe-viewport * {
+        touch-action: pan-y;
+    }
     .swiping,
     .swiping * {
         scrollbar-color: transparent transparent;

@@ -13,7 +13,9 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
+import { useCollabActions } from "@/hooks/useCollabActions";
 import { getMemberList } from "@/lib/collab/teamColors";
+import { sortByOrder } from "@/lib/utils";
 
 const FREE_BOARD_ID = "__free__";
 
@@ -26,6 +28,7 @@ export function KanbanTab() {
   const board = useMergedKanbanBoard(activeSemesterId);
   const clearDone = useStore((s) => s.clearKanbanDone);
   const wipeAll = useStore((s) => s.wipeKanban);
+  const { deleteSharedCard } = useCollabActions();
   const ensureBoard = useStore((s) => s.ensureKanbanBoard);
   const lang = useStore((s) => s.lang ?? "en");
   const t = useStrings(lang);
@@ -142,6 +145,32 @@ export function KanbanTab() {
     if (hydrated && noneMode && !localBoard?.columns?.length)
       ensureBoard(FREE_BOARD_ID);
   }, [hydrated, noneMode, localBoard, ensureBoard]);
+
+  const removeRemoteCards = async (onlyDone) => {
+    const columns = sortByOrder(localBoard?.columns ?? []);
+    const doneColumnId = columns[columns.length - 1]?.id;
+    const targets = (board?.cards ?? []).filter(
+      (card) =>
+        card.sharedMeta?.remote &&
+        (!onlyDone || card.columnId === doneColumnId),
+    );
+    for (const card of targets) {
+      await deleteSharedCard({
+        teamId: card.sharedMeta.teamId,
+        sharedCardId: card.sharedMeta.sharedCardId,
+      });
+    }
+  };
+
+  const handleClearDone = async () => {
+    clearDone(boardId);
+    await removeRemoteCards(true);
+  };
+
+  const handleWipeAll = async () => {
+    wipeAll(boardId);
+    await removeRemoteCards(false);
+  };
 
   return (
     <div className="flex flex-col h-tab-pane py-4 gap-3">
@@ -309,14 +338,14 @@ export function KanbanTab() {
         onOpenChange={(v) => !v && setConfirm(null)}
         title={t.clearDoneTitle}
         description={t.clearDoneDesc}
-        onConfirm={() => clearDone(boardId)}
+        onConfirm={handleClearDone}
       />
       <ConfirmDialog
         open={confirm === "all"}
         onOpenChange={(v) => !v && setConfirm(null)}
         title={t.wipeAllTitle}
         description={t.wipeAllDesc}
-        onConfirm={() => wipeAll(boardId)}
+        onConfirm={handleWipeAll}
       />
     </div>
   );

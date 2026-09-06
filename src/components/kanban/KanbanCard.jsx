@@ -21,6 +21,7 @@ import { useStrings } from "@/lib/strings";
 import { useCollabActions } from "@/hooks/useCollabActions";
 import { ShareToTeamDialog } from "@/components/collab/ShareToTeamDialog";
 import { PRIORITY_COLORS as PRIORITY_DOT } from "@/lib/constants";
+import { formatDueDate } from "@/lib/dueDate";
 import { getMemberColor, getMemberList, getMemberDisplayName } from "@/lib/collab/teamColors";
 import { useTeamUserId, entityTeamId } from "@/hooks/useTeamIdentity";
 import {
@@ -241,8 +242,8 @@ export function KanbanCard({
         onClick={handleCardClick}
         onDoubleClick={() => setDetailOpen(true)}
         className={cn(
-          "relative rounded-lg border border-border bg-card p-3 space-y-2 select-none",
-          "transition-shadow hover:shadow-md",
+          "relative rounded-lg border border-board-border bg-card p-3 space-y-2 select-none",
+          "shadow-sm transition-shadow hover:shadow-md",
           isDragging && "opacity-40",
         )}
       >
@@ -375,7 +376,7 @@ export function KanbanCard({
           <div className="flex flex-wrap items-center gap-1.5">
             {card.dueDate && (
               <Badge variant="secondary" className="text-xs h-5">
-                {card.dueDate}
+                {formatDueDate(card.dueDate)}
               </Badge>
             )}
             {classBadgeText && (

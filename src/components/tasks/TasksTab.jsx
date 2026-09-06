@@ -10,6 +10,7 @@ import { WeekSelector } from "./WeekSelector";
 import { ClassSection } from "./ClassSection";
 import { AddTaskButton } from "./AddTaskButton";
 import { TaskAlertsPanel } from './TaskAlertsPanel'
+import { SwipePager } from "@/components/calendar/SwipePager";
 
 function ClassRing({ groups, byClass }) {
   const withTasks = groups.filter((g) => g.tasks.length > 0);
@@ -32,6 +33,62 @@ function ClassRing({ groups, byClass }) {
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function MobileWeekPage({ week, activeSemesterId, classes, weekCount, weekStartDate, weekDateRange, dateToWeek, semesterTasks, weekDateBounds, t }) {
+  const { overall, byClass, groups } = useTaskProgress(
+    activeSemesterId,
+    classes,
+    week,
+    semesterTasks,
+    weekDateBounds ? weekDateBounds(week) : null,
+  );
+  const allDone = overall >= 1 && groups.some((g) => g.tasks.length > 0);
+
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto p-4 pt-2 space-y-5">
+      <div className="flex items-center gap-4">
+        <div className="flex-1" />
+        <SvgProgressWheel
+          pct={overall}
+          size={160}
+          strokeWidth={14}
+          celebrate
+          label={
+            allDone
+              ? t.timeToRelax
+              : `${Math.round(overall * 100)}% ${t.done}`
+          }
+          sublabel={t.weekLabel(week)}
+        />
+        <div className="flex-1 flex justify-end">
+          <AddTaskButton
+            semesterId={activeSemesterId}
+            classes={classes}
+            weekCount={weekCount}
+            currentWeek={week}
+            startDate={weekStartDate}
+            rangeFor={weekDateRange}
+            dateToWeekFn={dateToWeek}
+            className="h-12 w-12 rounded-full shadow-md"
+          />
+        </div>
+      </div>
+      <ClassRing groups={groups} byClass={byClass} />
+      <div className="space-y-3">
+        {groups
+          .filter((g) => g.tasks.length > 0 || g.cls.id !== "other")
+          .map(({ cls, tasks }) => (
+            <ClassSection
+              key={cls.id}
+              cls={cls}
+              tasks={tasks}
+              ratio={byClass[cls.id] ?? 0}
+            />
+          ))}
+      </div>
     </div>
   );
 }
@@ -163,47 +220,27 @@ export function TasksTab() {
         <TaskAlertsPanel tasks={semesterTasks} classNameById={classNameById} />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 pt-2 space-y-5 md:hidden">
-        <div className="flex items-center gap-4">
-          <div className="flex-1" />
-          <SvgProgressWheel
-            pct={overall}
-            size={160}
-            strokeWidth={14}
-            celebrate
-            label={
-              allDone
-                ? t.timeToRelax
-                : `${Math.round(overall * 100)}% ${t.done}`
-            }
-            sublabel={t.weekLabel(week)}
-          />
-          <div className="flex-1 flex justify-end">
-            <AddTaskButton
-              semesterId={activeSemesterId}
+      <div className="flex-1 min-h-0 md:hidden flex flex-col">
+        <SwipePager
+          pageKey={`week:${week}`}
+          canPrev={week > 1} canNext={week < weekCount}
+          onPrev={() => setDisplayWeek(() => Math.max(1, week - 1))}
+          onNext={() => setDisplayWeek(() => Math.min(weekCount, week + 1))}
+          renderPage={step => (
+            <MobileWeekPage
+              week={Math.min(weekCount, Math.max(1, week + step))}
+              activeSemesterId={activeSemesterId}
               classes={classes}
               weekCount={weekCount}
-              currentWeek={week}
-              startDate={weekStartDate}
-              rangeFor={weekDateRange}
-              dateToWeekFn={dateToWeek}
-              className="h-12 w-12 rounded-full shadow-md"
+              weekStartDate={weekStartDate}
+              weekDateRange={weekDateRange}
+              dateToWeek={dateToWeek}
+              semesterTasks={semesterTasks}
+              weekDateBounds={weekDateBounds}
+              t={t}
             />
-          </div>
-        </div>
-        <ClassRing groups={groups} byClass={byClass} />
-        <div className="space-y-3">
-          {groups
-            .filter((g) => g.tasks.length > 0 || g.cls.id !== "other")
-            .map(({ cls, tasks }) => (
-              <ClassSection
-                key={cls.id}
-                cls={cls}
-                tasks={tasks}
-                ratio={byClass[cls.id] ?? 0}
-              />
-            ))}
-        </div>
+          )}
+        />
       </div>
 
       <DesktopLayout
