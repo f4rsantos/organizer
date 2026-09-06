@@ -28,7 +28,11 @@
     --ring: oklch(0.55 0.08 250);
     --radius: 0.75rem;
     --wheel-primary: oklch(0.55 0.12 250);
+    --wheel-from: oklch(from var(--wheel-primary) calc(l + 0.15) c h);
+    --wheel-to: oklch(0.65 0.15 280);
     --wheel-track: oklch(0.90 0.008 250);
+    --board: oklch(0.955 0.005 60);
+    --board-border: oklch(0.92 0.006 60);
 }
 
 .dark {
@@ -52,7 +56,11 @@
     --input: oklch(1 0 0 / 10%);
     --ring: oklch(0.55 0.1 250);
     --wheel-primary: oklch(0.65 0.12 250);
+    --wheel-from: oklch(from var(--wheel-primary) calc(l - 0.15) c h);
+    --wheel-to: oklch(0.7 0.16 280);
     --wheel-track: oklch(0.25 0.04 250);
+    --board: oklch(0.175 0.01 250);
+    --board-border: oklch(1 0 0 / 6%);
 }
 
 @theme inline {

@@ -14,7 +14,7 @@ export function FocusWheel({ pct, isBreak, label, sublabel, centerOverlay = null
           <defs>
             <linearGradient id="focusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="var(--wheel-primary, oklch(0.6 0.2 260))" />
-              <stop offset="100%" stopColor="oklch(0.65 0.15 280)" />
+              <stop offset="100%" stopColor="var(--wheel-to, oklch(0.65 0.15 280))" />
             </linearGradient>
           </defs>
           <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="var(--wheel-track)" strokeWidth={SW} />

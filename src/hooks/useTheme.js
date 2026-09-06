@@ -114,6 +114,7 @@ export function useTheme() {
         root.style.setProperty('--accent-foreground', themeFontColor)
         root.style.setProperty('--ring', themeFontColor)
         root.style.setProperty('--wheel-primary', themeFontColor)
+        root.style.setProperty('--wheel-to', `oklch(from ${themeFontColor} calc(l + 0.1) c calc(h + 30))`)
         root.style.setProperty('--wheel-track', accentBg)
       } else {
         root.style.removeProperty('--primary')
@@ -122,6 +123,7 @@ export function useTheme() {
         root.style.removeProperty('--accent-foreground')
         root.style.removeProperty('--ring')
         root.style.removeProperty('--wheel-primary')
+        root.style.removeProperty('--wheel-to')
         root.style.removeProperty('--wheel-track')
       }
 
