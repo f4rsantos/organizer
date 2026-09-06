@@ -37,7 +37,7 @@ export function SvgProgressWheel({ pct = 0, size = 120, strokeWidth = 10, label,
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={done ? 'var(--done-from, var(--done, #22c55e))' : 'var(--wheel-primary)'} />
-              <stop offset="100%" stopColor={done ? 'var(--done-to, #86efac)' : 'oklch(0.65 0.15 280)'} />
+              <stop offset="100%" stopColor={done ? 'var(--done-to, #86efac)' : 'var(--wheel-to, oklch(0.65 0.15 280))'} />
             </linearGradient>
           </defs>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none"
