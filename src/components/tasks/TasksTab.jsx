@@ -93,7 +93,7 @@ function MobileWeekPage({ week, activeSemesterId, classes, weekCount, weekStartD
   );
 }
 
-function DesktopLayout({ overall, allDone, groups, byClass, t, children }) {
+function DesktopLayout({ overall, allDone, groups, byClass, t, children, onPrevWeek, onNextWeek, canPrevWeek, canNextWeek }) {
   const visibleGroups = groups.filter(
     (g) => g.tasks.length > 0 || g.cls.id !== "other",
   );
@@ -101,8 +101,27 @@ function DesktopLayout({ overall, allDone, groups, byClass, t, children }) {
   const left = visibleGroups.slice(0, half);
   const right = visibleGroups.slice(half);
 
+  const wheelRef = useRef({ dx: 0, t: 0 });
+  const handleWheel = (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    const now = performance.now();
+    const acc = wheelRef.current;
+    if (now - acc.t > 400) acc.dx = 0;
+    acc.t = now;
+    acc.dx += e.deltaX;
+    const THRESHOLD = 60;
+    if (acc.dx > THRESHOLD) {
+      acc.dx = 0;
+      if (canNextWeek) onNextWeek?.();
+    } else if (acc.dx < -THRESHOLD) {
+      acc.dx = 0;
+      if (canPrevWeek) onPrevWeek?.();
+    }
+  };
+
   return (
-    <div className="hidden md:flex flex-1 overflow-hidden items-center gap-6 px-6 py-6">
+    <div className="hidden md:flex flex-1 overflow-hidden items-center gap-6 px-6 py-6" onWheel={handleWheel}>
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3 max-h-full">
         {left.map(({ cls, tasks }) => (
           <ClassSection
@@ -249,6 +268,10 @@ export function TasksTab() {
         groups={groups}
         byClass={byClass}
         t={t}
+        onPrevWeek={() => setDisplayWeek(() => Math.max(1, week - 1))}
+        onNextWeek={() => setDisplayWeek(() => Math.min(weekCount, week + 1))}
+        canPrevWeek={week > 1}
+        canNextWeek={week < weekCount}
       >
         {t.weekLabel(week)}
       </DesktopLayout>

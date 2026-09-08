@@ -157,6 +157,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
   }
 
   const handlePointerDown = e => {
+    if (e.pointerType === 'touch') return
     if (e.button != null && e.button !== 0) return
     const position = pointToPosition(e.clientX, e.clientY)
     if (!position) return
@@ -218,7 +219,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
   }
 
   return (
-    <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto" data-swipe-ignore>
       <div className="flex border-b border-border/40 sticky top-0 bg-background z-10">
         <div className="w-12 shrink-0" />
         {days.map(day => {
@@ -243,7 +244,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
         })}
       </div>
       <div className="flex">
-        <div className="w-12 shrink-0">
+        <div className="w-12 shrink-0" data-swipe-allow>
           {HOURS.map(h => (
             <div key={h} className="relative" style={{ height: HOUR_HEIGHT }}>
               {h > 0 && (
@@ -254,7 +255,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
             </div>
           ))}
         </div>
-        <div ref={columnsRef} className="flex flex-1 touch-none"
+        <div ref={columnsRef} className="flex flex-1"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
