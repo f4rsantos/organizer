@@ -235,7 +235,7 @@ export function HourGrid({ days, tasks, holidays, events, classes, onOpenEvent, 
                   <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
                     {format(day, 'd')}
                   </span>
-                  {weather && <WeatherIcon code={weather.code} className="h-3 w-3 text-muted-foreground" />}
+                  {weather && <WeatherIcon code={weather.code} className={`h-3 w-3 ${isToday ? 'text-primary' : 'text-foreground'}`} />}
                 </div>
               )}
               <AllDayStrip day={day} tasks={tasks} holidays={holidays} classes={classes} />
