@@ -82,6 +82,8 @@ export function SwipePager({ pageKey, renderPage, onPrev, onNext, canPrev = true
 
     const onDown = e => {
       if (e.button != null && e.button !== 0) { dragRef.current = null; return }
+      const allow = e.target?.closest?.('[data-swipe-allow]')
+      if (!allow && e.target?.closest?.('[data-swipe-ignore]')) { dragRef.current = null; return }
       dragRef.current = {
         x: e.clientX, y: e.clientY, t: performance.now(),
         pointerId: e.pointerId, target: e.target,
