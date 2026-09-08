@@ -47,7 +47,7 @@ function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen
         <span className={`text-[11px] font-medium leading-none w-[22px] h-[22px] flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
           {format(day, 'd')}
         </span>
-        {weather && <WeatherIcon code={weather.code} className="h-3 w-3 text-muted-foreground" />}
+        {weather && <WeatherIcon code={weather.code} className={`h-3 w-3 ${isToday ? 'text-primary' : 'text-foreground'}`} />}
       </div>
       {shown.map(c => <Chip key={c.key} color={c.color}>{c.label}</Chip>)}
       {overflow > 0 && (
