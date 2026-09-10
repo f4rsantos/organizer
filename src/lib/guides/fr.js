@@ -151,7 +151,7 @@ export const fr = {
       body: [
         'La synchronisation cloud connecte l\'app à un projet Firebase que vous possédez, donc vos données se trouvent dans votre propre compte plutôt que dans le service de quelqu\'un d\'autre. L\'app vous guide en quatre étapes : créer un projet, activer Firestore, copier la configuration depuis les paramètres du projet, et la coller. Elle vérifie la connexion avant d\'enregistrer.',
         'Une fois connecté, un changement sur un appareil atteint les autres en quelques secondes. Cela lève aussi la limite de stockage local, ce dont parle l\'avertissement de stockage quand il apparaît, et c\'est ce dont les notes en écriture manuscrite ont besoin pour fonctionner.',
-        'La synchronisation peut être chiffrée de bout en bout, de sorte que même quelqu\'un capable de lire votre base de données ne puisse pas lire vos données. Si vous vous connectez sans cela, vous êtes averti et on vous propose Chiffrer maintenant. Cette phrase secrète est distincte du chiffrement sur l\'appareil : en définir une ne définit pas l\'autre, et un appareil déverrouillant l\'une peut quand même avoir besoin de l\'autre.',
+        'La synchronisation peut être chiffrée de bout en bout, de sorte que même quelqu\'un capable de lire votre base de données ne puisse pas lire vos données. Si vous vous connectez sans cela, vous êtes averti et on vous propose Chiffrer maintenant. Le chiffrement utilise une seule phrase secrète et une seule clé : l\'activer protège les données de cet appareil et, quand la synchronisation est connectée, ce qui est stocké dans Firestore. Le réactiver ici remplace la phrase secrète et la clé existantes au lieu d\'en ajouter une seconde.',
       ],
     },
     collab: {

@@ -151,7 +151,7 @@ export const es = {
       body: [
         'La sincronización en la nube conecta la app a un proyecto de Firebase que es tuyo, así que tus datos están en tu propia cuenta en vez de en el servicio de otra persona. La app te guía en cuatro pasos: crear un proyecto, activar Firestore, copiar la configuración desde los ajustes del proyecto, y pegarla. Comprueba la conexión antes de guardar.',
         'Una vez conectado, un cambio en un dispositivo llega a los demás en segundos. También elimina el límite de almacenamiento local, que es de lo que trata el aviso de almacenamiento cuando aparece, y es lo que necesitan las notas de Canvas para funcionar.',
-        'La sincronización puede cifrarse de extremo a extremo, de modo que ni siquiera alguien capaz de leer tu base de datos pueda leer tus datos. Si te conectas sin ello, se te avisa y se te ofrece Activar el cifrado ahora. Esta contraseña es independiente del cifrado en el dispositivo: fijar una no fija la otra, y un dispositivo que desbloquee una puede seguir necesitando la otra.',
+        'La sincronización puede cifrarse de extremo a extremo, de modo que ni siquiera alguien capaz de leer tu base de datos pueda leer tus datos. Si te conectas sin ello, se te avisa y se te ofrece Activar el cifrado ahora. El cifrado usa una sola contraseña y una sola clave: activarlo protege los datos de este dispositivo y, cuando la sincronización está conectada, también lo que se guarda en Firestore. Volver a activarlo aquí sustituye la contraseña y la clave existentes, en lugar de añadir una segunda.',
       ],
     },
     collab: {
