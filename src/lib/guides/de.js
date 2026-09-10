@@ -151,7 +151,7 @@ export const de = {
       body: [
         'Cloud-Sync verbindet die App mit einem Firebase-Projekt, das dir gehört, sodass deine Daten in deinem eigenen Konto liegen statt im Dienst von jemand anderem. Die App führt dich in vier Schritten durch: ein Projekt erstellen, Firestore aktivieren, die Konfiguration aus den Projekteinstellungen kopieren, und sie einfügen. Sie prüft die Verbindung vor dem Speichern.',
         'Einmal verbunden, erreicht eine Änderung auf einem Gerät die anderen innerhalb von Sekunden. Es hebt auch das lokale Speicherlimit auf, worum es bei der Speicherwarnung geht, wenn sie erscheint, und es ist das, was Notizen mit Handschrift zum Funktionieren brauchen.',
-        'Die Synchronisierung kann Ende-zu-Ende verschlüsselt werden, sodass selbst jemand, der deine Datenbank lesen kann, deine Daten nicht lesen kann. Wenn du dich ohne das verbindest, wirst du gewarnt und dir wird Jetzt verschlüsseln angeboten. Diese Passphrase ist getrennt von der geräteseitigen Verschlüsselung: Eine zu setzen setzt nicht die andere, und ein Gerät, das eine entsperrt, braucht möglicherweise trotzdem die andere.',
+        'Die Synchronisierung kann Ende-zu-Ende verschlüsselt werden, sodass selbst jemand, der deine Datenbank lesen kann, deine Daten nicht lesen kann. Wenn du dich ohne das verbindest, wirst du gewarnt und dir wird Jetzt verschlüsseln angeboten. Die Verschlüsselung nutzt eine Passphrase und einen Schlüssel: Wird sie aktiviert, schützt sie die Daten dieses Geräts und, bei verbundener Synchronisierung, auch das in Firestore Gespeicherte. Ein erneutes Aktivieren hier ersetzt die vorhandene Passphrase und den Schlüssel, statt eine zweite hinzuzufügen.',
       ],
     },
     collab: {

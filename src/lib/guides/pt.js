@@ -151,7 +151,7 @@ export const pt = {
       body: [
         'A sincronização na nuvem liga a app a um projeto Firebase que é teu, por isso os teus dados ficam na tua própria conta em vez de no serviço de outra pessoa. A app guia-te em quatro passos: criar um projeto, ativar o Firestore, copiar a configuração das definições do projeto, e colá-la. Verifica a ligação antes de guardar.',
         'Uma vez ligado, uma alteração num dispositivo chega aos outros em segundos. Também levanta o limite de armazenamento local, que é do que trata o aviso de armazenamento quando aparece, e é o que as notas Canvas precisam para funcionar.',
-        'A sincronização pode ser encriptada de ponta a ponta, para que mesmo alguém capaz de ler a tua base de dados não consiga ler os teus dados. Se ligares sem isso és avisado e é-te oferecido Encriptar agora. Esta palavra-passe é separada da encriptação no dispositivo: definir uma não define a outra, e um dispositivo que desbloqueie uma pode ainda precisar da outra.',
+        'A sincronização pode ser encriptada de ponta a ponta, para que mesmo alguém capaz de ler a tua base de dados não consiga ler os teus dados. Se ligares sem isso és avisado e é-te oferecido Encriptar agora. A encriptação usa uma só palavra-passe e uma só chave: ativá-la protege os dados deste dispositivo e, quando a sincronização está ligada, também o que fica guardado no Firestore. Ativá-la de novo aqui substitui a palavra-passe e a chave existentes, em vez de acrescentar uma segunda.',
       ],
     },
     collab: {

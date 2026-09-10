@@ -151,7 +151,7 @@ export const en = {
       body: [
         'Cloud sync connects the app to a Firebase project you own, so your data sits in your own account rather than someone else\'s service. The app walks you through it in four steps: create a project, enable Firestore, copy the config from project settings, and paste it in. It checks the connection before saving.',
         'Once connected, a change on one device reaches the others within seconds. It also lifts the local storage limit, which is what the storage warning is about when it appears, and it is what canvas notes need in order to work.',
-        'Sync can be end-to-end encrypted so that even someone able to read your database cannot read your data. If you connect without it you are warned and offered Encrypt now. This passphrase is separate from on-device encryption: setting one does not set the other, and a device unlocking one may still need the other.',
+        'Sync can be end-to-end encrypted so that even someone able to read your database cannot read your data. If you connect without it you are warned and offered Encrypt now. Encryption uses one passphrase and one key: turning it on protects the data on this device and, when sync is connected, what is stored in Firestore as well. Enabling it again from here replaces the existing passphrase and key rather than adding a second one.',
       ],
     },
     collab: {
