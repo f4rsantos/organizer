@@ -126,8 +126,13 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
               <div className={cn('flex gap-2 px-1 shrink-0', isBanded && 'md:self-end')} style={isBanded ? { gridRow: -1 } : undefined}>
                 <Input autoFocus className="flex-1 h-8 text-sm" placeholder={t.addCardPlaceholder} value={title}
                   onChange={e => setTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false) }} />
-                <Button size="sm" className="h-8" onClick={handleAdd}>{t.save}</Button>
+                  onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') { setTitle(''); setAdding(false) } }}
+                  onBlur={e => {
+                    if (title.trim()) return
+                    if (e.relatedTarget?.closest?.('[data-add-card-save]')) return
+                    setAdding(false)
+                  }} />
+                <Button size="sm" className="h-8" data-add-card-save onClick={handleAdd}>{t.save}</Button>
               </div>
             )
             : (

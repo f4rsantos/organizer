@@ -9,6 +9,12 @@ const ADD_ID = '__add__'
 const TAB_ICONS = { tasks: CheckSquare, kanban: Kanban, grades: GraduationCap, calendar: CalendarDays, focus: Timer, settings: Settings, notes: StickyNote, [ADD_ID]: Plus }
 const FOLDER_ICONS = { more: MoreHorizontal, folder: Folder, folderOpen: FolderOpen, star: Star, heart: Heart, bookmark: Bookmark, grid: Grid3x3 }
 const DEFAULT_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
+const VISIBLE_ON_BOTH_SURFACES = 'both'
+
+export function isVisibleOnSurface(visibility, id, surface) {
+  const mode = visibility?.[id] ?? VISIBLE_ON_BOTH_SURFACES
+  return mode === VISIBLE_ON_BOTH_SURFACES || mode === surface
+}
 
 export function useNavTabs() {
   const isDesktop = useIsDesktopLayout()
@@ -42,10 +48,7 @@ export function useNavTabs() {
   for (const id of enabledAppIds) if (!DEFAULT_ORDER.includes(id)) insertBeforeSettings(id)
 
   const visibility = navbar?.visibility ?? {}
-  const visibleOn = id => {
-    const mode = visibility[id] ?? 'both'
-    return mode === 'both' || mode === surface
-  }
+  const visibleOn = id => isVisibleOnSurface(visibility, id, surface)
 
   const customNames = navbar?.customNames ?? {}
 
@@ -53,14 +56,8 @@ export function useNavTabs() {
   const build = id => ({ id, label: labelFor(id), icon: TAB_ICONS[id] ?? pluginIcons[id], isAdd: id === ADD_ID })
   const folderById = new Map(folderDefs.map(f => [f.id, f]))
   const folderOf = new Map(folderDefs.flatMap(f => (f.children ?? []).map(id => [id, f.id])))
-  const folderVisibleOn = fid => {
-    const mode = visibility[fid] ?? 'both'
-    return mode === 'both' || mode === surface
-  }
-  // A tab is absorbed by its folder only while that folder is itself visible on
-  // this surface. When the folder is hidden here, its children fall back to
-  // being rendered inline, subject to their own visibility.
-  const inVisibleFolder = id => {
+  const folderVisibleOn = fid => isVisibleOnSurface(visibility, fid, surface)
+  const isAbsorbedByVisibleFolder = id => {
     const fid = folderOf.get(id)
     return fid !== undefined && folderById.has(fid) && folderVisibleOn(fid)
   }
@@ -72,7 +69,7 @@ export function useNavTabs() {
     && !(hideGrades && id === 'grades')
   const visible = order.filter(isVisible)
 
-  const folders = folderDefs.filter(folderVisibleOn).map(f => {
+  const folders = folderDefs.filter(f => folderVisibleOn(f.id)).map(f => {
     const childrenSet = new Set(f.children ?? [])
     const orderedChildren = order.filter(id => childrenSet.has(id))
     const remainingChildren = (f.children ?? []).filter(id => !order.includes(id))
@@ -90,13 +87,13 @@ export function useNavTabs() {
   const items = []
   for (const id of order) {
     if (renderedFolders.has(id)) items.push(renderedFolders.get(id))
-    else if (isVisible(id) && !inVisibleFolder(id)) items.push(build(id))
+    else if (isVisible(id) && !isAbsorbedByVisibleFolder(id)) items.push(build(id))
   }
   for (const f of folders) if (!order.includes(f.id)) items.push(f)
 
   return {
     items,
-    primary: visible.filter(id => !inVisibleFolder(id)).map(build),
+    primary: visible.filter(id => !isAbsorbedByVisibleFolder(id)).map(build),
     folders,
     showAddButton,
     labelMode,
