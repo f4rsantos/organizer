@@ -204,14 +204,17 @@ export function plaintextToDoc(text) {
 function normalizeNavbar(navbar) {
   const n = navbar && typeof navbar === 'object' ? navbar : {}
   const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'habits'])
-  const order = (Array.isArray(n.order) ? n.order : []).filter(id => known.has(id))
+  const rawFolders = Array.isArray(n.folders) ? n.folders : []
+  const folderIds = new Set(rawFolders.map(f => (f && typeof f.id === 'string' ? f.id : null)).filter(Boolean))
+  const knownWithFolders = new Set([...known, ...folderIds])
+  const order = (Array.isArray(n.order) ? n.order : []).filter(id => knownWithFolders.has(id))
   for (const id of DEFAULT_TAB_ORDER) if (!order.includes(id)) order.push(id)
   const legacyHidden = (Array.isArray(n.hidden) ? n.hidden : []).filter(id => known.has(id))
   const rawVis = n.visibility && typeof n.visibility === 'object' ? n.visibility : null
   const visibility = {}
   if (rawVis) {
     for (const [id, v] of Object.entries(rawVis)) {
-      if (known.has(id) && NAV_VISIBILITY_MODES.includes(v) && v !== 'both') visibility[id] = v
+      if (knownWithFolders.has(id) && NAV_VISIBILITY_MODES.includes(v) && v !== 'both') visibility[id] = v
     }
   } else {
     for (const id of legacyHidden) visibility[id] = 'none'
@@ -222,7 +225,7 @@ function normalizeNavbar(navbar) {
   const addButtonLabel = typeof n.addButtonLabel === 'string' ? n.addButtonLabel : ''
   const customNames = n.customNames && typeof n.customNames === 'object' ? n.customNames : {}
   const knownFolderIcons = ['more', 'folder', 'folderOpen', 'star', 'heart', 'bookmark', 'grid']
-  const folders = (Array.isArray(n.folders) ? n.folders : [])
+  const folders = rawFolders
     .map(f => (f && typeof f === 'object' ? {
       id: typeof f.id === 'string' ? f.id : nanoid(),
       label: typeof f.label === 'string' ? f.label : 'Folder',

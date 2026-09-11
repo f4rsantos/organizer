@@ -57,6 +57,9 @@ export function useNavTabs() {
     const mode = visibility[fid] ?? 'both'
     return mode === 'both' || mode === surface
   }
+  // A tab is absorbed by its folder only while that folder is itself visible on
+  // this surface. When the folder is hidden here, its children fall back to
+  // being rendered inline, subject to their own visibility.
   const inVisibleFolder = id => {
     const fid = folderOf.get(id)
     return fid !== undefined && folderById.has(fid) && folderVisibleOn(fid)
