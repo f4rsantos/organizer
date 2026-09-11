@@ -46,12 +46,22 @@ export function useNavTabs() {
     const mode = visibility[id] ?? 'both'
     return mode === 'both' || mode === surface
   }
-  const inFolder = new Set(folderDefs.flatMap(f => f.children ?? []))
 
   const customNames = navbar?.customNames ?? {}
 
   const labelFor = id => (id === ADD_ID ? t.add : (customNames[id] || t[pluginLabelKeys[id] ?? id]))
   const build = id => ({ id, label: labelFor(id), icon: TAB_ICONS[id] ?? pluginIcons[id], isAdd: id === ADD_ID })
+  const folderById = new Map(folderDefs.map(f => [f.id, f]))
+  const folderOf = new Map(folderDefs.flatMap(f => (f.children ?? []).map(id => [id, f.id])))
+  const folderVisibleOn = fid => {
+    const mode = visibility[fid] ?? 'both'
+    return mode === 'both' || mode === surface
+  }
+  const inVisibleFolder = id => {
+    const fid = folderOf.get(id)
+    return fid !== undefined && folderById.has(fid) && folderVisibleOn(fid)
+  }
+
   const isVisible = id =>
     (!optionalTabIds.has(id) || enabledAppIds.has(id))
     && (id !== ADD_ID || showAddButton)
@@ -59,7 +69,7 @@ export function useNavTabs() {
     && !(hideGrades && id === 'grades')
   const visible = order.filter(isVisible)
 
-  const folders = folderDefs.map(f => {
+  const folders = folderDefs.filter(folderVisibleOn).map(f => {
     const childrenSet = new Set(f.children ?? [])
     const orderedChildren = order.filter(id => childrenSet.has(id))
     const remainingChildren = (f.children ?? []).filter(id => !order.includes(id))
@@ -73,8 +83,17 @@ export function useNavTabs() {
     }
   }).filter(f => f.items.length > 0)
 
+  const renderedFolders = new Map(folders.map(f => [f.id, f]))
+  const items = []
+  for (const id of order) {
+    if (renderedFolders.has(id)) items.push(renderedFolders.get(id))
+    else if (isVisible(id) && !inVisibleFolder(id)) items.push(build(id))
+  }
+  for (const f of folders) if (!order.includes(f.id)) items.push(f)
+
   return {
-    primary: visible.filter(id => !inFolder.has(id)).map(build),
+    items,
+    primary: visible.filter(id => !inVisibleFolder(id)).map(build),
     folders,
     showAddButton,
     labelMode,

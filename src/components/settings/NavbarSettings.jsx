@@ -67,11 +67,20 @@ function TabRow({ id, t, visibility, isAdd, folders, folderOf, onCycleVisibility
   )
 }
 
-function FolderRow({ folder, onRename, onSetIcon, onDelete }) {
+function FolderRow({ folder, t, visibility, onRename, onSetIcon, onDelete, onCycleVisibility }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: folder.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
   const iconItems = Object.keys(FOLDER_ICONS).map(k => ({ value: k, label: k }))
   const FIcon = FOLDER_ICONS[folder.icon] ?? FOLDER_ICONS.folder
+  const VisIcon = VIS_ICONS[visibility] ?? Eye
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5">
+    <li ref={setNodeRef} style={style}
+      className={cn('flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5 bg-card',
+        visibility !== 'both' && 'opacity-60', visibility === 'none' && 'opacity-40', isDragging && 'shadow-lg z-10')}>
+      <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+        {...attributes} {...listeners} title={t.navDrag}>
+        <GripVertical className="h-4 w-4" />
+      </button>
       <FIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <Input value={folder.label} className="h-7 flex-1 text-sm" onChange={e => onRename(folder.id, e.target.value)} />
       <Select value={folder.icon ?? 'folder'} onValueChange={v => onSetIcon(folder.id, v)} items={iconItems}>
@@ -80,18 +89,22 @@ function FolderRow({ folder, onRename, onSetIcon, onDelete }) {
           {iconItems.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
+      <button title={t[VIS_LABEL_KEYS[visibility]] ?? t.navHide} onClick={() => onCycleVisibility(folder.id)}
+        className={cn('rounded p-1.5 transition-colors',
+          visibility === 'none' ? 'text-muted-foreground/50 hover:text-muted-foreground' : 'text-muted-foreground hover:text-foreground')}>
+        <VisIcon className="h-4 w-4" />
+      </button>
       <button onClick={() => onDelete(folder.id)} className="text-muted-foreground hover:text-destructive">
         <X className="h-4 w-4" />
       </button>
-    </div>
+    </li>
   )
 }
 
-function buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds) {
+function buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds, folders) {
+  const folderIds = new Set(folders.map(f => f.id))
   let order = navbar.order?.length ? [...navbar.order] : [...DEFAULT_ORDER]
-  // Every app-backed tab drops out of the list while its app is off, matching
-  // useNavTabs' isVisible. Core tabs are never optional and always stay.
-  order = order.filter(id => !optionalTabIds.has(id) || enabledAppIds.has(id))
+  order = order.filter(id => folderIds.has(id) || !optionalTabIds.has(id) || enabledAppIds.has(id))
   const insert = id => {
     if (order.includes(id)) return
     const i = order.indexOf('settings')
@@ -101,6 +114,7 @@ function buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds) {
   if (showAddButton) insert(ADD_ID)
   else if (order.includes(ADD_ID)) order.splice(order.indexOf(ADD_ID), 1)
   for (const id of enabledAppIds) insert(id)
+  for (const f of folders) insert(f.id)
   return order
 }
 
@@ -119,10 +133,11 @@ export function NavbarSettings() {
 
   const showAddButton = Boolean(navbar.showAddButton)
   const labelMode = navbar.labelMode ?? 'both'
-  const order = buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds)
+  const folders = Array.isArray(navbar.folders) ? navbar.folders : []
+  const folderById = new Map(folders.map(f => [f.id, f]))
+  const order = buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds, folders)
   const visibility = navbar.visibility ?? {}
   const visibilityOf = id => visibility[id] ?? 'both'
-  const folders = Array.isArray(navbar.folders) ? navbar.folders : []
   const folderOf = id => folders.find(f => (f.children ?? []).includes(id))?.id ?? null
 
   const save = patch => updateSettings({ navbar: { ...navbar, order, visibility, labelMode, mobilePosition: navbar.mobilePosition ?? 'bottom', addAction: navbar.addAction ?? 'task', folders, ...patch } })
@@ -155,7 +170,11 @@ export function NavbarSettings() {
   const addFolder = () => save({ folders: [...folders, { id: 'folder_' + nanoid(), label: t.navMore, icon: 'more', children: [] }] })
   const renameFolder = (fid, label) => save({ folders: folders.map(f => f.id === fid ? { ...f, label } : f) })
   const setFolderIcon = (fid, icon) => save({ folders: folders.map(f => f.id === fid ? { ...f, icon } : f) })
-  const deleteFolder = fid => save({ folders: folders.filter(f => f.id !== fid) })
+  const deleteFolder = fid => save({
+    folders: folders.filter(f => f.id !== fid),
+    order: order.filter(id => id !== fid),
+    visibility: (() => { const map = { ...visibility }; delete map[fid]; return map })(),
+  })
   const assignFolder = (tabId, fid) => save({
     folders: folders.map(f => ({
       ...f,
@@ -199,34 +218,32 @@ export function NavbarSettings() {
         </Select>
       </div>
 
+      <div className="flex items-center justify-between">
+        <Label>{t.navFolders}</Label>
+        <button onClick={addFolder} className="flex items-center gap-1 text-xs text-primary hover:underline">
+          <FolderPlus className="h-3.5 w-3.5" /> {t.navNewFolder}
+        </button>
+      </div>
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
           <ul className="space-y-1.5">
             {order.map(id => (
-              <TabRow key={id} id={id} t={t} isAdd={id === ADD_ID}
-                visibility={visibilityOf(id)}
-                icon={appIcons[id]} labelKey={appLabelKeys[id]}
-                customName={navbar.customNames?.[id]} onRename={renameTab}
-                folders={folders} folderOf={folderOf(id)} onAssignFolder={assignFolder}
-                onCycleVisibility={cycleVisibility} />
+              folderById.has(id)
+                ? <FolderRow key={id} folder={folderById.get(id)} t={t}
+                    visibility={visibilityOf(id)}
+                    onRename={renameFolder} onSetIcon={setFolderIcon} onDelete={deleteFolder}
+                    onCycleVisibility={cycleVisibility} />
+                : <TabRow key={id} id={id} t={t} isAdd={id === ADD_ID}
+                    visibility={visibilityOf(id)}
+                    icon={appIcons[id]} labelKey={appLabelKeys[id]}
+                    customName={navbar.customNames?.[id]} onRename={renameTab}
+                    folders={folders} folderOf={folderOf(id)} onAssignFolder={assignFolder}
+                    onCycleVisibility={cycleVisibility} />
             ))}
           </ul>
         </SortableContext>
       </DndContext>
-
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label>{t.navFolders}</Label>
-          <button onClick={addFolder} className="flex items-center gap-1 text-xs text-primary hover:underline">
-            <FolderPlus className="h-3.5 w-3.5" /> {t.navNewFolder}
-          </button>
-        </div>
-        {folders.map(f => (
-          <FolderRow key={f.id} folder={f} onRename={renameFolder} onSetIcon={setFolderIcon} onDelete={deleteFolder} />
-        ))}
-      </div>
-
-
     </div>
   )
 }
