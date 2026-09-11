@@ -9,7 +9,7 @@ export {
 
 export {
   WHOLE_STATE, aadForLocalSlice, aadForPersonalSlice, aadForTeamSlice,
-  aadForExport, aadForShare, aadForWrap,
+  aadForExport, aadForShare, aadForWrap, aadForNotePresence,
 } from './aad'
 
 export {
