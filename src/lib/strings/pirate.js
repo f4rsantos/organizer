@@ -9,6 +9,7 @@ export const pirate = {
   addTask: 'New chore', task: 'Chore', class: 'Crew', priority: 'Rank',
   editTask: 'Amend chore', moveLeft: 'Haul larboard', moveRight: 'Haul starboard', markDone: 'Mark plundered',
   calendarCreateNote: 'Scrawl a bound log', calendarOpenNote: 'Unfurl the bound log',
+  calendarDayEmpty: 'Naught be chartered fer this day.',
   calendarNowColor: 'Line o’ the now', calendarNowColorDesc: 'Colour o the line markin this very moment in day an week views.',
   calendarColors: 'Chart colours',
   weekStartDay: 'First day o\' the week',

@@ -9,6 +9,7 @@ export const de = {
     addTask: 'Neue Aufgabe', task: 'Aufgabe', class: 'Fach', priority: 'Priorität',
     editTask: 'Aufgabe bearbeiten', moveLeft: 'Nach links', moveRight: 'Nach rechts', markDone: 'Als erledigt markieren',
     calendarCreateNote: 'Verknüpfte Notiz erstellen', calendarOpenNote: 'Verknüpfte Notiz öffnen',
+    calendarDayEmpty: 'Nichts an diesem Tag.',
     calendarNowColor: 'Aktuelle Zeitlinie', calendarNowColorDesc: 'Farbe der Linie, die das Jetzt in Tages- und Wochenansicht markiert.',
     calendarColors: 'Kalenderfarben',
     weekStartDay: 'Erster Wochentag',

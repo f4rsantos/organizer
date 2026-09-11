@@ -11,6 +11,7 @@ export const en = {
     addTask: 'New task', task: 'Task', class: 'Class', priority: 'Priority',
     editTask: 'Edit task', moveLeft: 'Move left', moveRight: 'Move right', markDone: 'Mark done',
     calendarCreateNote: 'Create linked note', calendarOpenNote: 'Open linked note',
+    calendarDayEmpty: 'Nothing on this day.',
     calendarNowColor: 'Current time line', calendarNowColorDesc: 'Colour of the line marking now in day and week views.',
     calendarColors: 'Calendar colors',
     weekStartDay: 'First day of week',
