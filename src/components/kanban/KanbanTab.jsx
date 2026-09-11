@@ -6,12 +6,8 @@ import { KanbanBoard } from "./KanbanBoard";
 import { KanbanBoardSkeleton } from "./KanbanBoardSkeleton";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { MultiSelectFilter, MultiSelectItem } from "./MultiSelectFilter";
+import { ALL_VALUE } from "@/lib/multiSelectFilter";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
 import { useCollabActions } from "@/hooks/useCollabActions";
 import { getMemberList } from "@/lib/collab/teamColors";
@@ -88,48 +84,86 @@ export function KanbanTab() {
     return [...memberMap.values()];
   }, [collabEnabled, memberships, runtimeTeams, selfUserIds]);
 
-  const [filterClass, setFilterClass] = useState("all");
-  const [filterTeam, setFilterTeam] = useState("all");
-  const [filterAssignee, setFilterAssignee] = useState("all");
+  const [filterClass, setFilterClass] = useState([ALL_VALUE]);
+  const [filterTeam, setFilterTeam] = useState([ALL_VALUE]);
+  const [filterAssignee, setFilterAssignee] = useState([ALL_VALUE]);
 
-  const hasActiveFilters =
-    filterClass !== "all" || filterTeam !== "all" || filterAssignee !== "all";
+  const classAll = filterClass.includes(ALL_VALUE);
+  const teamAll = filterTeam.includes(ALL_VALUE);
+  const assigneeAll = filterAssignee.includes(ALL_VALUE);
+
+  const buildLabel = (values, allLabel, resolve) => {
+    if (!values.length) return allLabel;
+    if (values.length === 1) return resolve(values[0]);
+    const template = t.kanbanFilterCount ?? "{n} selected";
+    return template.replace("{n}", String(values.length));
+  };
+
+  const teamLabel = teamAll
+    ? t.kanbanAllTeams
+    : buildLabel(filterTeam, t.kanbanAllTeams, (value) =>
+        value === "__personal__"
+          ? (t.collabPersonal ?? "Personal")
+          : (teams.find((tm) => tm.teamId === value)?.name ??
+            t.kanbanFilterTeam),
+      );
+
+  const assigneeLabel = assigneeAll
+    ? t.kanbanAllAssignees
+    : buildLabel(filterAssignee, t.kanbanAllAssignees, (value) => {
+        if (value === "__me__") return t.collabMe ?? "Me";
+        if (value === "__unassigned__") return t.collabUnassigned ?? "Unassigned";
+        return (
+          allMembers.find((m) => m.userId === value)?.alias ??
+          (t.collabRoleMember ?? "Member")
+        );
+      });
+
+  const classLabel = classAll
+    ? t.kanbanAllClasses
+    : buildLabel(filterClass, t.kanbanAllClasses, (value) =>
+        value === "__none__"
+          ? (t.kanbanNoClass ?? "No class")
+          : (classes.find((c) => c.id === value)?.name ?? t.kanbanFilterClass),
+      );
+
+  const hasActiveFilters = !classAll || !teamAll || !assigneeAll;
   const resetFilters = () => {
-    setFilterClass("all");
-    setFilterTeam("all");
-    setFilterAssignee("all");
+    setFilterClass([ALL_VALUE]);
+    setFilterTeam([ALL_VALUE]);
+    setFilterAssignee([ALL_VALUE]);
   };
 
   const filteredBoard = useMemo(() => {
     const cards = (board?.cards ?? []).filter((card) => {
-      if (filterClass !== "all") {
-        if (filterClass === "__none__") {
-          if (card.classId || card.className) return false;
-        } else {
-          if (card.classId !== filterClass && card.className !== filterClass)
-            return false;
-        }
+      if (!classAll) {
+        const matches = filterClass.some((value) =>
+          value === "__none__"
+            ? !card.classId && !card.className
+            : card.classId === value || card.className === value,
+        );
+        if (!matches) return false;
       }
 
-      if (filterTeam !== "all") {
+      if (!teamAll) {
         const teamId =
           card.sharedMeta?.teamId ?? card.sharedRef?.teamId ?? null;
-        if (filterTeam === "__personal__") {
-          if (teamId !== null) return false;
-        } else {
-          if (teamId !== filterTeam) return false;
-        }
+        const matches = filterTeam.some((value) =>
+          value === "__personal__" ? teamId === null : teamId === value,
+        );
+        if (!matches) return false;
       }
 
-      if (filterAssignee !== "all") {
+      if (!assigneeAll) {
         const isPersonal = !card.sharedMeta?.remote && !card.sharedRef?.teamId;
-        if (filterAssignee === "__me__") {
-          if (!isPersonal && !selfUserIds.has(card.assigneeUserId)) return false;
-        } else if (filterAssignee === "__unassigned__") {
-          if (isPersonal || card.assigneeUserId) return false;
-        } else {
-          if (card.assigneeUserId !== filterAssignee) return false;
-        }
+        const matches = filterAssignee.some((value) => {
+          if (value === "__me__")
+            return isPersonal || selfUserIds.has(card.assigneeUserId);
+          if (value === "__unassigned__")
+            return !isPersonal && !card.assigneeUserId;
+          return card.assigneeUserId === value;
+        });
+        if (!matches) return false;
       }
 
       return true;
@@ -139,7 +173,16 @@ export function KanbanTab() {
       columns: board?.columns ?? [],
       cards,
     };
-  }, [board, filterClass, filterTeam, filterAssignee, selfUserIds]);
+  }, [
+    board,
+    filterClass,
+    filterTeam,
+    filterAssignee,
+    classAll,
+    teamAll,
+    assigneeAll,
+    selfUserIds,
+  ]);
 
   useEffect(() => {
     if (hydrated && noneMode && !localBoard?.columns?.length)
@@ -177,111 +220,78 @@ export function KanbanTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0 px-4">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           {teams.length > 0 && (
-            <Select value={filterTeam} onValueChange={setFilterTeam}>
-              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
-                <Users className="h-3 w-3 text-muted-foreground shrink-0" />
-                <span className="truncate">
-                  {filterTeam === "all" && t.kanbanAllTeams}
-                  {filterTeam === "__personal__" &&
-                    (t.collabPersonal ?? "Personal")}
-                  {filterTeam !== "all" &&
-                    filterTeam !== "__personal__" &&
-                    (teams.find((tm) => tm.teamId === filterTeam)?.name ??
-                      t.kanbanFilterTeam)}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.kanbanAllTeams}</SelectItem>
-                <SelectItem value="__personal__">
-                  {t.collabPersonal ?? "Personal"}
-                </SelectItem>
-                {teams.map((team) => (
-                  <SelectItem key={team.teamId} value={team.teamId}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              value={filterTeam}
+              onValueChange={setFilterTeam}
+              icon={Users}
+              label={teamLabel}
+              className="sm:min-w-[110px]"
+            >
+              <MultiSelectItem value={ALL_VALUE}>
+                {t.kanbanAllTeams}
+              </MultiSelectItem>
+              <MultiSelectItem value="__personal__">
+                {t.collabPersonal ?? "Personal"}
+              </MultiSelectItem>
+              {teams.map((team) => (
+                <MultiSelectItem key={team.teamId} value={team.teamId}>
+                  {team.name}
+                </MultiSelectItem>
+              ))}
+            </MultiSelectFilter>
           )}
 
           {collabEnabled && memberships.length > 0 && (
-            <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[120px] bg-secondary/30 gap-1">
-                <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                <span className="truncate">
-                  {filterAssignee === "all" && t.kanbanAllAssignees}
-                  {filterAssignee === "__unassigned__" &&
-                    (t.collabUnassigned ?? "Unassigned")}
-                  {filterAssignee === "__me__" && (t.collabMe ?? "Me")}
-                  {filterAssignee !== "all" &&
-                    filterAssignee !== "__unassigned__" &&
-                    filterAssignee !== "__me__" && (
-                      <span className="flex items-center gap-1.5">
-                        {allMembers.find(
-                          (m) => m.userId === filterAssignee,
-                        ) && (
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{
-                              backgroundColor: allMembers.find(
-                                (m) => m.userId === filterAssignee,
-                              )?.color,
-                            }}
-                          />
-                        )}
-                        {allMembers.find((m) => m.userId === filterAssignee)
-                          ?.alias || (t.collabRoleMember ?? "Member")}
-                      </span>
-                    )}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.kanbanAllAssignees}</SelectItem>
-                <SelectItem value="__me__">{t.collabMe ?? "Me"}</SelectItem>
-                <SelectItem value="__unassigned__">
-                  {t.collabUnassigned ?? "Unassigned"}
-                </SelectItem>
-                {allMembers.map((member) => (
-                  <SelectItem key={member.userId} value={member.userId}>
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: member.color }}
-                      />
-                      {member.alias || (t.collabRoleMember ?? "Member")}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              value={filterAssignee}
+              onValueChange={setFilterAssignee}
+              icon={User}
+              label={assigneeLabel}
+              className="sm:min-w-[120px]"
+            >
+              <MultiSelectItem value={ALL_VALUE}>
+                {t.kanbanAllAssignees}
+              </MultiSelectItem>
+              <MultiSelectItem value="__me__">
+                {t.collabMe ?? "Me"}
+              </MultiSelectItem>
+              <MultiSelectItem value="__unassigned__">
+                {t.collabUnassigned ?? "Unassigned"}
+              </MultiSelectItem>
+              {allMembers.map((member) => (
+                <MultiSelectItem key={member.userId} value={member.userId}>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: member.color }}
+                    />
+                    {member.alias || (t.collabRoleMember ?? "Member")}
+                  </span>
+                </MultiSelectItem>
+              ))}
+            </MultiSelectFilter>
           )}
 
           {classes.length > 0 && (
-            <Select value={filterClass} onValueChange={setFilterClass}>
-              <SelectTrigger className="!h-7 text-xs w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[110px] bg-secondary/30 gap-1">
-                <BookOpen className="h-3 w-3 text-muted-foreground shrink-0" />
-                <span className="truncate">
-                  {filterClass === "all" && t.kanbanAllClasses}
-                  {filterClass === "__none__" &&
-                    (t.kanbanNoClass ?? "No class")}
-                  {filterClass !== "all" &&
-                    filterClass !== "__none__" &&
-                    (classes.find((c) => c.id === filterClass)?.name ??
-                      t.kanbanFilterClass)}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.kanbanAllClasses}</SelectItem>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__none__">
-                  {t.kanbanNoClass ?? "No class"}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              value={filterClass}
+              onValueChange={setFilterClass}
+              icon={BookOpen}
+              label={classLabel}
+              className="sm:min-w-[110px]"
+            >
+              <MultiSelectItem value={ALL_VALUE}>
+                {t.kanbanAllClasses}
+              </MultiSelectItem>
+              {classes.map((cls) => (
+                <MultiSelectItem key={cls.id} value={cls.id}>
+                  {cls.name}
+                </MultiSelectItem>
+              ))}
+              <MultiSelectItem value="__none__">
+                {t.kanbanNoClass ?? "No class"}
+              </MultiSelectItem>
+            </MultiSelectFilter>
           )}
 
           {hasActiveFilters && (
