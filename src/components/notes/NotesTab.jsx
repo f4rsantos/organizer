@@ -4,6 +4,8 @@ import { DndContext, DragOverlay, closestCenter, PointerSensor, TouchSensor, use
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
+import { useMergedNotes } from '@/hooks/useMergedNotes'
+import { useCollabActions } from '@/hooks/useCollabActions'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -23,7 +25,8 @@ import {
 export function NotesTab() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const notes = useStore(s => s.notes ?? EMPTY)
+  const notes = useMergedNotes()
+  const { getTeamName } = useCollabActions()
   const folders = useStore(s => s.noteFolders ?? EMPTY)
   const addNote = useStore(s => s.addNote)
   const addNoteFolder = useStore(s => s.addNoteFolder)
@@ -33,6 +36,7 @@ export function NotesTab() {
   const moveNoteFolder = useStore(s => s.moveNoteFolder)
   const renameNoteFolder = useStore(s => s.renameNoteFolder)
   const deleteNoteFolder = useStore(s => s.deleteNoteFolder)
+  const deleteNote = useStore(s => s.deleteNote)
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -74,6 +78,14 @@ export function NotesTab() {
     addNote({ id, kind, folderId })
     setNavDirection('next')
     setSelectedId(id)
+  }
+
+  const isRemoteNote = id => notes.find(n => n.id === id)?.sharedMeta?.remote === true
+
+  const handleDeleteNote = id => {
+    if (isRemoteNote(id)) return
+    if (selectedId === id) setSelectedId(null)
+    deleteNote(id)
   }
 
   const deleteMosaicFolder = id => {
@@ -232,6 +244,7 @@ export function NotesTab() {
     folderEntryRef.current = {}
 
     if (!over || over.id === active.id) return
+    if (isRemoteNote(active.id)) return
     const activeType = active.data?.current?.type
     const overData = over.data?.current ?? {}
     const overId = String(over.id)
@@ -361,7 +374,7 @@ export function NotesTab() {
           {showArchived ? (
             <div>
               {filtered.length > 0 ? (
-                <NoteGrid notes={filtered.slice().sort(noteOrder)} folders={EMPTY} selectedId={selectedId} onSelect={handleSelectNote} t={t} flat={true} />
+                <NoteGrid notes={filtered.slice().sort(noteOrder)} folders={EMPTY} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} t={t} flat={true} teamNameFor={getTeamName} />
               ) : (
                 <div className="py-8">
                   <EmptyState icon={Archive} title={t.notesArchivedEmpty} />
@@ -371,10 +384,10 @@ export function NotesTab() {
           ) : (
             <>
               <DndContext sensors={sensors} collisionDetection={mosaicCollision} onDragStart={onDragStart} onDragMove={onDragMove} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} t={t}
+                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} t={t}
                   currentFolderId={mosaicFolderId} onOpenFolder={setMosaicFolderId}
                   flat={searching} noteCountFor={noteCountFor} onRenameFolder={renameNoteFolder}
-                  onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} />
+                  onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} teamNameFor={getTeamName} />
                 <DragOverlay dropAnimation={dropOverlayConfig}>
                   {activeDrag ? (
                     <DragOverlayItem item={activeItemData} count={noteCountFor(activeDrag.id)} width={activeDrag?.width} height={activeDrag?.height} t={t} />
@@ -410,8 +423,6 @@ export function NotesTab() {
               onNext={handleNext}
               hasPrev={hasPrev}
               hasNext={hasNext}
-              currentIndex={currentIndex}
-              totalCount={activeNoteList.length}
               folderName={selectedFolder}
               onBack={() => setSelectedId(null)}
             />
