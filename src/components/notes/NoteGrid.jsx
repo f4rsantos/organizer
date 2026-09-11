@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Star, FileText, Pencil, ChevronRight, ChevronLeft, ChevronUp, X, Folder } from 'lucide-react'
+import { Star, FileText, Pencil, ChevronRight, ChevronLeft, ChevronUp, X, Folder, Users } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -228,10 +228,11 @@ function FolderTile({ folder, count, onOpen, onRename, onDelete, dragHover, t })
   )
 }
 
-function NoteTile({ note, selected, onSelect, folderLabel, draggable, t }) {
+function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, draggable, t }) {
   const KindIcon = note.kind === 'canvas' ? Pencil : FileText
+  const isSharedRemote = Boolean(note.sharedMeta?.remote)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: note.id, data: { type: 'note', note }, disabled: !draggable,
+    id: note.id, data: { type: 'note', note }, disabled: !draggable || isSharedRemote,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -240,7 +241,7 @@ function NoteTile({ note, selected, onSelect, folderLabel, draggable, t }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={cn('relative h-36 transition-all duration-200',
+    <div ref={setNodeRef} style={style} className={cn('group relative h-36 transition-all duration-200',
       isDragging && 'opacity-25 border-2 border-dashed border-border rounded-xl')}>
       <button onClick={() => !isDragging && onSelect(note.id)}
       {...(draggable ? attributes : {})} {...(draggable ? listeners : {})}
@@ -253,26 +254,40 @@ function NoteTile({ note, selected, onSelect, folderLabel, draggable, t }) {
       <span className="flex items-center gap-1.5">
         <KindIcon className="h-3 w-3 shrink-0 text-muted-foreground/50" />
         <span className="flex-1 truncate text-sm font-medium">{note.title || t.notesNew}</span>
+        {isSharedRemote && <Users className="h-3 w-3 shrink-0 text-muted-foreground/60" />}
         {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
       </span>
       <span className="line-clamp-4 flex-1 overflow-hidden text-xs leading-relaxed text-muted-foreground/70">
         {note.body?.trim()}
       </span>
-      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
-        {folderLabel && <span className="truncate rounded bg-secondary px-1 py-0.5">{folderLabel}</span>}
-        <span className="ml-auto shrink-0 whitespace-nowrap">
+      <span className="flex items-center gap-1.5 pr-6 text-[10px] text-muted-foreground/50">
+        <span className="shrink-0 whitespace-nowrap">
           {formatDistanceToNow(note.updatedAt, { addSuffix: true })}
         </span>
+        {teamLabel && <span className="truncate rounded bg-secondary px-1 py-0.5">{teamLabel}</span>}
+        {folderLabel && <span className="truncate rounded bg-secondary px-1 py-0.5">{folderLabel}</span>}
       </span>
       </button>
+      {!isSharedRemote && (
+      <button
+        type="button"
+        title={t.notesDeleteNote}
+        aria-label={t.notesDeleteNote}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onDelete?.(note.id) }}
+        className="absolute bottom-3 right-3 z-10 rounded p-1 opacity-0 group-hover:opacity-100 touch:opacity-100 hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-[opacity,background-color,color]"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      )}
     </div>
   )
 }
 
 export function NoteGrid({
-  notes, folders, selectedId, onSelect, t,
+  notes, folders, selectedId, onSelect, onDeleteNote, t,
   currentFolderId = null, onOpenFolder, flat = false, noteCountFor, onRenameFolder, onDeleteFolder,
-  dragHover = null,
+  dragHover = null, teamNameFor,
 }) {
   const { active } = useDndContext()
   const folderName = id => folders.find(f => f.id === id)?.name
@@ -308,7 +323,9 @@ export function NoteGrid({
                 note={item}
                 selected={selectedId === item.id}
                 onSelect={onSelect}
+                onDelete={onDeleteNote}
                 folderLabel={flat ? folderName(item.folderId) : null}
+                teamLabel={item.sharedMeta?.teamId ? teamNameFor?.(item.sharedMeta.teamId) : null}
                 draggable={!flat}
                 t={t}
               />
