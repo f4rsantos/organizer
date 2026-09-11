@@ -9,6 +9,7 @@ export const cs = {
     addTask: 'Nový úkol', task: 'Úkol', class: 'Předmět', priority: 'Priorita',
     editTask: 'Upravit úkol', moveLeft: 'Posunout vlevo', moveRight: 'Posunout vpravo', markDone: 'Označit hotové',
     calendarCreateNote: "Vytvořit propojenou poznámku", calendarOpenNote: "Otevřít propojenou poznámku",
+    calendarDayEmpty: "Tento den nic není.",
     calendarNowColor: "Čára aktuálního času", calendarNowColorDesc: "Barva čáry označující teď v denním a týdenním zobrazení.",
     calendarColors: "Barvy kalendáře",
     weekStartDay: "První den týdne",

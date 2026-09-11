@@ -10,6 +10,7 @@ export const af = {
     addTask: 'Nuwe taak', task: 'Taak', class: 'Klas', priority: 'Prioriteit',
     editTask: 'Wysig taak', moveLeft: 'Skuif links', moveRight: 'Skuif regs', markDone: 'Merk klaar',
     calendarCreateNote: 'Skep gekoppelde nota', calendarOpenNote: 'Open gekoppelde nota',
+    calendarDayEmpty: 'Niks op hierdie dag nie.',
     calendarNowColor: 'Huidige tydlyn', calendarNowColorDesc: 'Kleur van die lyn wat nou merk in dag- en weekaansigte.',
     calendarColors: 'Kalenderkleure',
     weekStartDay: 'Eerste dag van die week',

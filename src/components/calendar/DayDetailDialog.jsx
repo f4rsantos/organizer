@@ -69,22 +69,22 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
             )
             const shareable = canShare && onShareEvent && !e.sharedMeta && !e.sharedRef
             return (
-              <div key={e.id} className="flex items-stretch gap-1">
+              <div key={e.id} className="flex items-stretch gap-1 rounded-sm overflow-hidden" style={style}>
                 <button onClick={() => onEditEvent(e)}
-                  className="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-sm text-left transition-opacity hover:opacity-80" style={style}>
+                  className="flex-1 min-w-0 text-xs px-2 py-1.5 text-left transition-opacity hover:opacity-80">
                   <span className="font-medium">{e.title}</span>
                   {e.note ? <span className="block opacity-70">{e.note}</span> : null}
                 </button>
                 {showNoteButton && (
                   <button onClick={() => openNote(e)}
                     title={hasNote(e) ? t.calendarOpenNote : t.calendarCreateNote}
-                    className={`shrink-0 flex items-center px-1.5 transition-colors ${hasNote(e) ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                    className={`shrink-0 flex items-center px-1.5 transition-opacity hover:opacity-80 ${hasNote(e) ? '' : 'opacity-60'}`}>
                     <StickyNote className="h-3.5 w-3.5" />
                   </button>
                 )}
                 {shareable && (
                   <button onClick={() => onShareEvent(e)} title={t.collabShareEvent}
-                    className="shrink-0 flex items-center px-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                    className="shrink-0 flex items-center px-1.5 opacity-60 transition-opacity hover:opacity-100">
                     <Share2 className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -109,7 +109,7 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
             )
           })}
           {!holidays.length && !events.length && !tasks.length && (
-            <p className="text-xs text-muted-foreground py-2">—</p>
+            <p className="text-xs text-muted-foreground py-2">{t.calendarDayEmpty}</p>
           )}
         </div>
         <Button size="sm" className="gap-1 self-start" onClick={onAddEvent}>

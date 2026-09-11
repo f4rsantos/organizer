@@ -9,6 +9,7 @@ export const pt = {
     addTask: 'Nova tarefa', task: 'Tarefa', class: 'Disciplina', priority: 'Prioridade',
     editTask: 'Editar tarefa', moveLeft: 'Mover para a esquerda', moveRight: 'Mover para a direita', markDone: 'Marcar como feito',
     calendarCreateNote: "Criar nota ligada", calendarOpenNote: "Abrir nota ligada",
+    calendarDayEmpty: "Nada neste dia.",
     calendarNowColor: "Linha da hora atual", calendarNowColorDesc: "Cor da linha que marca o agora nas vistas de dia e semana.",
     calendarColors: "Cores do calendário",
     weekStartDay: "Primeiro dia da semana",
