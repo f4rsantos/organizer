@@ -87,9 +87,11 @@ function FolderRow({ folder, onRename, onSetIcon, onDelete }) {
   )
 }
 
-function buildOrder(navbar, showAddButton, enabledAppIds) {
+function buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds) {
   let order = navbar.order?.length ? [...navbar.order] : [...DEFAULT_ORDER]
-  order = order.filter(id => id === 'notes' ? enabledAppIds.has(id) : true)
+  // Every app-backed tab drops out of the list while its app is off, matching
+  // useNavTabs' isVisible. Core tabs are never optional and always stay.
+  order = order.filter(id => !optionalTabIds.has(id) || enabledAppIds.has(id))
   const insert = id => {
     if (order.includes(id)) return
     const i = order.indexOf('settings')
@@ -98,10 +100,7 @@ function buildOrder(navbar, showAddButton, enabledAppIds) {
   }
   if (showAddButton) insert(ADD_ID)
   else if (order.includes(ADD_ID)) order.splice(order.indexOf(ADD_ID), 1)
-  for (const id of enabledAppIds) {
-    if (!DEFAULT_ORDER.includes(id)) insert(id)
-    else insert(id)
-  }
+  for (const id of enabledAppIds) insert(id)
   return order
 }
 
@@ -113,13 +112,14 @@ export function NavbarSettings() {
   const updateSettings = useStore(s => s.updateSettings)
 
   const appTabs = getAppTabs()
+  const optionalTabIds = new Set(appTabs.map(pt => pt.id))
   const enabledAppIds = new Set(appTabs.filter(pt => getAppById(pt.id)?.isEnabled(state)).map(pt => pt.id))
   const appIcons = Object.fromEntries(appTabs.map(pt => [pt.id, getAppById(pt.id)?.icon]))
   const appLabelKeys = Object.fromEntries(appTabs.map(pt => [pt.id, getAppById(pt.id)?.labelKey ?? pt.id]))
 
   const showAddButton = Boolean(navbar.showAddButton)
   const labelMode = navbar.labelMode ?? 'both'
-  const order = buildOrder(navbar, showAddButton, enabledAppIds)
+  const order = buildOrder(navbar, showAddButton, enabledAppIds, optionalTabIds)
   const visibility = navbar.visibility ?? {}
   const visibilityOf = id => visibility[id] ?? 'both'
   const folders = Array.isArray(navbar.folders) ? navbar.folders : []
