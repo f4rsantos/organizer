@@ -29,6 +29,15 @@ export const MathGraph = Node.create({
         parseHTML: element => element.getAttribute('data-align') ?? 'center',
         renderHTML: attributes => ({ 'data-align': attributes.align }),
       },
+      float: {
+        default: 'none',
+        parseHTML: element => {
+          const raw = element.getAttribute('data-float')
+          return raw === 'left' || raw === 'right' ? raw : 'none'
+        },
+        renderHTML: attributes => ({ 'data-float': attributes.float }),
+      },
+      offsetX: numberAttribute('offset-x', 0),
     }
   },
 

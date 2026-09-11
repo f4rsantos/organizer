@@ -668,9 +668,9 @@ export const useStore = create((set, get) => ({
       return acc
     }, []),
   })),
-  clearKanbanCardSharedRef: (sharedCardId) => set(s => persist({
+  deleteKanbanCardBySharedRef: (sharedCardId) => set(s => persist({
     ...s,
-    tasks: s.tasks.map(t => t?.sharedRef?.sharedCardId === sharedCardId ? { ...t, sharedRef: null } : t),
+    tasks: s.tasks.filter(t => t?.sharedRef?.sharedCardId !== sharedCardId),
   })),
   clearKanbanDone: semId => set(s => {
     const board = s.kanban[semId]
@@ -830,6 +830,86 @@ export const useStore = create((set, get) => ({
       },
     }
   }),
+  shareNoteToTeam: async (noteId, teamId) => {
+    const state = get()
+    const note = (state.notes ?? []).find(n => n.id === noteId)
+    const membership = (state.collab?.memberships ?? []).find(m => m.teamId === teamId)
+    const team = state.collabRuntime?.teams?.[teamId]
+    if (!note || !membership || !team) return null
+    if (team.syncStatus === 'device-unlinked') return null
+    if (team.hostPersonId !== state.collab?.userId && team.membersCanEditShared === false) return null
+
+    const { sharedNoteSchema } = await import('@/lib/collab/noteSchema')
+    const { buildSharedNoteFromLocalNote, checkSharedNotesBudget } = await import('@/lib/collab/noteDoc')
+    const { updateTeamState } = await import('@/lib/collab/firebase')
+    const { classifyCollabError } = await import('@/lib/collab/errors')
+
+    const sharedNote = buildSharedNoteFromLocalNote({
+      note,
+      schema: sharedNoteSchema(),
+      sharedNoteId: nanoid(),
+      createdBy: state.collab?.userId ?? null,
+    })
+
+    const budget = checkSharedNotesBudget(team.state?.notes, sharedNote)
+    if (!budget.withinBudget) {
+      get().setCollabError(teamId, 'note-too-large', 'note-too-large')
+      return null
+    }
+
+    const addNoteToState = teamState => {
+      const notes = (teamState?.notes ?? []).filter(n => n?.id !== sharedNote.id)
+      if (!checkSharedNotesBudget(notes, sharedNote).withinBudget) throw new Error('note-too-large')
+      return { ...teamState, notes: [...notes, sharedNote] }
+    }
+
+    const runtimeSnapshot = state.collabRuntime?.teams?.[teamId]
+    const noteSnapshot = note
+    get().setCollabRuntimeTeam(teamId, { ...team, state: addNoteToState(team.state ?? {}) })
+    set(s => persist({ ...s, notes: (s.notes ?? []).filter(n => n.id !== noteId) }))
+
+    try {
+      await updateTeamState({
+        config: { apiKey: membership.apiKey, projectId: membership.projectId },
+        teamId,
+        teamKey: membership.teamKey,
+        updater: addNoteToState,
+      })
+      return { teamId, sharedNoteId: sharedNote.id }
+    } catch (err) {
+      if (runtimeSnapshot) get().setCollabRuntimeTeam(teamId, runtimeSnapshot)
+      set(s => persist({ ...s, notes: [...(s.notes ?? []), noteSnapshot] }))
+      get().setCollabError(teamId, err?.message ?? 'Sync failed', classifyCollabError(err))
+      return null
+    }
+  },
+  saveLocalCopyOfSharedNote: async (teamId, sharedNoteId) => {
+    const state = get()
+    const team = state.collabRuntime?.teams?.[teamId]
+    const sharedNote = (team?.state?.notes ?? []).find(n => n?.id === sharedNoteId)
+    if (!sharedNote) return null
+
+    const { sharedNoteSchema } = await import('@/lib/collab/noteSchema')
+    const { buildLocalNoteFromSharedNote } = await import('@/lib/collab/noteDoc')
+
+    const localNoteId = nanoid()
+    get().addNote({
+      ...buildLocalNoteFromSharedNote({ sharedNote, schema: sharedNoteSchema() }),
+      id: localNoteId,
+      sharedRef: { teamId, sharedNoteId },
+    })
+    return localNoteId
+  },
+  deleteLocalSharedNotesByTeam: teamId => set(s => persist({
+    ...s,
+    notes: (s.notes ?? []).filter(note => note?.sharedRef?.teamId !== teamId),
+  })),
+  clearNoteSharedRefByTeam: teamId => set(s => persist({
+    ...s,
+    notes: (s.notes ?? []).map(note => note?.sharedRef?.teamId === teamId
+      ? { ...note, sharedRef: null }
+      : note),
+  })),
   clearTaskSharedRefByTeam: teamId => set(s => persist({
     ...s,
     tasks: s.tasks.map(task => task?.sharedRef?.teamId === teamId

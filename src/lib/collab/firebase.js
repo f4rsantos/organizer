@@ -6,6 +6,8 @@ import {
   getDoc,
   onSnapshot,
   deleteDoc,
+  deleteField,
+  updateDoc,
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore'
@@ -14,6 +16,7 @@ import { nanoid } from '@/lib/ids'
 import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash, createKeyProof, matchesKeyProof } from './token'
 import { createTeamState, isMember, personForAuthUid } from './schema'
 import { encryptTeamState, decryptTeamState, decryptTeamDoc, isEncryptedTeamState } from './teamCrypto'
+import { presenceFieldPath, sealPresenceRecord } from './noteDoc'
 
 const appCache = new Map()
 
@@ -273,12 +276,8 @@ export async function updateTeamState({ config, teamId, teamKey, updater }) {
     if (!isMember(team, personForAuthUid(team, authUid))) throw new Error('Not a member')
 
     const current = await decryptTeamState(team.state, teamKey, teamId)
-    // Writing on an unreadable payload would clobber the team with a fresh
-    // state, so a key mismatch has to abort the whole transaction.
     if (current === null && team.state) throw new Error('team-key-required')
 
-    // The document decides its own format: encrypting a team that other members
-    // joined while it was plaintext would lock every one of them out.
     const teamIsEncrypted = isEncryptedTeamState(team.state)
     const writeKey = teamIsEncrypted ? teamKey : null
 
@@ -288,5 +287,24 @@ export async function updateTeamState({ config, teamId, teamKey, updater }) {
       updatedAt: Date.now(),
       serverUpdatedAt: serverTimestamp(),
     })
+  })
+}
+
+export async function publishNotePresence({ config, teamId, teamKey, sharedNoteId, presence, staleKeys = [] }) {
+  if (!presence?.clientId) return
+  const { auth, db } = getOrCreateApp(config)
+  await ensureSignedIn(auth)
+  const record = await sealPresenceRecord({ presence, sharedNoteId, teamId, teamKey })
+  const updates = { [presenceFieldPath(sharedNoteId, presence.clientId)]: record }
+  for (const key of staleKeys) updates[`notePresence.${key}`] = deleteField()
+  await updateDoc(teamRef(db, teamId), updates)
+}
+
+export async function clearNotePresence({ config, teamId, sharedNoteId, clientId }) {
+  if (!clientId) return
+  const { auth, db } = getOrCreateApp(config)
+  await ensureSignedIn(auth)
+  await updateDoc(teamRef(db, teamId), {
+    [presenceFieldPath(sharedNoteId, clientId)]: deleteField(),
   })
 }
