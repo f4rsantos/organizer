@@ -46,7 +46,7 @@ export function useCollabActions() {
   const updateTask = useStore(s => s.updateTask)
   const updateEvent = useStore(s => s.updateEvent)
   const updateKanbanCard = useStore(s => s.updateKanbanCard)
-  const clearKanbanCardSharedRef = useStore(s => s.clearKanbanCardSharedRef)
+  const deleteKanbanCardBySharedRef = useStore(s => s.deleteKanbanCardBySharedRef)
 
   const teams = useMemo(() => memberships.map(m => {
     const runtime = runtimeTeams[m.teamId]
@@ -97,10 +97,12 @@ export function useCollabActions() {
       await updateTeamState({
         config: firebaseConfig(membership), teamId, teamKey: membership.teamKey, updater,
       })
+      return true
     } catch (err) {
       if (snapshot) setCollabRuntimeTeam(teamId, snapshot)
       if (typeof onRollback === 'function') onRollback()
       setCollabError(teamId, err?.message ?? 'Sync failed', classifyCollabError(err))
+      return false
     }
   }
 
@@ -337,7 +339,7 @@ export function useCollabActions() {
       },
     })
 
-    clearKanbanCardSharedRef(sharedCardId)
+    deleteKanbanCardBySharedRef(sharedCardId)
     await writeShared(teamId, membership, applyDelete, applyDelete)
   }
 
@@ -368,9 +370,10 @@ export function useCollabActions() {
 
     updateKanbanCard(semId, card.id, { sharedRef: { teamId, sharedCardId } })
 
-    await writeShared(teamId, membership, addCardState, addCardState, () => {
+    const ok = await writeShared(teamId, membership, addCardState, addCardState, () => {
       updateKanbanCard(semId, card.id, { sharedRef: null })
     })
+    if (ok) deleteKanbanCardBySharedRef(sharedCardId)
   }
 
   const addSharedTaskToKanbanForTeam = async ({ teamId, sharedTaskId, columnId, classId = null, className = null }) => {
