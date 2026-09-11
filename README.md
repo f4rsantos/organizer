@@ -54,17 +54,17 @@ It runs in the browser as a PWA and on Android as a native app with home screen 
 
 Extra features ship as apps you enable one at a time in settings. Anything you leave off stays out of the navbar and out of your way. Turning an app off permanently deletes the data it owns.
 
-| App | What it does |
-|---|---|
-| **Notes** | Rich text editor with headings, tables, code blocks, checklists, quotes, links, text colour and size, and undo/redo. Nested folders, list or mosaic layout, starred notes, archive, and search. Type `@` to link a task by name. Imports Markdown and plain text; exports Markdown, plain text, web page, Word, or print to PDF. An optional maths solver handles equations, inequalities and quadratics, plots graphs, and can show its working. Handwriting canvas notes need cloud sync, since drawings are stored remotely. |
-| **Habits** | Check-in button with cadences from daily to monthly or custom weekdays, rest days, a streak count and history calendar, optional check-in notes, finish lines by count or date, and five encouragement tones |
-| **Eisenhower matrix** | Sort tasks by urgency and importance across four customizable quadrants, with drag and drop |
-| **Standby** | Turning the phone to landscape opens a desk display on its own and keeps the screen awake. One to three panels showing a clock wheel, the time, calendar, focus timer, kanban, or tasks by category, each with an optional smaller pane underneath |
-| **Quick actions** | Spotlight overlay for creating and editing by typing or speaking. Open it from the navbar, a keyboard shortcut, or a triple tap |
-| **Pomodoro** | Grow tomatoes during focus sessions, with stats, streaks, monthly trends, and reset periods |
-| **Google Calendar** | Two-way sync with your primary Google Calendar, using your own OAuth client |
-| **EI calendar** | Official EI course calendar for your year, read-only |
-| **Collaboration** | Shared teams, described below |
+| App                   | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Notes**             | Rich text editor with headings, tables, code blocks, checklists, quotes, links, text colour and size, and undo/redo. Nested folders, list or mosaic layout, starred notes, archive, and search. Type `@` to link a task by name. Imports Markdown and plain text; exports Markdown, plain text, web page, Word, or print to PDF. An optional maths solver handles equations, inequalities and quadratics, plots graphs, and can show its working. Handwriting canvas notes need cloud sync, since drawings are stored remotely. |
+| **Habits**            | Check-in button with cadences from daily to monthly or custom weekdays, rest days, a streak count and history calendar, optional check-in notes, finish lines by count or date, and five encouragement tones                                                                                                                                                                                                                                                                                                                    |
+| **Eisenhower matrix** | Sort tasks by urgency and importance across four customizable quadrants, with drag and drop                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Standby**           | Turning the phone to landscape opens a desk display on its own and keeps the screen awake. One to three panels showing a clock wheel, the time, calendar, focus timer, kanban, or tasks by category, each with an optional smaller pane underneath                                                                                                                                                                                                                                                                              |
+| **Quick actions**     | Spotlight overlay for creating and editing by typing or speaking. Open it from the navbar, a keyboard shortcut, or a triple tap                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Pomodoro**          | Grow tomatoes during focus sessions, with stats, streaks, monthly trends, and reset periods                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Google Calendar**   | Two-way sync with your primary Google Calendar, using your own OAuth client                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **EI calendar**       | Official EI course calendar for your year, read-only                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Collaboration**     | Shared teams, described below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Apps are self-contained modules under `src/apps/`. Adding one means dropping in a folder, adding strings, and registering it. See [`src/apps/README.md`](src/apps/README.md).
 
@@ -93,6 +93,7 @@ This works in every supported language, not only English.
 Organizer is built to be tailored to your needs, not just used as-is.
 
 **Structure**
+
 - Multiple semesters with per-semester class sets
 - Semester dates and holidays
 - Course presets that seed classes, tasks, and grade components
@@ -100,6 +101,7 @@ Organizer is built to be tailored to your needs, not just used as-is.
 - End-of-semester transition that carries over the kanban cards, tasks, and events you choose
 
 **Tasks**
+
 - Week span behavior for multi-week tasks: one global checkbox or per-week
 - Separate due date and week range, so a task can sit on the calendar on one date while appearing across the weeks you are working on it
 - Type a title like "essay calculus tomorrow" and the class and due date fill themselves in, without overwriting anything you set yourself
@@ -109,6 +111,7 @@ Organizer is built to be tailored to your needs, not just used as-is.
 - Option to tuck finished tasks into a collapsible Completed section
 
 **Kanban**
+
 - Add, rename, reorder, and remove columns
 - Per-card priority, due date, class, and checklist
 - Checklist previews on all cards, no cards, or case by case, set per card in the card dialog
@@ -116,6 +119,7 @@ Organizer is built to be tailored to your needs, not just used as-is.
 - Filter by team, assignee, or class, with optional dividers
 
 **Grades**
+
 - Per-class grading components and weights, with the total flagged until it reaches 100%
 - Components splittable into parts when one is graded across several pieces, with the weight divided between them
 - A panel that works out what you need on everything still ungraded to hit your target, and says so plainly when the target is out of reach
@@ -124,6 +128,7 @@ Organizer is built to be tailored to your needs, not just used as-is.
 - Configurable grade scale and passing grade
 
 **Focus and Pomodoro**
+
 - Interval breaks and breaks scheduled at fixed times of day, usable together or separately
 - Custom focus and break messages
 - After a break, reset the timer or keep counting
@@ -138,6 +143,7 @@ Each session grows a tomato. It starts at 20px and reaches full size at 25 minut
 </p>
 
 **Interface**
+
 - Day, Night, and System themes, plus custom font, highlight, background, and done colours
 - Navbar layout: reorder tabs, group them into folders, icons-only or names-only, bottom bar or side bar, and per-device visibility
 - Default screen on launch, including last used
