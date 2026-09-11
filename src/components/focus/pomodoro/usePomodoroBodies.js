@@ -15,7 +15,7 @@ import {
 
 const MAX_SPIN = 120
 const MAX_WOBBLE_SECONDS = 5
-const ANGULAR_DRAG = 3.2
+const ANGULAR_DRAG = 1.6
 
 function randomBodyX(radius, width) {
   const safeWidth = Math.max(140, width || 400)
@@ -119,30 +119,34 @@ function moveBody(body, dt, env) {
   x += vx * dt
   y += vy * dt
 
-  if (wobbleLeft > 0) omega += (vx * 0.18) * dt
+  const gMag = Math.sqrt(env.gx * env.gx + env.gy * env.gy)
+  const gDirX = gMag > 1 ? env.gx / gMag : 0
+  const gDirY = gMag > 1 ? env.gy / gMag : 1
 
-  if (y >= env.floor - radius) {
-    y = env.floor - radius
-    vy = -Math.abs(vy) * DAMPING
-    vx *= FRICTION
-    if (wobbleLeft > 0) omega += vx * 0.14
-    if (Math.abs(vx) < MIN_VX) vx = 0
+  if (wobbleLeft > 0) omega += (vx * gDirY - vy * gDirX) * 0.18 * dt
+
+  const applyContact = (nx, ny) => {
+    const vn = vx * nx + vy * ny
+    if (vn > 0) return
+    const vt = -vx * ny + vy * nx
+    vx -= vn * nx * (1 + DAMPING)
+    vy -= vn * ny * (1 + DAMPING)
+
+    const downhill = -(nx * gDirX + ny * gDirY)
+    if (downhill > 0.5) {
+      vx *= FRICTION
+      vy *= FRICTION
+      if (wobbleLeft > 0) omega += vt * 0.14 * downhill
+      if (Math.abs(vx) < MIN_VX && Math.abs(vy) < MIN_VX) { vx = 0; vy = 0 }
+    } else {
+      omega = -omega * 0.75
+    }
   }
-  if (x < env.wallLeft + radius) {
-    x = env.wallLeft + radius
-    vx = Math.abs(vx) * DAMPING
-    omega = -omega * 0.75
-  }
-  if (x > env.wallRight - radius) {
-    x = env.wallRight - radius
-    vx = -Math.abs(vx) * DAMPING
-    omega = -omega * 0.75
-  }
-  if (y < radius) {
-    y = radius
-    vy = Math.abs(vy) * DAMPING
-    omega = -omega * 0.75
-  }
+
+  if (y >= env.floor - radius) { y = env.floor - radius; applyContact(0, -1) }
+  if (x < env.wallLeft + radius) { x = env.wallLeft + radius; applyContact(1, 0) }
+  if (x > env.wallRight - radius) { x = env.wallRight - radius; applyContact(-1, 0) }
+  if (y < radius) { y = radius; applyContact(0, 1) }
 
   const moving = Math.sqrt(vx * vx + vy * vy)
   const spinDamping = moving > 8 ? 0.992 : 0.972
