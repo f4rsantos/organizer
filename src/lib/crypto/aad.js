@@ -21,6 +21,10 @@ export function aadForTeamSlice(teamId, slice) {
   return build('team', teamId, slice)
 }
 
+export function aadForNotePresence(teamId, sharedNoteId) {
+  return build('notePresence', teamId, sharedNoteId)
+}
+
 export function aadForExport(slice) {
   return build('export', slice)
 }
