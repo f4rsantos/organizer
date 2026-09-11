@@ -6,7 +6,7 @@ import { createTeamState } from './schema'
 
 export const TEAM_FORMAT = 'green-apricot'
 const TEAM_FORMATS = [TEAM_FORMAT, 'organizer-team-sliced-1']
-export const TEAM_SLICES = ['tasks', 'kanban']
+export const TEAM_SLICES = ['tasks', 'events', 'kanban', 'notes']
 
 export function createTeamKey() {
   return generateRawKeyString()
@@ -91,6 +91,16 @@ async function decodeTeamContainer(container, teamKey, teamId) {
   return state
 }
 
+export function withTeamStateDefaults(state) {
+  const defaults = createTeamState()
+  if (!state || typeof state !== 'object') return defaults
+  const filled = { ...state }
+  for (const [slice, fallback] of Object.entries(defaults)) {
+    if (filled[slice] === undefined || filled[slice] === null) filled[slice] = fallback
+  }
+  return filled
+}
+
 export async function decryptTeamDoc(team, teamKey) {
   if (!team) return null
   const expiresAt = typeof team.expiresAt === 'number'
@@ -103,5 +113,10 @@ export async function decryptTeamDoc(team, teamKey) {
   if (state === null && isEncryptedTeamState(team.state)) {
     return { ...team, expiresAt: expiresAt ?? team.expiresAt, state: null, locked: true }
   }
-  return { ...team, expiresAt: expiresAt ?? team.expiresAt, state: state ?? createTeamState(), locked: false }
+  return {
+    ...team,
+    expiresAt: expiresAt ?? team.expiresAt,
+    state: withTeamStateDefaults(state),
+    locked: false,
+  }
 }
