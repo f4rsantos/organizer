@@ -8,10 +8,12 @@ import { TextStyleKit } from '@tiptap/extension-text-style'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
+import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
 import { lowlight } from './lowlight'
 import { MathSolve } from './extensions/MathSolve'
 import { MathGraph } from './extensions/MathGraph'
 import { TaskMention } from './extensions/TaskMention'
+import { CollabPlugins } from './extensions/CollabPlugins'
 import { EditorToolbar } from './EditorToolbar'
 import { useTaskMention } from './useTaskMention'
 import { TaskMentionPopup } from '../TaskMentionPopup'
@@ -20,6 +22,13 @@ const SAVE_DEBOUNCE_MS = 400
 const EMPTY = []
 
 export function RichNoteEditor({ note }) {
+  const collab = useSharedNoteSession(note.sharedMeta?.remote ? note.sharedMeta : null)
+  const isShared = Boolean(note.sharedMeta?.remote)
+  if (isShared && !collab) return null
+  return <NoteEditorSurface note={note} collabPlugins={collab?.plugins ?? null} />
+}
+
+function NoteEditorSurface({ note, collabPlugins }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const updateNote = useStore(s => s.updateNote)
@@ -31,9 +40,12 @@ export function RichNoteEditor({ note }) {
   const saveTimer = useRef(null)
   const pendingSave = useRef(false)
 
+  const collaborative = Boolean(collabPlugins)
+
   const extensions = useMemo(() => [
     StarterKit.configure({
       codeBlock: false,
+      ...(collaborative ? { undoRedo: false } : {}),
       link: { openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary underline' } },
     }),
     TextStyleKit,
@@ -44,13 +56,14 @@ export function RichNoteEditor({ note }) {
     TaskMention,
     MathGraph,
     ...(mathEnabled ? [MathSolve.configure({ solveEquations, selectionGraph, stepByStep })] : []),
-  ], [mathEnabled, solveEquations, selectionGraph, stepByStep])
+    ...(collabPlugins ? [CollabPlugins.configure({ plugins: collabPlugins })] : []),
+  ], [mathEnabled, solveEquations, selectionGraph, stepByStep, collaborative, collabPlugins])
 
   const mentionRef = useRef(null)
 
   const editor = useEditor({
     extensions,
-    content: note.doc ?? undefined,
+    ...(collaborative ? {} : { content: note.doc ?? undefined }),
     editorProps: {
       attributes: {
         class: 'tiptap-note focus:outline-none min-h-full',
@@ -60,6 +73,7 @@ export function RichNoteEditor({ note }) {
     },
     onUpdate: ({ editor: instance }) => {
       mentionRef.current?.refresh()
+      if (collaborative) return
       pendingSave.current = true
       clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
@@ -78,14 +92,14 @@ export function RichNoteEditor({ note }) {
   useEffect(() => () => clearTimeout(saveTimer.current), [])
 
   useEffect(() => {
-    if (!editor) return
+    if (!editor || collaborative) return
     return () => {
       clearTimeout(saveTimer.current)
       if (!pendingSave.current || editor.isDestroyed) return
       pendingSave.current = false
       updateNote(note.id, { doc: editor.getJSON(), body: editor.getText() })
     }
-  }, [editor, note.id, updateNote])
+  }, [editor, note.id, updateNote, collaborative])
 
   if (!editor) return null
 

@@ -12,7 +12,24 @@ export function createTeamState() {
       columns: DEFAULT_TEAM_COLUMNS,
       cards: [],
     },
+    notes: [],
   }
+}
+
+export function createSharedNote({ id, title, createdBy, ydocState, now = Date.now() }) {
+  return {
+    id,
+    title: title ?? '',
+    ydocState: ydocState ?? '',
+    createdBy: createdBy ?? null,
+    createdAt: now,
+    updatedAt: now,
+    updatedBy: createdBy ?? null,
+  }
+}
+
+export function findSharedNote(state, sharedNoteId) {
+  return (state?.notes ?? []).find(note => note?.id === sharedNoteId) ?? null
 }
 
 export function isTeamExpired(team) {

@@ -27,7 +27,7 @@ function TabRow({ id, t, visibility, isAdd, folders, folderOf, onCycleVisibility
   return (
     <li ref={setNodeRef} style={style}
       className={cn('flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5 bg-card',
-        nested && 'ml-6 border-l-2 border-l-primary/40',
+        nested && 'ml-6',
         visibility !== 'both' && 'opacity-60', visibility === 'none' && 'opacity-40', isDragging && 'shadow-lg z-10')}>
       <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
         {...attributes} {...listeners} title={t.navDrag}>
@@ -141,22 +141,19 @@ export function NavbarSettings() {
   const visibilityOf = id => visibility[id] ?? 'both'
   const folderOf = id => folders.find(f => (f.children ?? []).includes(id))?.id ?? null
 
-  // Visual order: each folder row is immediately followed by its children, so a
-  // tab assigned to a folder appears inline beneath it instead of staying at its
-  // original top-level position.
   const childOf = new Map()
   for (const f of folders) for (const c of f.children ?? []) childOf.set(c, f.id)
   const displayOrder = []
-  for (const id of order) {
-    if (childOf.has(id) && folderById.has(childOf.get(id))) continue
+  const appendFolderRowFollowedByItsChildren = id => {
+    if (childOf.has(id) && folderById.has(childOf.get(id))) return
     displayOrder.push(id)
-    if (folderById.has(id)) {
-      const children = (folderById.get(id).children ?? [])
-        .filter(c => order.includes(c))
-        .sort((a, b) => order.indexOf(a) - order.indexOf(b))
-      for (const c of children) displayOrder.push(c)
-    }
+    if (!folderById.has(id)) return
+    const children = (folderById.get(id).children ?? [])
+      .filter(c => order.includes(c))
+      .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    for (const c of children) displayOrder.push(c)
   }
+  for (const id of order) appendFolderRowFollowedByItsChildren(id)
   for (const id of order) if (!displayOrder.includes(id)) displayOrder.push(id)
 
   const save = patch => updateSettings({ navbar: { ...navbar, order, visibility, labelMode, mobilePosition: navbar.mobilePosition ?? 'bottom', addAction: navbar.addAction ?? 'task', folders, ...patch } })
@@ -166,8 +163,6 @@ export function NavbarSettings() {
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   )
 
-  // Dragging happens in displayOrder space (folder children sit under their
-  // folder), so reorder there and flatten the result back into a flat order.
   const onDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return
     const from = displayOrder.indexOf(active.id)
@@ -175,20 +170,15 @@ export function NavbarSettings() {
     if (from === -1 || to === -1) return
     const newDisplay = arrayMove(displayOrder, from, to)
 
-    // A tab dropped directly beneath a folder row joins that folder; one dropped
-    // in a top-level slot leaves whatever folder it was in.
     const newChildren = new Map(folders.map(f => [f.id, []]))
-    let currentFolder = null
+    let folderRunInProgress = null
     for (const id of newDisplay) {
-      if (folderById.has(id)) { currentFolder = id; continue }
-      const prevFolder = childOf.get(id)
-      // Only tabs that were already nested, or were dragged into a folder's run,
-      // stay nested; a folder's run ends at the next top-level (unnested) tab.
-      if (currentFolder && (prevFolder === currentFolder || active.id === id)) {
-        newChildren.get(currentFolder).push(id)
-      } else {
-        currentFolder = null
-      }
+      if (folderById.has(id)) { folderRunInProgress = id; continue }
+      const wasAlreadyNestedHere = childOf.get(id) === folderRunInProgress
+      const wasJustDraggedIntoThisRun = active.id === id
+      const continuesFolderRun = folderRunInProgress && (wasAlreadyNestedHere || wasJustDraggedIntoThisRun)
+      if (!continuesFolderRun) { folderRunInProgress = null; continue }
+      newChildren.get(folderRunInProgress).push(id)
     }
 
     const newOrder = newDisplay.filter(id => order.includes(id))
@@ -214,15 +204,13 @@ export function NavbarSettings() {
     order: order.filter(id => id !== fid),
     visibility: (() => { const map = { ...visibility }; delete map[fid]; return map })(),
   })
-  // Assigning a tab to a folder also moves it in `order` to sit right after that
-  // folder, so it stays inline beneath it instead of jumping back to its old slot.
   const assignFolder = (tabId, fid) => {
     const newOrder = order.filter(id => id !== tabId)
     if (fid) {
       const folderIdx = newOrder.indexOf(fid)
       const existing = (folderById.get(fid)?.children ?? []).filter(c => c !== tabId)
-      const lastChildIdx = existing.reduce((max, c) => Math.max(max, newOrder.indexOf(c)), folderIdx)
-      newOrder.splice(lastChildIdx + 1, 0, tabId)
+      const endOfFolderRunIdx = existing.reduce((max, c) => Math.max(max, newOrder.indexOf(c)), folderIdx)
+      newOrder.splice(endOfFolderRunIdx + 1, 0, tabId)
     } else {
       newOrder.push(tabId)
     }

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   createTeamKey, isValidTeamKey, encryptTeamState, decryptTeamState, decryptTeamDoc,
-  isEncryptedTeamState,
+  isEncryptedTeamState, withTeamStateDefaults, TEAM_SLICES,
 } from './teamCrypto.js'
+import { createTeamState } from './schema.js'
 
 const STATE = { tasks: [{ id: 't1', title: 'shared secret' }] }
 
@@ -77,7 +78,7 @@ describe('decryptTeamDoc', () => {
   it('unwraps an encrypted team', async () => {
     const key = createTeamKey()
     const doc = await decryptTeamDoc(team(await stored(key)), key)
-    expect(doc.state).toEqual(STATE)
+    expect(doc.state).toMatchObject(STATE)
     expect(doc.locked).toBe(false)
   })
 
@@ -94,7 +95,7 @@ describe('decryptTeamDoc', () => {
 
   it('passes a plaintext team through unlocked', async () => {
     const doc = await decryptTeamDoc(team(STATE), null)
-    expect(doc.state).toEqual(STATE)
+    expect(doc.state).toMatchObject(STATE)
     expect(doc.locked).toBe(false)
   })
 
@@ -152,5 +153,96 @@ describe('a team payload is bound to its document', () => {
     const doc = await decryptTeamDoc({ id: 'teamB', name: 'Copied', state: stored }, key)
     expect(doc.locked).toBe(true)
     expect(doc.state).toBe(null)
+  })
+})
+
+describe('every state key createTeamState declares', () => {
+  it('is persisted, so no slice is silently dropped on write', () => {
+    expect(TEAM_SLICES.slice().sort()).toEqual(Object.keys(createTeamState()).sort())
+  })
+
+  it('survives an encrypt and decrypt round trip', async () => {
+    const key = createTeamKey()
+    const state = {
+      ...createTeamState(),
+      events: [{ id: 'e1', title: 'Shared event', start: 1, end: 2 }],
+    }
+    const restored = await decryptTeamState(await encryptTeamState(state, key, 'teamA'), key, 'teamA')
+    expect(restored).toEqual(state)
+  })
+})
+
+describe('the notes slice', () => {
+  const persistedSlices = state => Object.fromEntries(TEAM_SLICES.map(slice => [slice, state[slice]]))
+  const NOTES_STATE = persistedSlices({
+    ...createTeamState(),
+    notes: [{ id: 'n1', title: 'Shared note', ydocState: 'AQEB', createdBy: 'p1', createdAt: 1, updatedAt: 2, updatedBy: 'p1' }],
+  })
+
+  it('is encrypted like every other slice', () => {
+    expect(TEAM_SLICES).toContain('notes')
+  })
+
+  it('round trips through encrypt and decrypt', async () => {
+    const key = createTeamKey()
+    const stored = await encryptTeamState(NOTES_STATE, key, 'teamA')
+    expect(await decryptTeamState(stored, key, 'teamA')).toEqual(NOTES_STATE)
+  })
+
+  it('does not leak note content into the stored payload', async () => {
+    const stored = await encryptTeamState(NOTES_STATE, createTeamKey(), 'teamA')
+    expect(JSON.stringify(stored)).not.toContain('Shared note')
+    expect(JSON.stringify(stored)).not.toContain('AQEB')
+  })
+
+  it('is bound to its own slice aad', async () => {
+    const key = createTeamKey()
+    const stored = await encryptTeamState(NOTES_STATE, key, 'teamA')
+    const swapped = { ...stored, slices: { ...stored.slices, notes: stored.slices.tasks } }
+    expect(await decryptTeamState(swapped, key, 'teamA')).toBe(null)
+  })
+})
+
+describe('backward compatibility with teams created before notes existed', () => {
+  const legacyState = { tasks: [{ id: 't1' }], kanban: { columns: [], cards: [] } }
+
+  it('decrypts an old encrypted doc and defaults the missing slice', async () => {
+    const key = createTeamKey()
+    const stored = await encryptTeamState(legacyState, key, 'legacy')
+    expect(stored.slices.notes).toBe(null)
+
+    const doc = await decryptTeamDoc({ id: 'legacy', state: stored }, key)
+    expect(doc.locked).toBe(false)
+    expect(doc.state.notes).toEqual([])
+    expect(doc.state.tasks).toEqual(legacyState.tasks)
+  })
+
+  it('defaults a plaintext doc with no notes key', async () => {
+    const doc = await decryptTeamDoc({ id: 'legacy', state: legacyState }, null)
+    expect(doc.state.notes).toEqual([])
+  })
+
+  it('fills every declared slice, never null', () => {
+    const filled = withTeamStateDefaults({ tasks: [{ id: 't1' }] })
+    for (const slice of TEAM_SLICES) expect(filled[slice]).not.toBe(undefined)
+    expect(filled.notes).toEqual([])
+    expect(filled.tasks).toEqual([{ id: 't1' }])
+  })
+
+  it('never clobbers existing notes with the default', () => {
+    const notes = [{ id: 'n1' }]
+    expect(withTeamStateDefaults({ notes }).notes).toBe(notes)
+  })
+
+  it('keeps notePresence out of the encrypted slices and passes it through plainly', async () => {
+    const key = createTeamKey()
+    const notePresence = { 'note-1__7': { sharedNoteId: 'note-1', clientId: 7, updatedAt: 1 } }
+    const stored = await encryptTeamState({ ...STATE, notePresence }, key, 'team-1')
+    expect(Object.keys(stored.slices)).toEqual(TEAM_SLICES)
+    expect(JSON.stringify(stored)).not.toContain('note-1__7')
+
+    const doc = await decryptTeamDoc({ id: 'team-1', state: stored, notePresence }, key)
+    expect(doc.notePresence).toEqual(notePresence)
+    expect(doc.state.notePresence).toBe(undefined)
   })
 })

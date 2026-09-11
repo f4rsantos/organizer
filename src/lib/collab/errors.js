@@ -6,6 +6,7 @@ export function classifyCollabError(error) {
   if (message === 'Team not found') return 'not-found'
   if (message === 'Invite expired') return 'invite-expired'
   if (message === 'Invalid invite') return 'invite-invalid'
+  if (message === 'note-too-large') return 'note-too-large'
   return 'generic'
 }
 
@@ -16,6 +17,7 @@ export function collabErrorTextForCode(code, t, fallback) {
     case 'not-found': return t.collabErrorNotFound
     case 'invite-expired': return t.collabErrorInviteExpired
     case 'invite-invalid': return t.collabErrorInviteInvalid
+    case 'note-too-large': return t.collabErrorNoteTooLarge
     default: return fallback
   }
 }

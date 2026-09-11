@@ -1,5 +1,5 @@
 import { lazy, useEffect, useRef, useState } from 'react'
-import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, ChevronRight, Folder } from 'lucide-react'
+import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -7,6 +7,8 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
+import { useCollabActions } from '@/hooks/useCollabActions'
 import { LazyBoundary } from '@/components/common/LazyBoundary'
 import { NoteCanvas } from './NoteCanvas'
 import { exportNote } from '@/lib/notes/noteExport'
@@ -22,9 +24,41 @@ const EXPORT_FORMATS = [
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
+function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onShare }) {
+  return (
+    <>
+      <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
+        <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
+          style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
+        {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
+          <button key={kind} type="button" title={label}
+            onClick={() => note.kind !== kind && onChangeKind(kind)}
+            className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
+              note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        ))}
+      </div>
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleFavorite}>
+        <Star className={cn('h-3.5 w-3.5', note.favorite && 'fill-amber-400 text-amber-400')} />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
+        title={note.archived ? t.notesUnarchive : t.notesArchive}
+        onClick={onToggleArchive}>
+        {note.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-primary" /> : <Archive className="h-3.5 w-3.5" />}
+      </Button>
+      {canShare && (
+        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.collabShareNote} onClick={onShare}>
+          <Share2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </>
+  )
+}
+
 export function NoteEditor({
   note, onDeleted, onPrev, onNext, hasPrev = false, hasNext = false,
-  currentIndex = 0, totalCount = 0, folderName = null, onBack = null,
+  folderName = null, onBack = null,
 }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -33,6 +67,13 @@ export function NoteEditor({
   const toggleFavoriteNote = useStore(s => s.toggleFavoriteNote)
   const archiveNote = useStore(s => s.archiveNote)
   const unarchiveNote = useStore(s => s.unarchiveNote)
+  const shareNoteToTeam = useStore(s => s.shareNoteToTeam)
+  const saveLocalCopyOfSharedNote = useStore(s => s.saveLocalCopyOfSharedNote)
+  const { teams, getTeamName } = useCollabActions()
+  const sharedMeta = note.sharedMeta?.remote ? note.sharedMeta : null
+  const teamName = sharedMeta ? getTeamName(sharedMeta.teamId) : null
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareTeamId, setShareTeamId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editorRetry, setEditorRetry] = useState(0)
   const [exportOpen, setExportOpen] = useState(false)
@@ -66,6 +107,13 @@ export function NoteEditor({
       if (dx < 0 && hasNext) onNext?.()
       else if (dx > 0 && hasPrev) onPrev?.()
     }
+  }
+
+  const handleShare = async () => {
+    if (!shareTeamId) return
+    setShareOpen(false)
+    const shared = await shareNoteToTeam(note.id, shareTeamId)
+    if (shared) onDeleted?.()
   }
 
   const handleDelete = () => {
@@ -105,80 +153,53 @@ export function NoteEditor({
               <span>{t.notesBack || 'Back'}</span>
             </Button>
           )}
-          {folderName ? (
+          {folderName && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground/80 truncate max-w-[140px] md:max-w-[220px]">
               <Folder className="h-3 w-3 shrink-0 text-muted-foreground/60" />
               <span className="truncate">{folderName}</span>
             </span>
-          ) : (
-            <span className="text-xs text-muted-foreground/60">{t.notes || 'Notes'}</span>
           )}
         </div>
-
-        {totalCount > 1 && (
-          <div className="flex items-center gap-1 bg-muted/40 rounded-full px-1.5 py-0.5 border border-border/50">
-            <span className="text-[11px] font-mono px-1 text-muted-foreground/70">
-              {currentIndex + 1} / {totalCount}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={!hasPrev}
-              onClick={onPrev}
-              title="Previous note (Alt+←)"
-              className="h-5 w-5 rounded-full hover:bg-background disabled:opacity-30"
-            >
-              <ChevronLeft className="h-3 w-3" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={!hasNext}
-              onClick={onNext}
-              title="Next note (Alt+→)"
-              className="h-5 w-5 rounded-full hover:bg-background disabled:opacity-30"
-            >
-              <ChevronRight className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
       </div>
       <div className="space-y-1">
         <input
           value={note.title}
           placeholder={t.notesTitle}
+          readOnly={Boolean(sharedMeta)}
           className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40"
           onChange={e => updateNote(note.id, { title: e.target.value })}
         />
-        <p className="text-[11px] text-muted-foreground/50">
-          {t.notesLastEdit} {formatDistanceToNow(note.updatedAt, { addSuffix: true })}
+        <p className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
+          <span>{t.notesLastEdit} {formatDistanceToNow(note.updatedAt, { addSuffix: true })}</span>
+          {sharedMeta && (
+            <span className="flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0.5">
+              <Users className="h-3 w-3" />
+              {teamName ?? t.collabShared}
+            </span>
+          )}
         </p>
       </div>
 
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-0.5 flex-1">
-          <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
-            <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
-              style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
-            {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
-              <button key={kind} type="button" title={label}
-                onClick={() => note.kind !== kind && updateNote(note.id, { kind })}
-                className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
-                  note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                <Icon className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleFavoriteNote(note.id)}>
-            <Star className={cn('h-3.5 w-3.5', note.favorite && 'fill-amber-400 text-amber-400')} />
-          </Button>
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
-            title={note.archived ? t.notesUnarchive : t.notesArchive}
-            onClick={() => note.archived ? unarchiveNote(note.id) : archiveNote(note.id)}>
-            {note.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-primary" /> : <Archive className="h-3.5 w-3.5" />}
-          </Button>
+          {sharedMeta ? (
+            <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs"
+              title={t.notesSaveLocalCopy}
+              onClick={() => saveLocalCopyOfSharedNote(sharedMeta.teamId, sharedMeta.sharedNoteId)}>
+              <CopyPlus className="h-3.5 w-3.5" />
+              <span>{t.notesSaveLocalCopy}</span>
+            </Button>
+          ) : (
+            <LocalNoteActions
+              note={note}
+              t={t}
+              canShare={teams.length > 0}
+              onChangeKind={kind => updateNote(note.id, { kind })}
+              onToggleFavorite={() => toggleFavoriteNote(note.id)}
+              onToggleArchive={() => note.archived ? unarchiveNote(note.id) : archiveNote(note.id)}
+              onShare={() => setShareOpen(true)}
+            />
+          )}
 
           {note.kind !== 'canvas' && (
             <>
@@ -206,9 +227,11 @@ export function NoteEditor({
             </>
           )}
         </div>
-        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive transition-colors" onClick={() => setConfirmDelete(true)}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {!sharedMeta && (
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive transition-colors" onClick={() => setConfirmDelete(true)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       <Separator />
@@ -230,6 +253,16 @@ export function NoteEditor({
 
       <input ref={importRef} type="file" accept=".md,.markdown,.txt,text/markdown,text/plain"
         className="sr-only" tabIndex={-1} onChange={handleImport} />
+
+      <ShareToTeamDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title={t.collabShareNote}
+        teams={teams}
+        value={shareTeamId}
+        onValueChange={setShareTeamId}
+        onConfirm={handleShare}
+      />
 
       <ConfirmDialog
         open={confirmDelete}
