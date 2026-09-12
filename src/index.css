@@ -389,6 +389,10 @@
     font-weight: 600;
     text-align: left;
 }
+.tiptap-note table[data-row-height] th,
+.tiptap-note table[data-row-height] td {
+    height: var(--note-table-row-height);
+}
 .tiptap-note .selectedCell::after {
     content: "";
     position: absolute;

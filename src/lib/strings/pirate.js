@@ -554,6 +554,7 @@ export const pirate = {
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",
     notesFolderEmpty: "This chest be empty, matey.",
+    notesTableAddRow: "Add a row, arr", notesTableAddColumn: "Add a column, arr", notesTableResize: "Resize the ledger",
     notesSelectNote: "Select a note to start editing",
     notesTextNote: "Text note",
     notesCanvasNote: "Canvas note",

@@ -554,6 +554,7 @@ export const pt = {
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",
     notesFolderEmpty: "Esta pasta está vazia.",
+    notesTableAddRow: "Adicionar linha", notesTableAddColumn: "Adicionar coluna", notesTableResize: "Redimensionar tabela",
     notesSelectNote: "Select a note to start editing",
     notesTextNote: "Text note",
     notesCanvasNote: "Canvas note",
