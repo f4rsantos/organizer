@@ -541,6 +541,7 @@ export const en = {
     aiSetupNext: 'Next', aiSetupFinish: 'Finish setup',
     aiConfigured: 'AI Assistant connected',
     aiEnable: 'Enable AI Assistant',
+    aiEnableDesc: 'Adds an assistant that can read and edit your data using a model you configure.',
     aiDisable: 'Disconnect',
     aiDisableTitle: 'Disconnect AI Assistant?',
     aiDisableDesc: "This clears your model settings, API keys, and the assistant's activity journal. This can't be undone.",

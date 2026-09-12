@@ -27,6 +27,8 @@ export function emptyRunEntities() {
     notes: [],
     kanban: { cards: [] },
     folders: [],
+    habits: [],
+    classes: [],
   }
 }
 

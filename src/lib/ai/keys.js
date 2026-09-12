@@ -1,9 +1,12 @@
 import { readJson, writeJson } from '@/lib/safeStorage'
+import { listProviders } from '@/lib/ai/providers'
 
 const KEY_PREFIX = 'f4rsantos.github.io/organizer:ai-key:'
 const BASE_URL_PREFIX = 'f4rsantos.github.io/organizer:ai-base-url:'
 
-const PROVIDER_IDS = ['anthropic', 'custom']
+function allProviderIds() {
+  return listProviders().map(provider => provider.id)
+}
 
 function keyStorageKey(providerId) {
   return `${KEY_PREFIX}${providerId}`
@@ -46,14 +49,14 @@ export function clearBaseUrl(providerId) {
 }
 
 export function clearAllAiKeys() {
-  for (const providerId of PROVIDER_IDS) {
+  for (const providerId of allProviderIds()) {
     clearAiKey(providerId)
     clearBaseUrl(providerId)
   }
 }
 
 export function listConfiguredProviders() {
-  return PROVIDER_IDS.filter(providerId => {
+  return allProviderIds().filter(providerId => {
     const key = loadAiKey(providerId)
     const baseUrl = loadBaseUrl(providerId)
     return Boolean(key) || Boolean(baseUrl)

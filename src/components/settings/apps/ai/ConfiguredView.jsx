@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { CloudOff } from 'lucide-react'
 import { ModelSlotCard } from './ModelSlotCard'
 import { OptimizeForToggle } from './OptimizeForToggle'
 import { BudgetMeter } from './BudgetMeter'
 import { ToolSupportWarningBanner } from './ToolSupportWarningBanner'
 import { SLOT_ORDER } from './aiSlotHelpers'
 
-export function ConfiguredView({ t, slots, providers, isNativeBuild, optimizeFor, onSlotChange, onSlotClear, onOptimizeForChange, onRequestDisable }) {
+export function ConfiguredView({ t, slots, providers, isNativeBuild, optimizeFor, onSlotChange, onSlotClear, onOptimizeForChange }) {
   const [toolWarnings, setToolWarnings] = useState({})
 
   const handleToolSupportResult = slotName => result => {
@@ -21,10 +20,6 @@ export function ConfiguredView({ t, slots, providers, isNativeBuild, optimizeFor
           <span className="text-sm font-medium">{t.aiConfigured}</span>
         </div>
         <BudgetMeter t={t} optimizeFor={optimizeFor} slots={slots} />
-        <button onClick={onRequestDisable}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <CloudOff className="h-3.5 w-3.5" /> {t.aiDisable}
-        </button>
       </div>
 
       <div className="space-y-4 border-t border-border/50 pt-4">
