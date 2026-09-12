@@ -3,8 +3,10 @@ import { migrateState, normalizeState } from './migrations'
 import {
   isEnvelope, decryptForSlot, aadForLocalSlice, aadForPersonalSlice, aadForExport, WHOLE_STATE,
   loadKeyString, wasEncryptionEverEnabled, importRawKey, getCachedDek,
-  DATA_SLICES, META_KEYS, encodeSlices, decodeSlices, isContainer, stripTransient,
+  DATA_SLICES, LOCAL_SLICES, META_KEYS, encodeSlices, decodeSlices, isContainer, stripTransient,
 } from '../lib/crypto'
+
+const PERSISTED_SLICES = [...DATA_SLICES, ...LOCAL_SLICES]
 import { readContainer, writeContainerRecord } from './stateStore'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
@@ -286,8 +288,8 @@ let writeChain = Promise.resolve()
 let queued = null
 
 function dirtySlicesOf(state) {
-  if (!lastPersisted) return DATA_SLICES
-  return DATA_SLICES.filter(slice => state[slice] !== lastPersisted.sliceRefs[slice])
+  if (!lastPersisted) return PERSISTED_SLICES
+  return PERSISTED_SLICES.filter(slice => state[slice] !== lastPersisted.sliceRefs[slice])
 }
 
 function metaChanged(state) {
@@ -324,7 +326,7 @@ async function writeContainer(state) {
   cachedContainer = container
   clearLegacyStoredValue()
   lastPersisted = {
-    sliceRefs: snapshotRefs(state, DATA_SLICES),
+    sliceRefs: snapshotRefs(state, PERSISTED_SLICES),
     meta: snapshotRefs(state, META_KEYS),
     container,
     key,

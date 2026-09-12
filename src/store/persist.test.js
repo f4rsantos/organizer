@@ -70,6 +70,21 @@ describe('plaintext persistence when no key is set', () => {
     const { loadState } = await import('./persist.js')
     expect(loadState()).toBe(null)
   })
+
+  it('loads an old container written before local slices existed', async () => {
+    const { saveState, loadStateAsync } = await import('./persist.js')
+    saveState(baseState())
+    await flush()
+
+    const stored = JSON.parse(await readStoredRaw())
+    expect(stored.slices.agentJournal).toBe(null)
+    expect(stored.slices.agentRuntime).toBe(null)
+
+    const loaded = await loadStateAsync()
+    expect(loaded).not.toHaveProperty('agentJournal')
+    expect(loaded).not.toHaveProperty('agentRuntime')
+    expect(loaded.tasks[0].title).toBe('secret plan')
+  })
 })
 
 describe('encrypted persistence when a key is set', () => {
@@ -248,6 +263,45 @@ describe('only changed slices are re-encrypted', () => {
     saveState({ ...state, tasks: [] })
     await flush(raw => raw !== before)
     expect(await readStoredRaw()).not.toBe(before)
+  })
+
+  it('reuses the stored envelope for an untouched local slice and re-encrypts a changed one', async () => {
+    const { saveState } = await import('./persist.js')
+    const first = {
+      ...baseState(),
+      agentJournal: [{ id: 'run1', inverseOps: [] }],
+      agentRuntime: { status: 'pending', ops: [{ id: 'op1' }], entities: { n1: {} } },
+    }
+    saveState(first)
+    await flush()
+    const before = JSON.parse(await readStoredRaw())
+
+    saveState({ ...first, agentJournal: [{ id: 'run1', inverseOps: [] }, { id: 'run2', inverseOps: [] }] })
+    await flush(raw => JSON.parse(raw).slices.agentJournal.ciphertext !== before.slices.agentJournal.ciphertext)
+    const after = JSON.parse(await readStoredRaw())
+
+    expect(after.slices.agentJournal.ciphertext).not.toBe(before.slices.agentJournal.ciphertext)
+    expect(after.slices.agentRuntime.ciphertext).toBe(before.slices.agentRuntime.ciphertext)
+    expect(after.slices.tasks.ciphertext).toBe(before.slices.tasks.ciphertext)
+  })
+
+  it('drops agentRuntime.entities on write but keeps ops readable after reload', async () => {
+    const { saveState, loadStateAsync } = await import('./persist.js')
+    const state = {
+      ...baseState(),
+      agentRuntime: {
+        status: 'pending', scope: 'notes', slot: 'a', model: 'sonnet',
+        ops: [{ id: 'op1', kind: 'move' }],
+        entities: { n1: { id: 'n1', title: 'proposed' } },
+      },
+    }
+    saveState(state)
+    await flush()
+
+    const loaded = await loadStateAsync()
+    expect(loaded.agentRuntime.ops).toEqual([{ id: 'op1', kind: 'move' }])
+    expect(loaded.agentRuntime.status).toBe('pending')
+    expect(loaded.agentRuntime).not.toHaveProperty('entities')
   })
 
   it('retries a slice whose encryption failed', async () => {
