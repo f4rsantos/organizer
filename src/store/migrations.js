@@ -536,5 +536,50 @@ export function normalizeState(state) {
     state.presetUpdatedAt = {}
   }
 
+  state.agentRuntime = normalizeAgentRuntime(state.agentRuntime)
+  state.agentJournal = normalizeAgentJournal(state.agentJournal)
+
   return state
+}
+
+const AGENT_IN_FLIGHT_STATUSES = ['planning', 'applying']
+const AGENT_RUN_ENTITIES_DEFAULT = { tasks: [], events: [], notes: [], kanban: { cards: [] }, folders: [] }
+
+function normalizeAgentRun(run) {
+  if (!run || typeof run !== 'object') return null
+  const status = AGENT_IN_FLIGHT_STATUSES.includes(run.status) ? 'interrupted' : run.status
+  return {
+    id: run.id,
+    status,
+    scope: run.scope ?? null,
+    slot: run.slot ?? null,
+    model: run.model ?? null,
+    ops: Array.isArray(run.ops) ? run.ops : [],
+    inverse: Array.isArray(run.inverse) ? run.inverse : [],
+    entities: run.entities && typeof run.entities === 'object' ? run.entities : AGENT_RUN_ENTITIES_DEFAULT,
+    createdAt: Number.isFinite(run.createdAt) ? run.createdAt : Date.now(),
+  }
+}
+
+function normalizeAgentRuntime(agentRuntime) {
+  if (!agentRuntime || typeof agentRuntime !== 'object') {
+    return { runs: {}, activeRunId: null }
+  }
+  const rawRuns = agentRuntime.runs && typeof agentRuntime.runs === 'object' ? agentRuntime.runs : {}
+  const runs = {}
+  for (const [runId, run] of Object.entries(rawRuns)) {
+    const normalized = normalizeAgentRun(run)
+    if (normalized) runs[runId] = normalized
+  }
+  const activeRunId = typeof agentRuntime.activeRunId === 'string' && runs[agentRuntime.activeRunId]
+    ? agentRuntime.activeRunId
+    : null
+  return { runs, activeRunId }
+}
+
+function normalizeAgentJournal(agentJournal) {
+  if (!agentJournal || typeof agentJournal !== 'object' || !Array.isArray(agentJournal.entries)) {
+    return { entries: [] }
+  }
+  return { entries: agentJournal.entries }
 }

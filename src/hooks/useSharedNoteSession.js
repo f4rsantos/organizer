@@ -63,7 +63,7 @@ export function useSharedNoteSession(sharedMeta) {
         { publishNotePresence, clearNotePresence, updateTeamState },
         { classifyCollabError },
       ] = await Promise.all([
-        import('@/lib/collab/noteDoc'),
+        import('@/lib/notes/yDoc'),
         import('@/lib/collab/firebase'),
         import('@/lib/collab/errors'),
       ])
@@ -160,7 +160,10 @@ export function useSharedNoteSession(sharedMeta) {
     if (!awareness || !sharedNoteId) return
     let cancelled = false
     const teamKey = membershipRef.current?.teamKey ?? null
-    import('@/lib/collab/noteDoc').then(async ({ openPresenceEntriesForNote, applyAwarenessPresence }) => {
+    Promise.all([
+      import('@/lib/collab/noteDoc'),
+      import('@/lib/notes/yDoc'),
+    ]).then(async ([{ openPresenceEntriesForNote }, { applyAwarenessPresence }]) => {
       const entries = await openPresenceEntriesForNote({ presenceMap, sharedNoteId, teamId, teamKey })
       if (cancelled) return
       applyAwarenessPresence(awareness, entries)

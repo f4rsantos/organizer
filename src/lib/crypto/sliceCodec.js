@@ -14,12 +14,23 @@ export const DATA_SLICES = [
 
 export const LOCAL_SLICES = ['agentJournal', 'agentRuntime']
 
+function withoutEntities(run) {
+  if (!run || typeof run !== 'object') return run
+  const rest = { ...run }
+  delete rest.entities
+  return rest
+}
+
 const LOCAL_SLICE_SANITIZERS = {
   agentRuntime: value => {
     if (!value || typeof value !== 'object') return value
-    const rest = { ...value }
-    delete rest.entities
-    return rest
+    const rest = withoutEntities(value)
+    if (!rest.runs || typeof rest.runs !== 'object') return rest
+    const runs = {}
+    for (const [runId, run] of Object.entries(rest.runs)) {
+      runs[runId] = withoutEntities(run)
+    }
+    return { ...rest, runs }
   },
 }
 

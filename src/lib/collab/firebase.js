@@ -16,7 +16,8 @@ import { nanoid } from '@/lib/ids'
 import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash, createKeyProof, matchesKeyProof } from './token'
 import { createTeamState, isMember, personForAuthUid } from './schema'
 import { encryptTeamState, decryptTeamState, decryptTeamDoc, isEncryptedTeamState } from './teamCrypto'
-import { presenceFieldPath, sealPresenceRecord } from './noteDoc'
+import { sealPresenceRecord } from './noteDoc'
+import { presenceFieldPath } from '@/lib/notes/yDoc'
 
 const appCache = new Map()
 
