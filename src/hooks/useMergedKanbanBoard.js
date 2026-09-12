@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { FREE_BOARD_ID, boardIdForTask, taskToCard } from '@/lib/taskUtils'
-import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
+import { isSharedLocalHidden, applyAgentOverlay } from '@/lib/collab/mergeUtils'
 import { sortByOrder } from '@/lib/utils'
 
 const EMPTY_BOARD = { columns: [] }
@@ -40,6 +40,7 @@ export function useMergedKanbanBoard(semId) {
   const memberships = useStore(s => s.collab?.memberships ?? EMPTY_MEMBERSHIPS)
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? EMPTY_TEAMS)
   const activeSemesterId = useStore(s => s.activeSemesterId)
+  const activeRun = useStore(s => s.agentRuntime?.runs?.[s.agentRuntime?.activeRunId] ?? null)
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
@@ -58,7 +59,7 @@ export function useMergedKanbanBoard(semId) {
 
     return {
       columns: localBoard.columns ?? [],
-      cards: [...localCards, ...remoteCards],
+      cards: applyAgentOverlay([...localCards, ...remoteCards], activeRun, 'kanbanCard'),
     }
-  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, boardId, activeSemesterId])
+  }, [localBoard, localTasks, collabEnabled, memberships, runtimeTeams, boardId, activeSemesterId, activeRun])
 }

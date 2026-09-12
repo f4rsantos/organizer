@@ -81,8 +81,8 @@ describe('plaintext persistence when no key is set', () => {
     expect(stored.slices.agentRuntime).toBe(null)
 
     const loaded = await loadStateAsync()
-    expect(loaded).not.toHaveProperty('agentJournal')
-    expect(loaded).not.toHaveProperty('agentRuntime')
+    expect(loaded.agentRuntime).toEqual({ runs: {}, activeRunId: null })
+    expect(loaded.agentJournal).toEqual({ entries: [] })
     expect(loaded.tasks[0].title).toBe('secret plan')
   })
 })
@@ -285,23 +285,60 @@ describe('only changed slices are re-encrypted', () => {
     expect(after.slices.tasks.ciphertext).toBe(before.slices.tasks.ciphertext)
   })
 
-  it('drops agentRuntime.entities on write but keeps ops readable after reload', async () => {
+  it('drops entities on write but keeps a run confirmable after reload', async () => {
     const { saveState, loadStateAsync } = await import('./persist.js')
+    const ops = [{ type: 'update', entityType: 'note', targetId: 'n1', patch: { title: 'proposed' } }]
     const state = {
       ...baseState(),
       agentRuntime: {
-        status: 'pending', scope: 'notes', slot: 'a', model: 'sonnet',
-        ops: [{ id: 'op1', kind: 'move' }],
-        entities: { n1: { id: 'n1', title: 'proposed' } },
+        activeRunId: 'run1',
+        runs: {
+          run1: {
+            id: 'run1',
+            status: 'awaitingConfirm',
+            scope: { kind: 'folder', folderId: 'f1' },
+            slot: 'medium',
+            model: 'test-model',
+            ops,
+            inverse: [],
+            entities: { notes: [{ id: 'n1', title: 'proposed' }] },
+          },
+        },
       },
     }
     saveState(state)
     await flush()
 
     const loaded = await loadStateAsync()
-    expect(loaded.agentRuntime.ops).toEqual([{ id: 'op1', kind: 'move' }])
-    expect(loaded.agentRuntime.status).toBe('pending')
-    expect(loaded.agentRuntime).not.toHaveProperty('entities')
+    const run = loaded.agentRuntime.runs.run1
+
+    expect(run.ops).toEqual(ops)
+    expect(run.status).toBe('awaitingConfirm')
+    expect(run.entities).toEqual({ tasks: [], events: [], notes: [], kanban: { cards: [] }, folders: [] })
+    expect(loaded.agentRuntime.activeRunId).toBe('run1')
+  })
+
+  it('marks an in-flight run interrupted on reload rather than resuming it', async () => {
+    const { saveState, loadStateAsync } = await import('./persist.js')
+    const state = {
+      ...baseState(),
+      agentRuntime: {
+        activeRunId: 'run1',
+        runs: {
+          run1: {
+            id: 'run1',
+            status: 'applying',
+            ops: [{ type: 'delete', entityType: 'task', targetId: 't1' }],
+            inverse: [],
+          },
+        },
+      },
+    }
+    saveState(state)
+    await flush()
+
+    const loaded = await loadStateAsync()
+    expect(loaded.agentRuntime.runs.run1.status).toBe('interrupted')
   })
 
   it('retries a slice whose encryption failed', async () => {

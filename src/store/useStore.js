@@ -8,6 +8,13 @@ import { sortByOrder } from '@/lib/utils'
 import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 import { cacheCollabUserId } from '@/lib/collab/identity'
+import {
+  createAgentRun, appendOpsToRun, withRunStatus,
+} from '@/lib/ai/agentOverlay'
+import {
+  buildJournalEntry, pushJournalEntry, isRunUndoable, isLifoUndoTarget, markEntryUndoable,
+  removeJournalEntry, emptyJournal,
+} from '@/lib/ai/journal'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -227,6 +234,8 @@ function buildInitialState() {
     holidays: [],
     dismissedNextSemester: {},
     presetUpdatedAt: {},
+    agentRuntime: { runs: {}, activeRunId: null },
+    agentJournal: { entries: [] },
   }
 }
 
@@ -1054,7 +1063,152 @@ export const useStore = create((set, get) => ({
     return persist({ ...s, grades: { ...s.grades, [semId]: { ...semGrades, _semesterFinalGrade: grade } } })
   }),
   setCourseAvg: courseAvg => set(s => persist({ ...s, courseAvg })),
+
+  startAgentRun: ({ scope, slot, model }) => {
+    const runId = nanoid()
+    set(s => persist({
+      ...s,
+      agentRuntime: {
+        runs: { ...(s.agentRuntime?.runs ?? {}), [runId]: createAgentRun({ runId, scope, slot, model }) },
+        activeRunId: runId,
+      },
+    }))
+    return runId
+  },
+  appendAgentOps: (runId, ops) => set(s => {
+    const run = s.agentRuntime?.runs?.[runId]
+    if (!run) return s
+    return persist({
+      ...s,
+      agentRuntime: {
+        ...s.agentRuntime,
+        runs: { ...s.agentRuntime.runs, [runId]: appendOpsToRun(run, ops) },
+      },
+    })
+  }),
+  setAgentRunStatus: (runId, status) => set(s => {
+    const run = s.agentRuntime?.runs?.[runId]
+    if (!run) return s
+    return persist({
+      ...s,
+      agentRuntime: {
+        ...s.agentRuntime,
+        runs: { ...s.agentRuntime.runs, [runId]: withRunStatus(run, status) },
+      },
+    })
+  }),
+  commitAgentRun: runId => {
+    const run = get().agentRuntime?.runs?.[runId]
+    if (!run) return
+    for (const op of run.ops) {
+      applyAgentOpThroughStoreActions(get, op)
+    }
+    set(s => {
+      const runs = { ...(s.agentRuntime?.runs ?? {}) }
+      delete runs[runId]
+      const entry = buildJournalEntry({
+        run,
+        requestCount: run.requestCount ?? 0,
+        changeSummary: summarizeAgentRunOps(run.ops),
+      })
+      return persist({
+        ...s,
+        agentRuntime: {
+          runs,
+          activeRunId: s.agentRuntime?.activeRunId === runId ? null : (s.agentRuntime?.activeRunId ?? null),
+        },
+        agentJournal: pushJournalEntry(s.agentJournal, entry),
+      })
+    })
+  },
+  discardAgentRun: runId => set(s => {
+    const runs = { ...(s.agentRuntime?.runs ?? {}) }
+    delete runs[runId]
+    return persist({
+      ...s,
+      agentRuntime: {
+        runs,
+        activeRunId: s.agentRuntime?.activeRunId === runId ? null : (s.agentRuntime?.activeRunId ?? null),
+      },
+    })
+  }),
+  undoAgentRun: runId => {
+    const state = get()
+    const journal = state.agentJournal
+    if (!isLifoUndoTarget(journal, runId)) return
+    const entry = journal.entries.find(e => e.runId === runId)
+    if (!entry) return
+    if (!isRunUndoable({ inverse: entry.inverse }, state)) {
+      set(s => persist({ ...s, agentJournal: markEntryUndoable(s.agentJournal, runId, false) }))
+      return
+    }
+    for (const op of entry.inverse) {
+      applyAgentOpThroughStoreActions(get, op)
+    }
+    set(s => persist({ ...s, agentJournal: removeJournalEntry(s.agentJournal, runId) }))
+  },
+  clearAgentJournal: () => set(s => persist({ ...s, agentJournal: emptyJournal() })),
 }))
+
+const AGENT_OP_ACTIONS_BY_TYPE = {
+  task: { create: 'addTask', update: 'updateTask', delete: 'deleteTask' },
+  event: { create: 'addEvent', update: 'updateEvent', delete: 'deleteEvent' },
+  note: { create: 'addNote', update: 'updateNote', delete: 'deleteNote' },
+  habit: { create: 'addHabit', update: 'updateHabit', delete: 'deleteHabit' },
+  class: { create: 'addClass', update: 'updateClass', delete: 'deleteClass' },
+}
+
+function applyAgentOpThroughStoreActions(get, op) {
+  const actions = get()
+  const entityType = op.entityType
+  const targetId = op.type === 'create' ? op.id : op.targetId
+
+  if (entityType === 'folder') {
+    if (op.type === 'create') { actions.addNoteFolder(op.entity?.name, op.entity?.parentId ?? null); return }
+    if (op.type === 'delete') { actions.deleteNoteFolder(targetId); return }
+    if (op.type === 'update') {
+      if ('name' in (op.patch ?? {})) actions.renameNoteFolder(targetId, op.patch.name)
+      if ('parentId' in (op.patch ?? {})) actions.moveNoteFolder(targetId, op.patch.parentId)
+      return
+    }
+    return
+  }
+
+  if (entityType === 'kanbanCard') {
+    const semId = op.type === 'create'
+      ? (op.entity?.semesterId ?? FREE_BOARD_ID)
+      : (op.patch?.semesterId ?? FREE_BOARD_ID)
+    if (op.type === 'create') {
+      const { columnId, order, checklist, ...rest } = op.entity ?? {}
+      actions.addTask({
+        id: targetId,
+        semesterId: semId === FREE_BOARD_ID ? null : semId,
+        ...rest,
+        views: { list: false, kanban: true, calendar: false },
+        kanban: { columnId: columnId ?? null, order: order ?? 0, checklist: checklist ?? [] },
+      })
+      return
+    }
+    if (op.type === 'update') { actions.updateKanbanCard(semId, targetId, op.patch ?? {}); return }
+    if (op.type === 'delete') { actions.deleteKanbanCard(semId, targetId); return }
+    return
+  }
+
+  const map = AGENT_OP_ACTIONS_BY_TYPE[entityType]
+  if (!map) return
+  if (op.type === 'create') { actions[map.create]({ id: targetId, ...op.entity }); return }
+  if (op.type === 'update') { actions[map.update](targetId, op.patch ?? {}); return }
+  if (op.type === 'delete') { actions[map.delete](targetId); return }
+}
+
+function summarizeAgentRunOps(ops) {
+  const summary = {}
+  for (const op of ops ?? []) {
+    const key = `${op.entityType}:${op.type}`
+    summary[key] = (summary[key] ?? 0) + 1
+  }
+  return summary
+}
 
 function persist(state) {
   if (!state.hydrated) return { ...state, dirtiedBeforeHydrate: true }

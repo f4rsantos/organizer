@@ -93,6 +93,33 @@ describe('local slices', () => {
     expect(decoded.agentRuntime).not.toHaveProperty('entities')
   })
 
+  it('drops entities from every run while keeping that run ops', async () => {
+    const state = fullState()
+    state.agentRuntime = {
+      activeRunId: 'run1',
+      runs: {
+        run1: {
+          status: 'awaitingConfirm',
+          ops: [{ id: 'op1' }],
+          entities: { tasks: [{ id: 'proposed' }] },
+        },
+        run2: {
+          status: 'committed',
+          ops: [{ id: 'op2' }],
+          entities: { notes: [{ id: 'proposed2' }] },
+        },
+      },
+    }
+
+    const decoded = await decode(await encode(state))
+
+    expect(decoded.agentRuntime.runs.run1).not.toHaveProperty('entities')
+    expect(decoded.agentRuntime.runs.run2).not.toHaveProperty('entities')
+    expect(decoded.agentRuntime.runs.run1.ops).toEqual([{ id: 'op1' }])
+    expect(decoded.agentRuntime.runs.run2.ops).toEqual([{ id: 'op2' }])
+    expect(decoded.agentRuntime.activeRunId).toBe('run1')
+  })
+
   it('encodes local slices into the container alongside data slices', async () => {
     const container = await encode(fullState())
     for (const slice of LOCAL_SLICES) expect(container.slices).toHaveProperty(slice)
