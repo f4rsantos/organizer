@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
-import { stripTransient } from '@/lib/crypto'
+import { stripTransient, stripLocalSlices } from '@/lib/crypto'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 const PUSH_DEBOUNCE_MS = 1000
 const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
-  return JSON.parse(JSON.stringify(stripTransient(useStore.getState())))
+  return JSON.parse(JSON.stringify(stripLocalSlices(stripTransient(useStore.getState()))))
 }
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])

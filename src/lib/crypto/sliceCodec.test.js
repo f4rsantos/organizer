@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  DATA_SLICES, META_KEYS, TRANSIENT_KEYS, encodeSlices, decodeSlices,
-  isContainer, isEncryptedContainer, stripTransient,
+  DATA_SLICES, LOCAL_SLICES, META_KEYS, TRANSIENT_KEYS, encodeSlices, decodeSlices,
+  isContainer, isEncryptedContainer, stripTransient, stripLocalSlices,
 } from './sliceCodec.js'
 import { importRawKey, generateRawKeyString } from './rawKey.js'
 import { aadForLocalSlice, aadForPersonalSlice } from './aad.js'
@@ -16,6 +16,15 @@ function fullState() {
     state[slice] = { marker: `${slice}-${i}` }
   }
   state.tasks = [{ id: 't1', title: 'secret plan' }]
+  state.agentJournal = [{ id: 'run1', inverseOps: [{ op: 'restore', noteId: 'n1', content: 'old text' }] }]
+  state.agentRuntime = {
+    status: 'pending',
+    scope: 'notes',
+    slot: 'a',
+    model: 'sonnet',
+    ops: [{ id: 'op1', kind: 'move', noteId: 'n1' }],
+    entities: { n1: { id: 'n1', title: 'proposed title' } },
+  }
   return state
 }
 
@@ -57,6 +66,88 @@ describe('round trip', () => {
     const state = fullState()
     delete state.holidays
     expect(await decode(await encode(state))).not.toHaveProperty('holidays')
+  })
+})
+
+describe('local slices', () => {
+  it('round trips agentJournal intact', async () => {
+    const state = fullState()
+    const decoded = await decode(await encode(state))
+    expect(decoded.agentJournal).toEqual(state.agentJournal)
+  })
+
+  it('persists agentRuntime.ops and small status fields', async () => {
+    const state = fullState()
+    const decoded = await decode(await encode(state))
+    expect(decoded.agentRuntime.ops).toEqual(state.agentRuntime.ops)
+    expect(decoded.agentRuntime.status).toBe('pending')
+    expect(decoded.agentRuntime.scope).toBe('notes')
+    expect(decoded.agentRuntime.slot).toBe('a')
+    expect(decoded.agentRuntime.model).toBe('sonnet')
+  })
+
+  it('drops agentRuntime.entities on write', async () => {
+    const state = fullState()
+    const container = await encode(state)
+    const decoded = await decode(container)
+    expect(decoded.agentRuntime).not.toHaveProperty('entities')
+  })
+
+  it('encodes local slices into the container alongside data slices', async () => {
+    const container = await encode(fullState())
+    for (const slice of LOCAL_SLICES) expect(container.slices).toHaveProperty(slice)
+  })
+
+  it('marks an absent local slice as null', async () => {
+    const state = fullState()
+    delete state.agentJournal
+    expect((await encode(state)).slices.agentJournal).toBe(null)
+  })
+
+  it('skips a null local slice on decode', async () => {
+    const state = fullState()
+    delete state.agentJournal
+    expect(await decode(await encode(state))).not.toHaveProperty('agentJournal')
+  })
+
+  it('decodes an old container with no local slices at all, without crashing', async () => {
+    const state = fullState()
+    delete state.agentJournal
+    delete state.agentRuntime
+    const container = await encode(state)
+    delete container.slices.agentJournal
+    delete container.slices.agentRuntime
+    const decoded = await decode(container)
+    expect(decoded).not.toHaveProperty('agentJournal')
+    expect(decoded).not.toHaveProperty('agentRuntime')
+    expect(decoded.tasks).toEqual(state.tasks)
+  })
+})
+
+describe('sync payload excludes local slices', () => {
+  it('strips agentJournal and agentRuntime', () => {
+    const stripped = stripLocalSlices(fullState())
+    for (const slice of LOCAL_SLICES) expect(stripped).not.toHaveProperty(slice)
+  })
+
+  it('keeps every data slice intact', () => {
+    const state = fullState()
+    const stripped = stripLocalSlices(state)
+    for (const slice of DATA_SLICES) expect(stripped[slice]).toEqual(state[slice])
+  })
+
+  it('keeps meta keys intact', () => {
+    const state = fullState()
+    const stripped = stripLocalSlices(state)
+    for (const key of META_KEYS) expect(stripped[key]).toEqual(state[key])
+  })
+
+  it('composes with stripTransient the way useFirebaseSync does', () => {
+    const state = { ...fullState(), activeTab: 'tasks', hydrated: true, collabRuntime: {} }
+    const payload = stripLocalSlices(stripTransient(state))
+    for (const slice of LOCAL_SLICES) expect(payload).not.toHaveProperty(slice)
+    for (const key of TRANSIENT_KEYS) expect(payload).not.toHaveProperty(key)
+    for (const slice of DATA_SLICES) expect(payload).toHaveProperty(slice)
   })
 })
 

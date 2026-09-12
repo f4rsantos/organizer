@@ -105,7 +105,23 @@ describe('planning under budget', () => {
   })
 
   it('follows the documented shed order', () => {
-    expect(SHED_ORDER[0]).toBe('pomodoros')
+    expect(SHED_ORDER[0]).toBe('agentJournal')
     expect(SHED_ORDER[SHED_ORDER.length - 1]).toBe('tasks')
+  })
+
+  it('counts local slices toward the predicted container size', () => {
+    const withoutJournal = predictContainerBytes(stateWith({}))
+    const withJournal = predictContainerBytes(stateWith({ agentJournal: { runs: ['x'.repeat(100_000)] } }))
+    expect(withJournal).toBeGreaterThan(withoutJournal)
+  })
+
+  it('sheds the agent journal before any user data', () => {
+    const plan = planWithinBudget(stateWith({
+      agentJournal: { runs: ['x'.repeat(6_000_000)] },
+    }), LIMIT)
+
+    expect(plan.omitted).toContain('agentJournal')
+    expect(plan.omitted).not.toContain('notes')
+    expect(plan.omitted).not.toContain('tasks')
   })
 })
