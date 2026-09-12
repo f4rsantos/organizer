@@ -553,6 +553,7 @@ export const pirate = {
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",
+    notesFolderEmpty: "This chest be empty, matey.",
     notesSelectNote: "Select a note to start editing",
     notesTextNote: "Text note",
     notesCanvasNote: "Canvas note",

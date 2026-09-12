@@ -232,7 +232,7 @@ function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, 
   const KindIcon = note.kind === 'canvas' ? Pencil : FileText
   const isSharedRemote = Boolean(note.sharedMeta?.remote)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: note.id, data: { type: 'note', note }, disabled: !draggable || isSharedRemote,
+    id: note.id, data: { type: 'note', note }, disabled: !draggable,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -287,7 +287,7 @@ function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, 
 export function NoteGrid({
   notes, folders, selectedId, onSelect, onDeleteNote, t,
   currentFolderId = null, onOpenFolder, flat = false, noteCountFor, onRenameFolder, onDeleteFolder,
-  dragHover = null, teamNameFor,
+  dragHover = null, teamNameFor, emptyLabel,
 }) {
   const { active } = useDndContext()
   const folderName = id => folders.find(f => f.id === id)?.name
@@ -334,7 +334,7 @@ export function NoteGrid({
         </div>
       </SortableContext>
       {isEmpty && (
-        <p className="px-2 py-8 text-center text-xs italic text-muted-foreground/60">{t.notesFilterEmpty}</p>
+        <p className="px-2 py-8 text-center text-xs italic text-muted-foreground/60">{emptyLabel ?? t.notesFilterEmpty}</p>
       )}
     </div>
   )

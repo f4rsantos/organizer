@@ -553,6 +553,7 @@ export const es = {
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",
+    notesFolderEmpty: "Esta carpeta está vacía.",
     notesSelectNote: "Select a note to start editing",
     notesTextNote: "Text note",
     notesCanvasNote: "Canvas note",

@@ -636,6 +636,7 @@ export const cs = {
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",
+    notesFolderEmpty: "Tato složka je prázdná.",
     notesSelectNote: "Select a note to start editing",
     notesTextNote: "Text note",
     notesCanvasNote: "Canvas note",
