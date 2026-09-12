@@ -505,6 +505,7 @@ export const en = {
     notesEmptyTitle: 'No notes yet', notesEmptyDesc: 'Create your first note to get started.',
     notesFilterEmpty: 'No notes match your search.',
     notesFolderEmpty: 'This folder is empty.',
+    notesTableAddRow: 'Add row', notesTableAddColumn: 'Add column', notesTableResize: 'Resize table',
     notesSelectNote: 'Select a note to start editing',
     notesTextNote: 'Text note', notesCanvasNote: 'Canvas note',
     eventStartTimeFirstDay: 'Start time (first day)', eventEndTimeLastDay: 'End time (last day)',

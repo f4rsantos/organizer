@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { TableKit } from '@tiptap/extension-table'
+import { NoteTableKit } from './extensions/NoteTable'
 import { TaskList } from '@tiptap/extension-task-list'
 import { TaskItem } from '@tiptap/extension-task-item'
 import { TextStyleKit } from '@tiptap/extension-text-style'
@@ -15,6 +15,7 @@ import { MathGraph } from './extensions/MathGraph'
 import { TaskMention } from './extensions/TaskMention'
 import { CollabPlugins } from './extensions/CollabPlugins'
 import { EditorToolbar } from './EditorToolbar'
+import { TableControls } from './TableControls'
 import { useTaskMention } from './useTaskMention'
 import { TaskMentionPopup } from '../TaskMentionPopup'
 
@@ -39,6 +40,7 @@ function NoteEditorSurface({ note, collabPlugins }) {
   const tasks = useStore(s => s.tasks ?? EMPTY)
   const saveTimer = useRef(null)
   const pendingSave = useRef(false)
+  const scrollRef = useRef(null)
 
   const collaborative = Boolean(collabPlugins)
 
@@ -49,7 +51,7 @@ function NoteEditorSurface({ note, collabPlugins }) {
       link: { openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary underline' } },
     }),
     TextStyleKit,
-    TableKit.configure({ table: { resizable: true } }),
+    NoteTableKit,
     TaskList,
     TaskItem.configure({ nested: true }),
     CodeBlockLowlight.configure({ lowlight }),
@@ -109,8 +111,10 @@ function NoteEditorSurface({ note, collabPlugins }) {
       <div className="relative min-h-0 flex-1">
         <EditorContent
           editor={editor}
+          ref={scrollRef}
           className="h-full overflow-y-auto rounded-xl bg-secondary/20 p-4 text-sm"
         />
+        <TableControls editor={editor} scrollRef={scrollRef} t={t} />
         {mention.mention && (
           <TaskMentionPopup
             tasks={mention.matches}
