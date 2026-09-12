@@ -38,6 +38,14 @@ export function saveBudgetState(state) {
   return writeJson(BUDGET_STORAGE_KEY, state)
 }
 
+export function clearBudgetState() {
+  try {
+    localStorage.removeItem(BUDGET_STORAGE_KEY)
+  } catch {
+    return
+  }
+}
+
 export function recordAiRequest(state, { slotName, model, requestCount, inputTokens, outputTokens, spend, timestamp }) {
   const current = state?.day === todayKey() ? state : emptyBudgetState()
   const slotCounters = current.slots?.[slotName] ?? emptySlotCounters()

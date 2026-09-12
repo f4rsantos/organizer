@@ -44,28 +44,28 @@ export function routeRun({
   slots,
 }) {
   if (userForcedTier === 2) {
-    const { slot } = resolveSlot(slots, 'high')
-    return { tier: 2, slot, reason: 'user-forced-best' }
+    const { slot, resolvedFrom } = resolveSlot(slots, 'high')
+    return { tier: 2, slot, slotName: resolvedFrom, reason: 'user-forced-best' }
   }
 
   if (isScopedOneShot({ goal, scope, parserConfidence, scopedVerbs })) {
-    const { slot } = resolveSlot(slots, 'low')
-    return { tier: 'oneShot', slot, reason: 'scoped-single-target' }
+    const { slot, resolvedFrom } = resolveSlot(slots, 'low')
+    return { tier: 'oneShot', slot, slotName: resolvedFrom, reason: 'scoped-single-target' }
   }
 
   if (needsEscalation({ goal, estimatedOpCount, escalationVerbs })) {
-    const { slot } = resolveSlot(slots, 'high')
-    return { tier: 2, slot, reason: 'reorganise-or-high-op-count' }
+    const { slot, resolvedFrom } = resolveSlot(slots, 'high')
+    return { tier: 2, slot, slotName: resolvedFrom, reason: 'reorganise-or-high-op-count' }
   }
 
-  const { slot } = resolveSlot(slots, 'medium')
-  return { tier: 1, slot, reason: 'default' }
+  const { slot, resolvedFrom } = resolveSlot(slots, 'medium')
+  return { tier: 1, slot, slotName: resolvedFrom, reason: 'default' }
 }
 
 export function routeRetry({ slots }) {
   const { slot, resolvedFrom } = resolveSlot(slots, 'high')
   if (!resolvedFrom || resolvedFrom !== 'high') {
-    return { tier: null, slot: null, reason: 'no-escalation-target' }
+    return { tier: null, slot: null, slotName: null, reason: 'no-escalation-target' }
   }
-  return { tier: 2, slot, reason: 'retry-after-failure' }
+  return { tier: 2, slot, slotName: resolvedFrom, reason: 'retry-after-failure' }
 }

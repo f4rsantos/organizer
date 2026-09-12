@@ -17,7 +17,7 @@ describe('router tier 0/oneShot/1/2 triggers', () => {
       scopedVerbs: SCOPED_VERBS,
       slots: FULL_SLOTS,
     })
-    expect(result).toEqual({ tier: 'oneShot', slot: LOW_SLOT, reason: 'scoped-single-target' })
+    expect(result).toEqual({ tier: 'oneShot', slot: LOW_SLOT, slotName: 'low', reason: 'scoped-single-target' })
   })
 
   it('does not match a scoped verb without a scope', () => {
@@ -51,7 +51,7 @@ describe('router tier 0/oneShot/1/2 triggers', () => {
       escalationVerbs: ESCALATION_VERBS,
       slots: FULL_SLOTS,
     })
-    expect(result).toEqual({ tier: 2, slot: HIGH_SLOT, reason: 'reorganise-or-high-op-count' })
+    expect(result).toEqual({ tier: 2, slot: HIGH_SLOT, slotName: 'high', reason: 'reorganise-or-high-op-count' })
   })
 
   it('escalates on a non-English escalation verb, proving no English is hardcoded', () => {
@@ -126,7 +126,7 @@ describe('router tier 0/oneShot/1/2 triggers', () => {
       scopedVerbs: SCOPED_VERBS,
       slots: FULL_SLOTS,
     })
-    expect(result).toEqual({ tier: 1, slot: MEDIUM_SLOT, reason: 'default' })
+    expect(result).toEqual({ tier: 1, slot: MEDIUM_SLOT, slotName: 'medium', reason: 'default' })
   })
 
   it('honours the word list from the parameter, not a hardcoded English list', () => {
@@ -166,13 +166,13 @@ describe('router tier 0/oneShot/1/2 triggers', () => {
 describe('routeRetry', () => {
   it('escalates to high on retry when high is configured', () => {
     const result = routeRetry({ slots: FULL_SLOTS })
-    expect(result).toEqual({ tier: 2, slot: HIGH_SLOT, reason: 'retry-after-failure' })
+    expect(result).toEqual({ tier: 2, slot: HIGH_SLOT, slotName: 'high', reason: 'retry-after-failure' })
   })
 
   it('reports no escalation target when high resolves down to medium', () => {
     const slots = { medium: MEDIUM_SLOT }
     const result = routeRetry({ slots })
-    expect(result).toEqual({ tier: null, slot: null, reason: 'no-escalation-target' })
+    expect(result).toEqual({ tier: null, slot: null, slotName: null, reason: 'no-escalation-target' })
   })
 })
 

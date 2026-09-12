@@ -8,6 +8,7 @@ import {
   clearAllAiKeys,
   listConfiguredProviders,
 } from '@/lib/ai/keys'
+import { listProviders } from '@/lib/ai/providers'
 
 function createMemoryStorage() {
   const map = new Map()
@@ -70,7 +71,22 @@ describe('keys', () => {
     saveAiKey('anthropic', 'sk-test-123')
     expect(listConfiguredProviders()).toEqual(['anthropic'])
     saveBaseUrl('custom', 'http://localhost:11434')
-    expect(listConfiguredProviders()).toEqual(['anthropic', 'custom'])
+    expect(listConfiguredProviders().sort()).toEqual(['anthropic', 'custom'])
+  })
+
+  it('clears every registered provider, including ones added after this test was written', () => {
+    for (const providerId of listProviders().map(p => p.id)) {
+      saveAiKey(providerId, `sk-${providerId}`)
+      saveBaseUrl(providerId, `http://${providerId}.example`)
+    }
+
+    clearAllAiKeys()
+
+    for (const providerId of listProviders().map(p => p.id)) {
+      expect(loadAiKey(providerId)).toBe('')
+      expect(loadBaseUrl(providerId)).toBe('')
+    }
+    expect(listConfiguredProviders()).toEqual([])
   })
 
   it('degrades to a fallback instead of throwing when localStorage is unavailable', () => {
