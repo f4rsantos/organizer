@@ -14,6 +14,23 @@ function getSerializableState() {
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])
 
+let initialSyncRev = null
+let initialSyncDone = false
+
+export function setInitialSyncRev(rev) {
+  initialSyncRev = rev
+  initialSyncDone = true
+}
+
+export function getInitialSyncRev() {
+  return initialSyncRev
+}
+
+export function resetInitialSyncRevForTests() {
+  initialSyncRev = null
+  initialSyncDone = false
+}
+
 export function useFirebaseSync() {
   const importData = useStore(s => s.importData)
   const hydrated = useStore(s => s.hydrated === true)
@@ -22,15 +39,13 @@ export function useFirebaseSync() {
     isPulling: false,
     remoteNewer: false,
     lastLocalUpdateAt: 0,
-    lastPullAt: 0,
+    lastPullAt: initialSyncDone ? Date.now() : 0,
     retryingConflict: false,
-    // Revision of the remote doc this device last read. Until a pull succeeds
-    // it is null, which blocks pushing: local state is whatever was on disk at
-    // boot, so pushing it would overwrite newer work from another device.
-    baseRev: null,
-    hasPulled: false,
+    baseRev: initialSyncRev,
+    hasPulled: initialSyncDone,
+    isImporting: false,
   })
-  const [status, setStatus] = useState('idle')
+  const [status, setStatus] = useState(initialSyncDone ? 'ok' : 'idle')
 
   const pull = useCallback(async ({ force = true } = {}) => {
     if (!hydrated) return
@@ -45,15 +60,13 @@ export function useFirebaseSync() {
       const pulled = await pullFromFirebase(config)
       const remote = pulled?.state
 
-      // An empty remote is still a successful read: this device now knows the
-      // doc's revision (0) and may push its local state to seed it.
-      refs.current.baseRev = pulled?.rev ?? 0
-      refs.current.hasPulled = true
-
       if (refs.current.lastLocalUpdateAt > pullStartTime) {
         setStatus('ok')
         return
       }
+
+      refs.current.baseRev = pulled?.rev ?? 0
+      refs.current.hasPulled = true
 
       if (remote?.version) {
         const { state, status: migration } = migrateState(remote)
@@ -63,7 +76,14 @@ export function useFirebaseSync() {
           return
         }
         refs.current.remoteNewer = false
-        if (migration !== 'invalid') importData(state)
+        if (migration !== 'invalid') {
+          refs.current.isImporting = true
+          try {
+            importData(state)
+          } finally {
+            refs.current.isImporting = false
+          }
+        }
       }
       setStatus('ok')
     } catch (err) {
@@ -79,9 +99,6 @@ export function useFirebaseSync() {
     const config = loadFirebaseConfig()
     if (!config) return
     if (refs.current.remoteNewer) return
-    // Never write before reading. The push scheduled by hydration would
-    // otherwise race the opening pull and clobber the remote with stale
-    // on-disk state.
     if (!refs.current.hasPulled) return
     try {
       setStatus('syncing')
@@ -92,15 +109,10 @@ export function useFirebaseSync() {
       setStatus('ok')
     } catch (err) {
       if (err?.message === REV_CONFLICT && !refs.current.retryingConflict) {
-        // Another device wrote while this one was editing. Re-read to adopt the
-        // new base revision, then push once more so the local edit is not
-        // stranded waiting on a future store change. Guarded against recursing
-        // if the remote keeps moving.
         refs.current.retryingConflict = true
         try {
           setStatus('conflict')
           await pull()
-          await push()
         } finally {
           refs.current.retryingConflict = false
         }
@@ -127,6 +139,7 @@ export function useFirebaseSync() {
   useEffect(() => {
     const tracked = refs.current
     const unsubscribe = useStore.subscribe(() => {
+      if (tracked.isImporting) return
       tracked.lastLocalUpdateAt = Date.now()
       clearTimeout(tracked.pushTimeout)
       tracked.pushTimeout = setTimeout(push, PUSH_DEBOUNCE_MS)
@@ -144,6 +157,7 @@ export function useFirebaseSync() {
     }
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') flush()
+      else if (document.visibilityState === 'visible') pullIfStale()
     }
     window.addEventListener('pagehide', flush)
     document.addEventListener('visibilitychange', onVisibilityChange)
@@ -151,19 +165,27 @@ export function useFirebaseSync() {
       window.removeEventListener('pagehide', flush)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [pushNow])
+  }, [pushNow, pullIfStale])
 
   useEffect(() => {
-    window.addEventListener('focus', pullNow)
-    return () => window.removeEventListener('focus', pullNow)
-  }, [pullNow])
+    window.addEventListener('focus', pullIfStale)
+    window.addEventListener('online', pullNow)
+    return () => {
+      window.removeEventListener('focus', pullIfStale)
+      window.removeEventListener('online', pullNow)
+    }
+  }, [pullIfStale, pullNow])
 
   useEffect(() => {
     const id = setInterval(pullNow, PULL_INTERVAL_MS)
     return () => clearInterval(id)
   }, [pullNow])
 
-  useEffect(() => { pullNow() }, [pullNow])
+  useEffect(() => {
+    if (!refs.current.hasPulled || Date.now() - refs.current.lastPullAt >= PULL_GATE_MS) {
+      pullNow()
+    }
+  }, [pullNow])
 
   return { status, pullNow, pullIfStale }
 }
