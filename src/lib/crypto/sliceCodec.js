@@ -7,8 +7,9 @@ export const META_KEYS = ['version', 'theme', 'lang', 'onboardingDone']
 
 export const DATA_SLICES = [
   'activeSemesterId', 'semesters', 'classes', 'tasks', 'events', 'notes', 'noteFolders',
-  'habits', 'kanban', 'grades', 'settings', 'collab', 'focusSync', 'pomodoros', 'taskAlertStates',
-  'courseAvg', 'holidays', 'dismissedNextSemester', 'presetUpdatedAt', 'scheduleImports',
+  'sharedNoteFolders', 'habits', 'kanban', 'grades', 'settings', 'collab', 'focusSync',
+  'pomodoros', 'taskAlertStates', 'courseAvg', 'holidays', 'dismissedNextSemester',
+  'presetUpdatedAt', 'scheduleImports',
 ]
 
 export const TRANSIENT_KEYS = [
