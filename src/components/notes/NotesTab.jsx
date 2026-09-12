@@ -244,8 +244,8 @@ export function NotesTab() {
     folderEntryRef.current = {}
 
     if (!over || over.id === active.id) return
-    if (isRemoteNote(active.id)) return
     const activeType = active.data?.current?.type
+    const isRemote = isRemoteNote(active.id)
     const overData = over.data?.current ?? {}
     const overId = String(over.id)
 
@@ -269,6 +269,8 @@ export function NotesTab() {
       }
       return
     }
+
+    if (isRemote) return
 
     const currentFolderNotes = mosaicNotes
     const currentChildFolders = folders.filter(f => (f.parentId ?? null) === mosaicFolderId)
@@ -387,20 +389,18 @@ export function NotesTab() {
                 <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} t={t}
                   currentFolderId={mosaicFolderId} onOpenFolder={setMosaicFolderId}
                   flat={searching} noteCountFor={noteCountFor} onRenameFolder={renameNoteFolder}
-                  onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} teamNameFor={getTeamName} />
+                  onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} teamNameFor={getTeamName}
+                  emptyLabel={searching ? t.notesFilterEmpty : t.notesFolderEmpty} />
                 <DragOverlay dropAnimation={dropOverlayConfig}>
                   {activeDrag ? (
                     <DragOverlayItem item={activeItemData} count={noteCountFor(activeDrag.id)} width={activeDrag?.width} height={activeDrag?.height} t={t} />
                   ) : null}
                 </DragOverlay>
               </DndContext>
-              {!filtered.length && !folders.length && (
+              {!notes.length && !folders.length && (
                 <div className="py-8">
                   <EmptyState icon={FileText} title={t.notesEmptyTitle} description={t.notesEmptyDesc} />
                 </div>
-              )}
-              {filtered.length === 0 && (folders.length > 0 || query.trim()) && (
-                <p className="px-2 py-4 text-xs text-muted-foreground/60 text-center italic">{t.notesFilterEmpty}</p>
               )}
             </>
           )}

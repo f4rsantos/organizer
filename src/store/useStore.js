@@ -124,6 +124,10 @@ function mergeStateOnHydrate(diskState, s) {
       ...(s?.settings ?? {}),
       ...(diskState?.settings ?? {}),
     },
+    sharedNoteFolders: {
+      ...(s?.sharedNoteFolders ?? {}),
+      ...(diskState?.sharedNoteFolders ?? {}),
+    },
     grades: diskState?.grades && Object.keys(diskState.grades).length ? diskState.grades : (s?.grades ?? {}),
     courseAvg: diskState?.courseAvg ?? s?.courseAvg,
     holidays: diskState?.holidays?.length ? diskState.holidays : (s?.holidays ?? []),
@@ -148,6 +152,7 @@ function buildInitialState() {
     events: [],
     notes: [],
     noteFolders: [],
+    sharedNoteFolders: {},
     habits: [],
     kanban: {},
     grades: {},
@@ -509,9 +514,17 @@ export const useStore = create((set, get) => ({
   unarchiveNote: id => set(s => persist({
     ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, archived: false, archivedAt: null, updatedAt: Date.now() } : n),
   })),
-  moveNoteToFolder: (id, folderId) => set(s => persist({
-    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, folderId, updatedAt: Date.now() } : n),
-  })),
+  moveNoteToFolder: (id, folderId) => set(s => {
+    if (typeof id === 'string' && id.startsWith('shared:')) {
+      return persist({
+        ...s,
+        sharedNoteFolders: { ...(s.sharedNoteFolders ?? {}), [id]: folderId },
+      })
+    }
+    return persist({
+      ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, folderId, updatedAt: Date.now() } : n),
+    })
+  }),
   reorderNotes: orderedIds => set(s => {
     const rank = Object.fromEntries(orderedIds.map((id, i) => [id, i]))
     return persist({
@@ -544,10 +557,14 @@ export const useStore = create((set, get) => ({
   }),
   deleteNoteFolder: id => set(s => {
     const parentId = (s.noteFolders ?? []).find(f => f.id === id)?.parentId ?? null
+    const sharedNoteFolders = Object.fromEntries(
+      Object.entries(s.sharedNoteFolders ?? {}).map(([key, val]) => [key, val === id ? parentId : val]),
+    )
     return persist({
       ...s,
       noteFolders: (s.noteFolders ?? []).filter(f => f.id !== id).map(f => f.parentId === id ? { ...f, parentId } : f),
       notes: (s.notes ?? []).map(n => n.folderId === id ? { ...n, folderId: parentId } : n),
+      sharedNoteFolders,
     })
   }),
 
@@ -865,8 +882,15 @@ export const useStore = create((set, get) => ({
 
     const runtimeSnapshot = state.collabRuntime?.teams?.[teamId]
     const noteSnapshot = note
+    const sharedNoteId = `shared:${teamId}:${sharedNote.id}`
     get().setCollabRuntimeTeam(teamId, { ...team, state: addNoteToState(team.state ?? {}) })
-    set(s => persist({ ...s, notes: (s.notes ?? []).filter(n => n.id !== noteId) }))
+    set(s => persist({
+      ...s,
+      notes: (s.notes ?? []).filter(n => n.id !== noteId),
+      sharedNoteFolders: note.folderId
+        ? { ...(s.sharedNoteFolders ?? {}), [sharedNoteId]: note.folderId }
+        : (s.sharedNoteFolders ?? {}),
+    }))
 
     try {
       await updateTeamState({
@@ -878,7 +902,11 @@ export const useStore = create((set, get) => ({
       return { teamId, sharedNoteId: sharedNote.id }
     } catch (err) {
       if (runtimeSnapshot) get().setCollabRuntimeTeam(teamId, runtimeSnapshot)
-      set(s => persist({ ...s, notes: [...(s.notes ?? []), noteSnapshot] }))
+      set(s => {
+        const sharedNoteFolders = { ...(s.sharedNoteFolders ?? {}) }
+        delete sharedNoteFolders[sharedNoteId]
+        return persist({ ...s, notes: [...(s.notes ?? []), noteSnapshot], sharedNoteFolders })
+      })
       get().setCollabError(teamId, err?.message ?? 'Sync failed', classifyCollabError(err))
       return null
     }

@@ -2,15 +2,16 @@ import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
 
-function mapRemoteNote(note, teamId) {
+function mapRemoteNote(note, teamId, sharedNoteFolders) {
+  const id = `shared:${teamId}:${note.id}`
   return {
-    id: `shared:${teamId}:${note.id}`,
+    id,
     title: note.title ?? '',
     kind: 'text',
     body: '',
     doc: null,
     strokes: [],
-    folderId: null,
+    folderId: sharedNoteFolders[id] ?? null,
     favorite: false,
     archived: false,
     order: 0,
@@ -29,6 +30,7 @@ export function useMergedNotes() {
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const sharedNoteFolders = useStore(s => s.sharedNoteFolders ?? {})
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
@@ -36,9 +38,9 @@ export function useMergedNotes() {
 
     const remote = (collabEnabled ? memberships : []).flatMap(membership => {
       const team = runtimeTeams[membership.teamId]
-      return (team?.state?.notes ?? []).map(note => mapRemoteNote(note, membership.teamId))
+      return (team?.state?.notes ?? []).map(note => mapRemoteNote(note, membership.teamId, sharedNoteFolders))
     })
 
     return [...local, ...remote]
-  }, [localNotes, collabEnabled, memberships, runtimeTeams])
+  }, [localNotes, collabEnabled, memberships, runtimeTeams, sharedNoteFolders])
 }

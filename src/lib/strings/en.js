@@ -504,6 +504,7 @@ export const en = {
     notesDeleteConfirmTitle: 'Delete this note?', notesDeleteConfirmDesc: 'This note will be permanently deleted.',
     notesEmptyTitle: 'No notes yet', notesEmptyDesc: 'Create your first note to get started.',
     notesFilterEmpty: 'No notes match your search.',
+    notesFolderEmpty: 'This folder is empty.',
     notesSelectNote: 'Select a note to start editing',
     notesTextNote: 'Text note', notesCanvasNote: 'Canvas note',
     eventStartTimeFirstDay: 'Start time (first day)', eventEndTimeLastDay: 'End time (last day)',

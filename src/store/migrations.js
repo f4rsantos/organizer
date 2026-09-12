@@ -497,6 +497,9 @@ export function normalizeState(state) {
   state.events = (Array.isArray(state.events) ? state.events : []).map(normalizeEvent).filter(Boolean)
   state.notes = (Array.isArray(state.notes) ? state.notes : []).map(normalizeNote).filter(Boolean)
   state.noteFolders = (Array.isArray(state.noteFolders) ? state.noteFolders : []).map(normalizeNoteFolder).filter(Boolean)
+  if (!state.sharedNoteFolders || typeof state.sharedNoteFolders !== 'object' || Array.isArray(state.sharedNoteFolders)) {
+    state.sharedNoteFolders = {}
+  }
   state.habits = (Array.isArray(state.habits) ? state.habits : []).map(normalizeHabit).filter(Boolean)
   if (!Array.isArray(state.scheduleImports)) state.scheduleImports = []
   if (!state.kanban || typeof state.kanban !== 'object') state.kanban = {}
