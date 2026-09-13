@@ -285,6 +285,7 @@ export const pirate = {
   collabTeamName: 'Crew name',
   collabTeamDays: 'crew days',
   collabTeamDuration: 'crew duration',
+  collabNeverExpires: 'sails forever',
   collabDays: 'days',
   collabJoinTeam: 'Join crew',
   collabInvitePlaceholder: 'Paste the bottle link',

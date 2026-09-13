@@ -420,6 +420,7 @@ export const cs = {
     collabTeamName: "Název týmu",
     collabTeamDays: "dní týmu",
     collabTeamDuration: "trvání týmu",
+    collabNeverExpires: "nikdy nevyprší",
     collabDays: "dní",
     collabJoinTeam: "Připojit se k týmu",
     collabInvitePlaceholder: "Vložte pozvánkový odkaz",

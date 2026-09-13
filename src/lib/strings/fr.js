@@ -284,6 +284,7 @@ export const fr = {
     collabTeamName: 'Nom de l\'équipe',
     collabTeamDays: 'jours de l\'équipe',
     collabTeamDuration: 'durée de l\'équipe',
+    collabNeverExpires: 'n’expire jamais',
     collabDays: 'jours',
     collabJoinTeam: 'Rejoindre une équipe',
     collabInvitePlaceholder: 'Coller le lien d\'invitation',
