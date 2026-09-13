@@ -306,6 +306,7 @@ export const en = {
     collabTeamName: 'Team name',
     collabTeamDays: 'team days',
     collabTeamDuration: 'team duration',
+    collabNeverExpires: 'never expires',
     collabDays: 'days',
     collabJoinTeam: 'Join team',
     collabInvitePlaceholder: 'Paste invite link',

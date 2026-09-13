@@ -104,6 +104,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(team.name ?? '')
   const [daysInput, setDaysInput] = useState(String(Math.max(1, daysLeft(team.expiresAt))))
+  const [neverExpires, setNeverExpires] = useState(!Number.isFinite(parseExpiresAtMs(team.expiresAt)))
   const [completionMode, setCompletionMode] = useState(team.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all')
   const [membersCanEditShared, setMembersCanEditShared] = useState(team.membersCanEditShared !== false)
   const [assignedOnly, setAssignedOnly] = useState(team.assignedOnlyComplete === true)
@@ -119,6 +120,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
   const startEditing = () => {
     setName(team.name ?? '')
     setDaysInput(String(Math.max(1, daysLeft(team.expiresAt))))
+    setNeverExpires(!Number.isFinite(parseExpiresAtMs(team.expiresAt)))
     setCompletionMode(team.sharedTaskCompletionMode === 'personal' ? 'personal' : 'for-all')
     setMembersCanEditShared(team.membersCanEditShared !== false)
     setAssignedOnly(team.assignedOnlyComplete === true)
@@ -128,7 +130,7 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
   const save = async () => {
     await onUpdate({
       name: name.trim() || team.name,
-      expiresAt: Date.now() + parseDays(daysInput, 365) * DAY_MS,
+      expiresAt: neverExpires ? null : Date.now() + parseDays(daysInput, 365) * DAY_MS,
       sharedTaskCompletionMode: completionMode,
       membersCanEditShared,
       assignedOnlyComplete: assignedOnly,
@@ -161,9 +163,17 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
                 min={1}
                 className="w-32"
                 value={daysInput}
+                disabled={neverExpires}
                 onChange={e => setDaysInput(e.target.value)}
                 onBlur={() => { if (daysInput === '') setDaysInput('365') }}
               />
+              <button type="button" onClick={() => setNeverExpires(v => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {neverExpires
+                  ? <CircleCheck className="h-4 w-4 text-primary" />
+                  : <Circle className="h-4 w-4" />}
+                {t.collabNeverExpires}
+              </button>
             </div>
 
             <div className="space-y-1 pt-1">
@@ -218,9 +228,11 @@ function TeamRow({ team, t, isHost, userId, runtimeTeam, onGenerateInvite, onDel
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{team.name ?? t.collabDefaultTeamName}</p>
-                {formatExpiresAt(team.expiresAt) ? (
-                  <p className="text-xs text-muted-foreground truncate">{t.collabEndsAt} {formatExpiresAt(team.expiresAt)}</p>
-                ) : null}
+                <p className="text-xs text-muted-foreground truncate">
+                  {formatExpiresAt(team.expiresAt)
+                    ? `${t.collabEndsAt} ${formatExpiresAt(team.expiresAt)}`
+                    : t.collabNeverExpires}
+                </p>
               </div>
               <Badge variant="outline" className="h-5 text-[11px]">
                 {isHost ? <Crown className="h-3 w-3 mr-1" /> : null}
@@ -404,6 +416,7 @@ export function CollabPanel({ section = 'both' }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [durationInput, setDurationInput] = useState('365')
+  const [createNeverExpires, setCreateNeverExpires] = useState(false)
   const [joinLink, setJoinLink] = useState('')
   const [error, setError] = useState(null)
   const [leaveTeamId, setLeaveTeamId] = useState(null)
@@ -442,7 +455,7 @@ export function CollabPanel({ section = 'both' }) {
     if (disabled || !collab.userId || !name.trim()) return
     setError(null)
     try {
-      const expiresAt = Date.now() + parseDays(durationInput, 365) * DAY_MS
+      const expiresAt = createNeverExpires ? null : Date.now() + parseDays(durationInput, 365) * DAY_MS
       const teamKey = createTeamKey()
       const { teamId } = await createTeam({
         config: firebaseConfig,
@@ -462,6 +475,7 @@ export function CollabPanel({ section = 'both' }) {
       })
       setName('')
       setDurationInput('365')
+      setCreateNeverExpires(false)
       setCreating(false)
     } catch (err) {
       setError(collabErrorText(err, t, t.collabErrorCreate))
@@ -585,11 +599,19 @@ export function CollabPanel({ section = 'both' }) {
                       min={1}
                       className="w-28"
                       value={durationInput}
+                      disabled={createNeverExpires}
                       onChange={e => setDurationInput(e.target.value)}
                       onBlur={() => { if (durationInput === '') setDurationInput('365') }}
                     />
                     <span className="text-xs text-muted-foreground">{t.collabTeamDuration}</span>
                   </div>
+                  <button type="button" onClick={() => setCreateNeverExpires(v => !v)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    {createNeverExpires
+                      ? <CircleCheck className="h-4 w-4 text-primary" />
+                      : <Circle className="h-4 w-4" />}
+                    {t.collabNeverExpires}
+                  </button>
                   <div className="flex gap-2 justify-end">
                     <Button size="sm" disabled={!name.trim()} onClick={handleCreateTeam}>{t.collabCreateTeam}</Button>
                     <Button size="sm" variant="outline" onClick={() => setCreating(false)}>{t.cancel}</Button>

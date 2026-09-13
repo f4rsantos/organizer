@@ -44,7 +44,8 @@ export function useCollabActions() {
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
   const setCollabError = useStore(s => s.setCollabError)
   const updateTask = useStore(s => s.updateTask)
-  const updateEvent = useStore(s => s.updateEvent)
+  const addEvent = useStore(s => s.addEvent)
+  const deleteEvent = useStore(s => s.deleteEvent)
   const updateKanbanCard = useStore(s => s.updateKanbanCard)
   const deleteKanbanCardBySharedRef = useStore(s => s.deleteKanbanCardBySharedRef)
 
@@ -175,10 +176,10 @@ export function useCollabActions() {
 
     const addEventState = state => ({ ...state, events: [...(state?.events ?? []), remoteEvent] })
 
-    updateEvent(event.id, { sharedRef: { teamId, sharedEventId } })
+    deleteEvent(event.id)
 
     await writeShared(teamId, membership, addEventState, addEventState, () => {
-      updateEvent(event.id, { sharedRef: null })
+      addEvent(event)
     })
   }
 
