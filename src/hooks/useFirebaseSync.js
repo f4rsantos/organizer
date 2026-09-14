@@ -3,6 +3,7 @@ import { useStore } from '@/store/useStore'
 import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
 import { stripTransient } from '@/lib/crypto'
+import { createSyncQueue, requestPush, markPulled, markPushed } from '@/lib/syncQueue'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 const PUSH_DEBOUNCE_MS = 1000
@@ -37,13 +38,12 @@ export function useFirebaseSync() {
   const refs = useRef({
     pushTimeout: null,
     isPulling: false,
-    remoteNewer: false,
     lastLocalUpdateAt: 0,
     lastPullAt: initialSyncDone ? Date.now() : 0,
     retryingConflict: false,
     baseRev: initialSyncRev,
-    hasPulled: initialSyncDone,
     isImporting: false,
+    queue: createSyncQueue({ hasPulled: initialSyncDone }),
   })
   const [status, setStatus] = useState(initialSyncDone ? 'ok' : 'idle')
 
@@ -66,17 +66,12 @@ export function useFirebaseSync() {
       }
 
       refs.current.baseRev = pulled?.rev ?? 0
-      refs.current.hasPulled = true
 
+      let remoteNewer = false
       if (remote?.version) {
         const { state, status: migration } = migrateState(remote)
-        if (migration === 'newer') {
-          refs.current.remoteNewer = true
-          setStatus('remote-newer')
-          return
-        }
-        refs.current.remoteNewer = false
-        if (migration !== 'invalid') {
+        remoteNewer = migration === 'newer'
+        if (!remoteNewer && migration !== 'invalid') {
           refs.current.isImporting = true
           try {
             importData(state)
@@ -85,7 +80,14 @@ export function useFirebaseSync() {
           }
         }
       }
+
+      const shouldFlush = markPulled(refs.current.queue, { remoteNewer })
+      if (remoteNewer) {
+        setStatus('remote-newer')
+        return
+      }
       setStatus('ok')
+      if (shouldFlush) refs.current.flushPending?.()
     } catch (err) {
       setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
     } finally {
@@ -98,18 +100,20 @@ export function useFirebaseSync() {
     if (!hydrated) return
     const config = loadFirebaseConfig()
     if (!config) return
-    if (refs.current.remoteNewer) return
-    if (!refs.current.hasPulled) return
+    const intent = requestPush(refs.current.queue)
+    if (intent !== 'send') return
     try {
       setStatus('syncing')
       const rev = await pushToFirebase(config, getSerializableState(), {
         baseRev: refs.current.baseRev,
       })
       if (rev !== null) refs.current.baseRev = rev
+      markPushed(refs.current.queue)
       setStatus('ok')
     } catch (err) {
       if (err?.message === REV_CONFLICT && !refs.current.retryingConflict) {
         refs.current.retryingConflict = true
+        refs.current.queue.pendingPush = true
         try {
           setStatus('conflict')
           await pull()
@@ -118,6 +122,7 @@ export function useFirebaseSync() {
         }
         return
       }
+      refs.current.queue.pendingPush = true
       setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
     }
   }, [hydrated, pull])
@@ -127,6 +132,8 @@ export function useFirebaseSync() {
     refs.current.pushTimeout = null
     void push()
   }, [push])
+
+  refs.current.flushPending = pushNow
 
   const pullNow = useCallback(() => {
     void pull()
