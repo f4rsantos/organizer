@@ -4,6 +4,7 @@ import './index.css'
 import { registerPwa } from './pwa/registerPwa'
 import { runBootstrap, resumeBootstrap } from './boot/bootstrap'
 import { readContainerMetaAsync } from './store/persist'
+import { clearBadge } from './lib/appBadge'
 
 function rootElement() {
   return document.getElementById('root')
@@ -49,6 +50,7 @@ async function renderUnlockGate({ storeError, remote }) {
 }
 
 async function start() {
+  clearBadge()
   const boot = await runBootstrap()
 
   if (boot.needsUnlock) {
