@@ -29,21 +29,22 @@ export function useHydrateState() {
       const config = loadFirebaseConfig()
       if (config) {
         try {
-          const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), FIREBASE_LOAD_TIMEOUT_MS))
-          const pulled = await Promise.race([
-            pullFromFirebase(config),
-            timeoutPromise,
-          ])
-
-          if (!cancelled && pulled) {
+          const applyPulled = pulled => {
+            if (cancelled || !pulled) return
             setInitialSyncRev(pulled.rev ?? 0)
-            if (pulled.state?.version) {
-              const { state: remoteState, status } = migrateState(pulled.state)
-              if (status !== 'invalid' && status !== 'newer') {
-                useStore.getState().importData(remoteState)
-              }
+            if (!pulled.state?.version) return
+            const { state: remoteState, status } = migrateState(pulled.state)
+            if (status !== 'invalid' && status !== 'newer') {
+              useStore.getState().importData(remoteState)
             }
           }
+
+          const request = pullFromFirebase(config).then(pulled => {
+            applyPulled(pulled)
+            return pulled
+          })
+          const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), FIREBASE_LOAD_TIMEOUT_MS))
+          await Promise.race([request.catch(() => null), timeoutPromise])
         } catch {}
       }
 
