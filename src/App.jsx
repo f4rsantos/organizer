@@ -19,7 +19,6 @@ import { getAppTabs, getAppById } from '@/apps/registry'
 import { StorageWarningModal } from '@/components/common/StorageWarningModal'
 import { useTheme } from '@/hooks/useTheme'
 import { useStandby } from '@/hooks/useStandby'
-import { useAppBadge } from '@/hooks/useAppBadge'
 import { useWidgetSync } from '@/hooks/useWidgetSync'
 import { consumeLaunchTab } from '@/lib/widgets/bridge'
 import { useHydrateState } from '@/hooks/useHydrateState'
@@ -143,7 +142,6 @@ export default function App() {
   useCollabSync()
   useCollabDeepLink()
   useGoogleCalendarSync()
-  useAppBadge()
   useWidgetSync()
   const standbyActive = useStandby()
   const onboardingDone = useStore(s => s.onboardingDone)
