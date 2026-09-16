@@ -297,6 +297,8 @@ export const de = {
     collabShareNote: 'Notiz teilen',
     collabShared: 'Geteilt',
     notesSaveLocalCopy: 'Lokale Kopie speichern',
+    notesOfflineOnlyOn: 'Diese Notiz nur offline behalten (kein Sync)',
+    notesOfflineOnlyOff: 'Nur offline behalten',
     collabSelectTeam: 'Team wählen',
     collabRoleHost: 'Host',
     collabRoleMember: 'Mitglied',

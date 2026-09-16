@@ -319,6 +319,8 @@ export const en = {
     collabShareNote: 'Share note',
     collabShared: 'Shared',
     notesSaveLocalCopy: 'Save local copy',
+    notesOfflineOnlyOn: 'Keep this note offline only (won\'t sync)',
+    notesOfflineOnlyOff: 'Keep offline only',
     collabSelectTeam: 'Select team',
     collabRoleHost: 'host',
     collabRoleMember: 'member',

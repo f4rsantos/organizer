@@ -10,7 +10,9 @@ const PUSH_DEBOUNCE_MS = 1000
 const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
-  return JSON.parse(JSON.stringify(stripTransient(useStore.getState())))
+  const state = stripTransient(useStore.getState())
+  const notes = (state.notes ?? []).filter(n => !n.offlineOnly)
+  return JSON.parse(JSON.stringify({ ...state, notes }))
 }
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])

@@ -297,6 +297,8 @@ export const fr = {
     collabShareNote: 'Partager la note',
     collabShared: 'Partagé',
     notesSaveLocalCopy: 'Enregistrer une copie locale',
+    notesOfflineOnlyOn: 'Garder cette note hors ligne uniquement (pas de synchro)',
+    notesOfflineOnlyOff: 'Garder hors ligne uniquement',
     collabSelectTeam: 'Choisir une équipe',
     collabRoleHost: 'hôte',
     collabRoleMember: 'membre',
