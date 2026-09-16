@@ -787,5 +787,7 @@ export const cs = {
     collabShareNote: 'Sdílet poznámku',
     collabShared: 'Sdíleno',
     notesSaveLocalCopy: 'Uložit místní kopii',
+    notesOfflineOnlyOn: 'Nechat poznámku jen offline (nesynchronizuje se)',
+    notesOfflineOnlyOff: 'Jen offline',
     collabSelectTeam: 'Vybrat tým',
 }

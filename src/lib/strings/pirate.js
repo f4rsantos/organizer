@@ -298,6 +298,8 @@ export const pirate = {
   collabShareNote: 'Share scroll wi\' crew',
   collabShared: 'Shared wi\' crew',
   notesSaveLocalCopy: 'Stow yer own copy',
+  notesOfflineOnlyOn: 'Keep this scroll landlocked (no sailin\' to the cloud)',
+  notesOfflineOnlyOff: 'Keep landlocked',
   collabSelectTeam: 'Pick yer crew',
   collabRoleHost: 'cap\'n',
   collabRoleMember: 'hand',

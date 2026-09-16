@@ -498,7 +498,7 @@ export const useStore = create((set, get) => ({
     const order = (s.notes ?? []).reduce((m, n) => Math.min(m, n.order ?? 0), 0) - 1
     return persist({
       ...s,
-      notes: [...(s.notes ?? []), { id: nanoid(), title: '', kind: 'text', body: '', doc: null, strokes: [], favorite: false, archived: false, archivedAt: null, folderId: null, order, createdAt: now, updatedAt: now, ...data }],
+      notes: [...(s.notes ?? []), { id: nanoid(), title: '', kind: 'text', body: '', doc: null, strokes: [], favorite: false, archived: false, archivedAt: null, folderId: null, offlineOnly: false, order, createdAt: now, updatedAt: now, ...data }],
     })
   }),
   updateNote: (id, data) => set(s => persist({
@@ -507,6 +507,9 @@ export const useStore = create((set, get) => ({
   deleteNote: id => set(s => persist({ ...s, notes: (s.notes ?? []).filter(n => n.id !== id) })),
   toggleFavoriteNote: id => set(s => persist({
     ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, favorite: !n.favorite } : n),
+  })),
+  toggleOfflineOnlyNote: id => set(s => persist({
+    ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, offlineOnly: !n.offlineOnly, updatedAt: Date.now() } : n),
   })),
   archiveNote: id => set(s => persist({
     ...s, notes: (s.notes ?? []).map(n => n.id === id ? { ...n, archived: true, archivedAt: Date.now(), updatedAt: Date.now() } : n),
@@ -1021,6 +1024,12 @@ export const useStore = create((set, get) => ({
     const settings = preferLocalSettings && s.hydrated
       ? { ...next.settings, ...s.settings, apps: unionApps(s.settings?.apps, next.settings?.apps) }
       : next.settings
+    const localOfflineOnlyNotes = (s.notes ?? []).filter(n => n.offlineOnly)
+    const nextNoteIds = new Set((next.notes ?? []).map(n => n.id))
+    const notes = [
+      ...(next.notes ?? []),
+      ...localOfflineOnlyNotes.filter(n => !nextNoteIds.has(n.id)),
+    ]
     // The synced identity wins. Mirroring it into the device cache stops a
     // later store reset from resurrecting a stale id and splitting the member
     // in two on every team.
@@ -1029,6 +1038,7 @@ export const useStore = create((set, get) => ({
     return persist({
       ...next,
       settings,
+      notes,
       collab: {
         ...next.collab,
         userId: collabUserId,

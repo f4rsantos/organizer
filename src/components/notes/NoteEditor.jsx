@@ -1,5 +1,5 @@
 import { lazy, useEffect, useRef, useState } from 'react'
-import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus } from 'lucide-react'
+import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus, CloudOff } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -24,7 +24,7 @@ const EXPORT_FORMATS = [
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
-function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onShare }) {
+function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onToggleOfflineOnly, onShare }) {
   return (
     <>
       <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
@@ -47,6 +47,11 @@ function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, o
         onClick={onToggleArchive}>
         {note.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-primary" /> : <Archive className="h-3.5 w-3.5" />}
       </Button>
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
+        title={note.offlineOnly ? t.notesOfflineOnlyOn : t.notesOfflineOnlyOff}
+        onClick={onToggleOfflineOnly}>
+        <CloudOff className={cn('h-3.5 w-3.5', note.offlineOnly && 'text-primary')} />
+      </Button>
       {canShare && (
         <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.collabShareNote} onClick={onShare}>
           <Share2 className="h-3.5 w-3.5" />
@@ -65,6 +70,7 @@ export function NoteEditor({
   const updateNote = useStore(s => s.updateNote)
   const deleteNote = useStore(s => s.deleteNote)
   const toggleFavoriteNote = useStore(s => s.toggleFavoriteNote)
+  const toggleOfflineOnlyNote = useStore(s => s.toggleOfflineOnlyNote)
   const archiveNote = useStore(s => s.archiveNote)
   const unarchiveNote = useStore(s => s.unarchiveNote)
   const shareNoteToTeam = useStore(s => s.shareNoteToTeam)
@@ -197,6 +203,7 @@ export function NoteEditor({
               onChangeKind={kind => updateNote(note.id, { kind })}
               onToggleFavorite={() => toggleFavoriteNote(note.id)}
               onToggleArchive={() => note.archived ? unarchiveNote(note.id) : archiveNote(note.id)}
+              onToggleOfflineOnly={() => toggleOfflineOnlyNote(note.id)}
               onShare={() => setShareOpen(true)}
             />
           )}
