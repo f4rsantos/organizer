@@ -58,6 +58,19 @@ function unionApps(localApps, remoteApps) {
   return merged
 }
 
+export function mergeNotesOnImport(localNotes, remoteNotes) {
+  const local = Array.isArray(localNotes) ? localNotes : []
+  const remote = Array.isArray(remoteNotes) ? remoteNotes : []
+  const localAuthoritativeById = new Map(
+    local.filter(n => n?.offlineOnly).map(n => [n.id, n]),
+  )
+  const remoteIds = new Set(remote.map(n => n?.id))
+  return [
+    ...remote.map(n => localAuthoritativeById.get(n?.id) ?? n),
+    ...local.filter(n => n?.offlineOnly && !remoteIds.has(n.id)),
+  ]
+}
+
 function mergeStateOnHydrate(diskState, s) {
   if (s.hydrated) return s
   if (!s.dirtiedBeforeHydrate) {
@@ -1024,12 +1037,7 @@ export const useStore = create((set, get) => ({
     const settings = preferLocalSettings && s.hydrated
       ? { ...next.settings, ...s.settings, apps: unionApps(s.settings?.apps, next.settings?.apps) }
       : next.settings
-    const localOfflineOnlyNotes = (s.notes ?? []).filter(n => n.offlineOnly)
-    const nextNoteIds = new Set((next.notes ?? []).map(n => n.id))
-    const notes = [
-      ...(next.notes ?? []),
-      ...localOfflineOnlyNotes.filter(n => !nextNoteIds.has(n.id)),
-    ]
+    const notes = mergeNotesOnImport(s.notes, next.notes)
     // The synced identity wins. Mirroring it into the device cache stops a
     // later store reset from resurrecting a stale id and splitting the member
     // in two on every team.
