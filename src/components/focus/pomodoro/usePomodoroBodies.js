@@ -1,21 +1,18 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import {
-  DAMPING,
   FACE_COUNT,
-  FRICTION,
   GRAVITY,
   getPomodoroTimestamp,
   growthFromSecs,
   isPomodoroAggregate,
-  MIN_VX,
   POMODORO_UNITS_MAX,
   sizeFromPct,
   TOMATO_RADIUS,
 } from './utils'
+import { createGravitySensor, requiresDeviceOrientationPermission } from './gravity'
+import { stepBodies } from './physicsEngine'
 
-const MAX_SPIN = 120
 const MAX_WOBBLE_SECONDS = 5
-const ANGULAR_DRAG = 1.6
 
 function randomBodyX(radius, width) {
   const safeWidth = Math.max(140, width || 400)
@@ -107,182 +104,6 @@ function createSpawnRecord({ body, abandoned, pct, colorPct, focusSecs, trackSta
   }
 }
 
-function moveBody(body, dt, env) {
-  if (env.draggingId === body.id) return body
-
-  const radius = body.radius ?? TOMATO_RADIUS
-  let { x, y, vx, vy, rotation = 0, omega = 0 } = body
-  let wobbleLeft = Number.isFinite(body.wobbleLeft) ? body.wobbleLeft : MAX_WOBBLE_SECONDS
-
-  vx += env.gx * dt
-  vy += env.gy * dt
-  x += vx * dt
-  y += vy * dt
-
-  const gMag = Math.sqrt(env.gx * env.gx + env.gy * env.gy)
-  const gDirX = gMag > 1 ? env.gx / gMag : 0
-  const gDirY = gMag > 1 ? env.gy / gMag : 1
-
-  if (wobbleLeft > 0) omega += (vx * gDirY - vy * gDirX) * 0.18 * dt
-
-  const applyContact = (nx, ny) => {
-    const vn = vx * nx + vy * ny
-    if (vn > 0) return
-    const vt = -vx * ny + vy * nx
-    vx -= vn * nx * (1 + DAMPING)
-    vy -= vn * ny * (1 + DAMPING)
-
-    const downhill = -(nx * gDirX + ny * gDirY)
-    if (downhill > 0.5) {
-      vx *= FRICTION
-      vy *= FRICTION
-      if (wobbleLeft > 0) omega += vt * 0.14 * downhill
-      if (Math.abs(vx) < MIN_VX && Math.abs(vy) < MIN_VX) { vx = 0; vy = 0 }
-    } else {
-      omega = -omega * 0.75
-    }
-  }
-
-  if (y >= env.floor - radius) { y = env.floor - radius; applyContact(0, -1) }
-  if (x < env.wallLeft + radius) { x = env.wallLeft + radius; applyContact(1, 0) }
-  if (x > env.wallRight - radius) { x = env.wallRight - radius; applyContact(-1, 0) }
-  if (y < radius) { y = radius; applyContact(0, 1) }
-
-  const moving = Math.sqrt(vx * vx + vy * vy)
-  const spinDamping = moving > 8 ? 0.992 : 0.972
-  omega *= spinDamping
-  omega *= Math.exp(-ANGULAR_DRAG * dt)
-
-  if (wobbleLeft > 0) {
-    wobbleLeft = Math.max(0, wobbleLeft - dt)
-    if (wobbleLeft === 0) omega = 0
-  } else {
-    omega = 0
-  }
-
-  omega = Math.max(-MAX_SPIN, Math.min(MAX_SPIN, omega))
-  rotation += omega * dt
-
-  return { ...body, x, y, vx, vy, rotation, omega, wobbleLeft }
-}
-
-function resolveBodyCollisions(bodies) {
-  for (let i = 0; i < bodies.length; i++) {
-    for (let j = i + 1; j < bodies.length; j++) {
-      const a = bodies[i]
-      const b = bodies[j]
-      const dx = b.x - a.x
-      const dy = b.y - a.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const minDist = (a.radius ?? TOMATO_RADIUS) + (b.radius ?? TOMATO_RADIUS)
-      if (!(dist < minDist && dist > 0)) continue
-
-      const overlap = (minDist - dist) / 2
-      const nx = dx / dist
-      const ny = dy / dist
-      const nextA = { ...a, x: a.x - nx * overlap, y: a.y - ny * overlap }
-      const nextB = { ...b, x: b.x + nx * overlap, y: b.y + ny * overlap }
-      const dvx = nextA.vx - nextB.vx
-      const dvy = nextA.vy - nextB.vy
-      const impulse = (dvx * nx + dvy * ny) * 0.6
-      const aWobble = Number.isFinite(nextA.wobbleLeft) ? nextA.wobbleLeft : MAX_WOBBLE_SECONDS
-      const bWobble = Number.isFinite(nextB.wobbleLeft) ? nextB.wobbleLeft : MAX_WOBBLE_SECONDS
-      const spinKick = Math.max(6, Math.abs(impulse) * 0.55)
-
-      bodies[i] = {
-        ...nextA,
-        vx: nextA.vx - impulse * nx,
-        vy: nextA.vy - impulse * ny,
-        omega: aWobble > 0 ? Math.max(-MAX_SPIN, Math.min(MAX_SPIN, (nextA.omega ?? 0) - spinKick)) : 0,
-      }
-      bodies[j] = {
-        ...nextB,
-        vx: nextB.vx + impulse * nx,
-        vy: nextB.vy + impulse * ny,
-        omega: bWobble > 0 ? Math.max(-MAX_SPIN, Math.min(MAX_SPIN, (nextB.omega ?? 0) + spinKick)) : 0,
-      }
-    }
-  }
-}
-
-function resolveObstacleCollisions(bodies, obstacles) {
-  if (!obstacles || !obstacles.length) return
-  for (let i = 0; i < bodies.length; i++) {
-    const body = bodies[i]
-    const radius = body.radius ?? TOMATO_RADIUS
-    for (let o = 0; o < obstacles.length; o++) {
-      const rect = obstacles[o]
-      const closestX = Math.max(rect.left, Math.min(body.x, rect.right))
-      const closestY = Math.max(rect.top, Math.min(body.y, rect.bottom))
-      const dx = body.x - closestX
-      const dy = body.y - closestY
-      const distSq = dx * dx + dy * dy
-      if (distSq >= radius * radius) continue
-
-      const dist = Math.sqrt(distSq)
-      let nx, ny, overlap
-      if (dist > 0.0001) {
-        nx = dx / dist
-        ny = dy / dist
-        overlap = radius - dist
-      } else {
-        // center inside rect: push out along the shortest axis
-        const penLeft = body.x - rect.left
-        const penRight = rect.right - body.x
-        const penTop = body.y - rect.top
-        const penBottom = rect.bottom - body.y
-        const minPen = Math.min(penLeft, penRight, penTop, penBottom)
-        if (minPen === penLeft) { nx = -1; ny = 0 }
-        else if (minPen === penRight) { nx = 1; ny = 0 }
-        else if (minPen === penTop) { nx = 0; ny = -1 }
-        else { nx = 0; ny = 1 }
-        overlap = radius + minPen
-      }
-
-      const vn = body.vx * nx + body.vy * ny
-      const wobbleLeft = Number.isFinite(body.wobbleLeft) ? body.wobbleLeft : MAX_WOBBLE_SECONDS
-      bodies[i] = {
-        ...body,
-        x: body.x + nx * overlap,
-        y: body.y + ny * overlap,
-        vx: body.vx - (vn < 0 ? vn * nx * (1 + DAMPING) : 0),
-        vy: body.vy - (vn < 0 ? vn * ny * (1 + DAMPING) : 0),
-        omega: wobbleLeft > 0
-          ? Math.max(-MAX_SPIN, Math.min(MAX_SPIN, (body.omega ?? 0) - vn * nx * 6))
-          : 0,
-      }
-    }
-  }
-}
-
-function stepBodies(prevBodies, dt, env) {
-  const moved = prevBodies.map(body => moveBody(body, dt, env))
-  resolveObstacleCollisions(moved, env.obstacles)
-  resolveBodyCollisions(moved)
-  return moved
-}
-
-function hasDeviceOrientationSupport() {
-  return typeof window !== 'undefined' && typeof window.DeviceOrientationEvent !== 'undefined'
-}
-
-function requiresDeviceOrientationPermission() {
-  return hasDeviceOrientationSupport() && typeof window.DeviceOrientationEvent.requestPermission === 'function'
-}
-
-function normalizeGravityFromTilt(beta, gamma) {
-  const x = Math.max(-1, Math.min(1, gamma / 45))
-  const y = Math.max(0, Math.min(1.5, (beta + 20) / 60))
-  return { x, y }
-}
-
-function createOrientationHandler(gravityRef) {
-  return event => {
-    if (!Number.isFinite(event?.beta) || !Number.isFinite(event?.gamma)) return
-    gravityRef.current = normalizeGravityFromTilt(event.beta, event.gamma)
-  }
-}
-
 const OBSTACLE_REFRESH_MS = 200
 
 function isObstacleVisible(node) {
@@ -323,15 +144,13 @@ export function usePomodoroBodies({
   showPeriodStats,
 }) {
   const [bodies, setBodies] = useState([])
+  const [gravitySensor] = useState(() => createGravitySensor())
 
-  const gravityRef = useRef({ x: 0, y: 1 })
   const rafRef = useRef(null)
   const lastTimeRef = useRef(null)
   const prevPhaseRef = useRef(phase)
   const latestFocusSecsRef = useRef(0)
   const draggingRef = useRef(null)
-  const orientationEnabledRef = useRef(false)
-  const orientationHandlerRef = useRef(null)
   const obstaclesRef = useRef([])
   const lastObstacleRefreshRef = useRef(0)
   const hasActiveBodies = bodies.length > 0
@@ -347,31 +166,20 @@ export function usePomodoroBodies({
     }
   }, [containerRef])
 
-  const enableOrientationTracking = useCallback(() => {
-    if (orientationEnabledRef.current || !hasDeviceOrientationSupport()) return true
-    orientationHandlerRef.current = createOrientationHandler(gravityRef)
-    window.addEventListener('deviceorientation', orientationHandlerRef.current)
-    orientationEnabledRef.current = true
-    return true
-  }, [])
-
-  const requestOrientationAccess = useCallback(async () => {
-    if (!hasDeviceOrientationSupport()) return false
-    if (!requiresDeviceOrientationPermission()) return enableOrientationTracking()
-
-    try {
-      const permission = await window.DeviceOrientationEvent.requestPermission()
-      if (permission !== 'granted') return false
-      return enableOrientationTracking()
-    } catch {
-      return false
-    }
-  }, [enableOrientationTracking])
+  const requestOrientationAccess = useCallback(() => gravitySensor.requestAccess(), [gravitySensor])
 
   useEffect(() => {
     if (requiresDeviceOrientationPermission()) return
-    enableOrientationTracking()
-  }, [enableOrientationTracking])
+    gravitySensor.enable()
+  }, [gravitySensor])
+
+  useEffect(() => {
+    if (!requiresDeviceOrientationPermission()) return
+
+    const grantOnFirstGesture = () => { void requestOrientationAccess() }
+    document.addEventListener('pointerdown', grantOnFirstGesture, { once: true })
+    return () => document.removeEventListener('pointerdown', grantOnFirstGesture)
+  }, [requestOrientationAccess])
 
   useEffect(() => {
     if (phase === 'focus') latestFocusSecsRef.current = cycleElapsed
@@ -471,8 +279,8 @@ export function usePomodoroBodies({
       }
 
       const env = {
-        gx: gravityRef.current.x * GRAVITY,
-        gy: gravityRef.current.y * GRAVITY,
+        gx: gravitySensor.gravity.x * GRAVITY,
+        gy: gravitySensor.gravity.y * GRAVITY,
         floor: bounds.height,
         wallLeft: 0,
         wallRight: bounds.width || 400,
@@ -488,7 +296,7 @@ export function usePomodoroBodies({
     lastTimeRef.current = null
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [focusRunning, hasActiveBodies, getBounds])
+  }, [focusRunning, hasActiveBodies, getBounds, gravitySensor])
 
   const handlePointerStart = (id, e) => {
     if (e?.button != null && e.button !== 0) return
@@ -536,7 +344,6 @@ export function usePomodoroBodies({
       }
     }
 
-    // fall back to small random kick for taps without movement
     if (vx === 0 && vy === 0) {
       vx = (Math.random() - 0.5) * 60
       vy = -80
@@ -570,12 +377,10 @@ export function usePomodoroBodies({
 
   useEffect(() => {
     return () => {
-      if (orientationHandlerRef.current) {
-        window.removeEventListener('deviceorientation', orientationHandlerRef.current)
-      }
+      gravitySensor.teardown()
       cancelAnimationFrame(rafRef.current)
     }
-  }, [])
+  }, [gravitySensor])
 
   return {
     bodies,
