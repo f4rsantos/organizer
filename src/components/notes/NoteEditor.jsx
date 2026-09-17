@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
 import { useCollabActions } from '@/hooks/useCollabActions'
+import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
+import { useSharedNoteTitle } from '@/hooks/useSharedNoteTitle'
 import { LazyBoundary } from '@/components/common/LazyBoundary'
 import { NoteCanvas } from './NoteCanvas'
 import { exportNote } from '@/lib/notes/noteExport'
@@ -78,6 +80,8 @@ export function NoteEditor({
   const { teams, getTeamName } = useCollabActions()
   const sharedMeta = note.sharedMeta?.remote ? note.sharedMeta : null
   const teamName = sharedMeta ? getTeamName(sharedMeta.teamId) : null
+  const collab = useSharedNoteSession(sharedMeta)
+  const sharedTitle = useSharedNoteTitle(collab?.titleSource ?? null, note.title)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTeamId, setShareTeamId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -169,11 +173,13 @@ export function NoteEditor({
       </div>
       <div className="space-y-1">
         <input
-          value={note.title}
+          value={sharedMeta ? sharedTitle.title : note.title}
           placeholder={t.notesTitle}
-          readOnly={Boolean(sharedMeta)}
-          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40"
-          onChange={e => updateNote(note.id, { title: e.target.value })}
+          disabled={Boolean(sharedMeta) && !collab}
+          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40 disabled:opacity-60"
+          onChange={e => (sharedMeta
+            ? sharedTitle.onTitleChange(e.target.value)
+            : updateNote(note.id, { title: e.target.value }))}
         />
         <p className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
           <span>{t.notesLastEdit} {formatDistanceToNow(note.updatedAt, { addSuffix: true })}</span>
@@ -253,7 +259,7 @@ export function NoteEditor({
               errorLabel={t.chunkLoadError}
               retryLabel={t.chunkRetry}
             >
-              <RichNoteEditor note={note} />
+              <RichNoteEditor note={note} collabPlugins={collab?.plugins ?? null} />
             </LazyBoundary>
           )}
       </div>
