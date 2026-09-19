@@ -70,6 +70,10 @@ export function AiAppModal({ open, onOpenChange }) {
     updateSettings({ apps: { ...currentApps, aiAssistantShortcut: value } })
   }
 
+  const handleCustomInstructionsChange = value => {
+    persistAiSettings({ ...aiSettings, customInstructions: value })
+  }
+
   const shortcut = apps.aiAssistantShortcut ?? null
   const defaultSlot = aiSettings.selectedSlot ?? 'medium'
 
@@ -103,7 +107,9 @@ export function AiAppModal({ open, onOpenChange }) {
               onSlotChange={handleSlotChange} onSlotClear={handleSlotClear}
               autoMode={aiSettings.autoMode === true} onAutoModeChange={handleAutoModeChange}
               defaultSlot={defaultSlot} onDefaultSlotChange={handleDefaultSlotChange}
-              shortcut={shortcut} onShortcutChange={handleShortcutChange} />
+              shortcut={shortcut} onShortcutChange={handleShortcutChange}
+              customInstructions={aiSettings.customInstructions ?? ''}
+              onCustomInstructionsChange={handleCustomInstructionsChange} />
           ) : (
             <div className="space-y-6 border-t border-border/50 pt-4">
               <p className="text-xs text-muted-foreground leading-relaxed">{t.aiSetupIntro}</p>

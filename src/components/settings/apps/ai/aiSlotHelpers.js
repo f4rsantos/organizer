@@ -1,5 +1,7 @@
 export const SLOT_ORDER = ['low', 'medium', 'high']
 
+export const AI_PREFERENCES_DEBOUNCE_MS = 500
+
 export const ERROR_KIND_STRING_KEYS = {
   auth: 'aiErrorAuth',
   rateLimit: 'aiErrorRateLimit',

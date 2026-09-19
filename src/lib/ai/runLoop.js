@@ -240,9 +240,9 @@ function slotOptimizeFor(slot, fallback) {
   return slot?.optimizeFor ?? fallback ?? 'requests'
 }
 
-async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, run, store, context, instrumentation }) {
+async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, customInstructions, run, store, context, instrumentation }) {
   const effectiveOptimizeFor = slotOptimizeFor(slot, optimizeFor)
-  const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor })
+  const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions })
   const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
   const tools = toolsForSlot({ optimizeFor: effectiveOptimizeFor, providerId: slot?.provider })
   const messages = buildMessages({ goal, contextBlock, systemPrompt, transcript: [] })
@@ -283,6 +283,7 @@ export async function runAgentLoop({
   goal,
   scope,
   optimizeFor,
+  customInstructions,
   slots,
   parserConfidence,
   userForcedTier,
@@ -340,6 +341,7 @@ export async function runAgentLoop({
       goal,
       scope,
       optimizeFor,
+      customInstructions,
       run,
       store,
       context,
@@ -371,7 +373,7 @@ export async function runAgentLoop({
 
   for (let iteration = 0; iteration < cap; iteration += 1) {
     const effectiveOptimizeFor = slotOptimizeFor(currentSlot, optimizeFor)
-    const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor })
+    const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions })
     const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
     const turnNumber = Math.floor(history.length / 2)
     const needsFreshContext = history.length === 0 || turnNumber % CONTEXT_REFRESH_EVERY_TURNS === 0

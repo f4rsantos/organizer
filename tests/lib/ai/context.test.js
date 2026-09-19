@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildContextBlock, buildSystemPrompt, scopedEntities } from '../../../src/lib/ai/context'
+import { buildContextBlock, buildCustomInstructionsBlock, buildFollowUpOfferBlock, buildSystemPrompt, scopedEntities, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../../src/lib/ai/context'
 
 const NOW = new Date('2026-09-12T00:00:00.000Z')
 
@@ -126,5 +126,72 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt({ optimizeFor: 'balanced' })
     expect(prompt).toMatch(/query/)
     expect(prompt).toMatch(/fetch/)
+  })
+
+  it('omits the user preferences block when no custom instructions are set', () => {
+    const prompt = buildSystemPrompt({ optimizeFor: 'requests' })
+    expect(prompt).not.toMatch(/USER PREFERENCES/)
+  })
+
+  it('appends the user preferences block when custom instructions are set', () => {
+    const prompt = buildSystemPrompt({ optimizeFor: 'requests', customInstructions: 'Always keep tasks short.' })
+    expect(prompt).toMatch(/USER PREFERENCES/)
+    expect(prompt).toContain('Always keep tasks short.')
+  })
+
+  it('instructs the model to offer an obvious follow-up after finishing', () => {
+    const prompt = buildSystemPrompt({ optimizeFor: 'requests' })
+    expect(prompt).toMatch(/optional next step/)
+  })
+
+  it('instructs the model to read a later reply as an answer to its own follow-up', () => {
+    const prompt = buildSystemPrompt({ optimizeFor: 'requests' })
+    expect(prompt).toMatch(/answer.*follow-up question|follow-up question.*answer/i)
+  })
+
+  it('mentions reminderOffsetHours so the model knows how to act on a follow-up', () => {
+    const prompt = buildSystemPrompt({ optimizeFor: 'requests' })
+    expect(prompt).toMatch(/reminderOffsetHours/)
+  })
+})
+
+describe('buildFollowUpOfferBlock', () => {
+  it('is a non-empty pure string with no side effects', () => {
+    const first = buildFollowUpOfferBlock()
+    const second = buildFollowUpOfferBlock()
+    expect(first).toBe(second)
+    expect(first.length).toBeGreaterThan(0)
+  })
+
+  it('tells the model to phrase the offer as a question', () => {
+    expect(buildFollowUpOfferBlock()).toMatch(/question/)
+  })
+})
+
+describe('buildCustomInstructionsBlock', () => {
+  it('returns an empty string for nothing set', () => {
+    expect(buildCustomInstructionsBlock(undefined)).toBe('')
+    expect(buildCustomInstructionsBlock(null)).toBe('')
+    expect(buildCustomInstructionsBlock('')).toBe('')
+    expect(buildCustomInstructionsBlock('   ')).toBe('')
+  })
+
+  it('trims surrounding whitespace and includes the text', () => {
+    const block = buildCustomInstructionsBlock('  Prefer Portuguese in note titles.  ')
+    expect(block).toContain('Prefer Portuguese in note titles.')
+    expect(block).not.toMatch(/^\s/)
+  })
+
+  it('clips text to the max length instead of erroring', () => {
+    const long = 'a'.repeat(CUSTOM_INSTRUCTIONS_MAX_LENGTH + 500)
+    const block = buildCustomInstructionsBlock(long)
+    expect(block.length).toBeLessThanOrEqual(CUSTOM_INSTRUCTIONS_MAX_LENGTH + 200)
+    expect(block).toContain('a'.repeat(CUSTOM_INSTRUCTIONS_MAX_LENGTH))
+    expect(block).not.toContain('a'.repeat(CUSTOM_INSTRUCTIONS_MAX_LENGTH + 1))
+  })
+
+  it('labels the block clearly as user preferences', () => {
+    const block = buildCustomInstructionsBlock('Never touch my calendar without asking.')
+    expect(block).toMatch(/USER PREFERENCES/)
   })
 })

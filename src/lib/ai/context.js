@@ -237,6 +237,7 @@ const SYSTEM_PROMPT_BASE = [
   'You edit tasks, events, notes, folders, habits, classes and kanban cards through the create/update/delete tools.',
   'To move a kanban card to another column, set columnId or status in fields (e.g. columnId: "done" or the column id).',
   'To complete or uncomplete a task, set done: true/false or status: "done"/"todo" in fields.',
+  'To set a reminder on a task or event, set reminderOffsetHours to how many hours before its due date/time to remind (e.g. reminderOffsetHours: 3 for "3 hours before").',
   'Plan the whole change before acting. Emit every operation you are confident about in a single turn — do not emit one operation and wait for the next turn.',
   'Batch aggressively: fewer round-trips is both faster and more accurate.',
   'Only use ids that appear in the context or were returned by a tool call in this run.',
@@ -258,7 +259,28 @@ const MODE_PROMPT_LINES = {
   tokens: TOKENS_MODE_PROMPT_LINE,
 }
 
-export function buildSystemPrompt({ optimizeFor } = {}) {
+export const CUSTOM_INSTRUCTIONS_MAX_LENGTH = 2000
+
+export function buildCustomInstructionsBlock(customInstructions) {
+  const trimmed = typeof customInstructions === 'string' ? customInstructions.trim() : ''
+  if (!trimmed) return ''
+  const clipped = trimmed.slice(0, CUSTOM_INSTRUCTIONS_MAX_LENGTH)
+  return ['USER PREFERENCES', 'The user has set these standing preferences. Follow them unless they conflict with a direct instruction in this run:', clipped].join('\n')
+}
+
+const FOLLOW_UP_OFFER_LINES = [
+  'If what you just did has an obvious optional next step (for example: you created an event or a task with a due date and it has no reminder set), end your done summary with a short offer to do that next step too, phrased as a question. Only offer one such follow-up, only when it is genuinely obvious, and never invent unrelated suggestions. Otherwise end the summary plainly with no offer.',
+  'A later user message may simply answer a follow-up question you asked (e.g. "yes", "sim", "3 horas antes"). Read it in light of your own last message and act on it directly instead of asking the user to repeat the whole request.',
+]
+
+export function buildFollowUpOfferBlock() {
+  return FOLLOW_UP_OFFER_LINES.join('\n')
+}
+
+export function buildSystemPrompt({ optimizeFor, customInstructions } = {}) {
   const mode = normalizeOptimizeFor(optimizeFor)
-  return [...SYSTEM_PROMPT_BASE, MODE_PROMPT_LINES[mode]].join('\n')
+  const lines = [...SYSTEM_PROMPT_BASE, MODE_PROMPT_LINES[mode], buildFollowUpOfferBlock()]
+  const customBlock = buildCustomInstructionsBlock(customInstructions)
+  if (customBlock) lines.push(customBlock)
+  return lines.join('\n')
 }

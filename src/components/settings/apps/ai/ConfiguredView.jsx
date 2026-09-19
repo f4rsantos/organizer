@@ -4,12 +4,14 @@ import { ModelSlotCard } from './ModelSlotCard'
 import { BudgetMeter } from './BudgetMeter'
 import { ToolSupportWarningBanner } from './ToolSupportWarningBanner'
 import { AiGeneralSettings } from './AiGeneralSettings'
+import { AiPreferences } from './AiPreferences'
 import { SLOT_ORDER, isSlotFilled } from './aiSlotHelpers'
 
 export function ConfiguredView({
   t, slots, providers, isNativeBuild, enabled, onToggle,
   onSlotChange, onSlotClear,
   autoMode, onAutoModeChange, defaultSlot, onDefaultSlotChange, shortcut, onShortcutChange,
+  customInstructions, onCustomInstructionsChange,
 }) {
   const [toolWarnings, setToolWarnings] = useState({})
   const connected = isSlotFilled(slots.medium)
@@ -21,14 +23,15 @@ export function ConfiguredView({
   return (
     <div className="flex flex-col md:flex-row gap-4 min-w-0">
       <div className="md:w-[280px] shrink-0 space-y-4">
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-medium">{t.aiEnable}</p>
-              <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
-            </div>
-            <Switch checked={enabled} onCheckedChange={onToggle} />
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium">{t.aiEnable}</p>
+            <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
           </div>
+          <Switch checked={enabled} onCheckedChange={onToggle} />
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="flex items-center gap-2 text-sm">
             <div className={connected ? 'h-2 w-2 rounded-full bg-primary' : 'h-2 w-2 rounded-full bg-muted-foreground/40'} />
             <span className="font-medium">{connected ? t.aiConfigured : t.aiNotConnected}</span>
@@ -46,6 +49,8 @@ export function ConfiguredView({
           shortcut={shortcut}
           onShortcutChange={onShortcutChange}
         />
+
+        <AiPreferences t={t} value={customInstructions} onChange={onCustomInstructionsChange} />
       </div>
 
       <div className="hidden md:block w-px bg-border self-stretch" />

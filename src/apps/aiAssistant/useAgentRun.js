@@ -130,6 +130,7 @@ export function useAgentRun() {
       goal,
       scope: scope ?? null,
       optimizeFor,
+      customInstructions: aiSettings.customInstructions,
       slots,
       parserConfidence: localTier0?.confidence ?? 0,
       estimatedOpCount: localTier0?.estimatedOpCount ?? 0,
