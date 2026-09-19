@@ -234,6 +234,7 @@ function buildInitialState() {
     collab: {
       userId: null,
       memberships: [],
+      aliasPromptedTeamIds: [],
     },
     collabRuntime: {
       teams: {},
@@ -860,6 +861,15 @@ export const useStore = create((set, get) => ({
     const collab = s.collab ?? { userId: null, memberships: [] }
     const memberships = (collab.memberships ?? []).map(m => m.teamId === teamId ? { ...m, ...data } : m)
     return persist({ ...s, collab: { ...collab, memberships } })
+  }),
+  markCollabAliasPrompted: teamId => set(s => {
+    const collab = s.collab ?? { userId: null, memberships: [], aliasPromptedTeamIds: [] }
+    const prompted = collab.aliasPromptedTeamIds ?? []
+    if (prompted.includes(teamId)) return s
+    return persist({
+      ...s,
+      collab: { ...collab, aliasPromptedTeamIds: [...prompted, teamId] },
+    })
   }),
   removeCollabMembership: teamId => set(s => {
     const collab = s.collab ?? { userId: null, memberships: [] }

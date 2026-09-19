@@ -555,6 +555,7 @@ export function normalizeState(state) {
     typeof m?.teamKey === 'string' && m.teamKey.trim() ? m : { ...m, teamKey: null }
   ))
   if (typeof state.collab.userId !== 'string' && state.collab.userId !== null) state.collab.userId = null
+  if (!Array.isArray(state.collab.aliasPromptedTeamIds)) state.collab.aliasPromptedTeamIds = []
 
   if (!state.collabRuntime || typeof state.collabRuntime !== 'object') {
     state.collabRuntime = { teams: {} }
