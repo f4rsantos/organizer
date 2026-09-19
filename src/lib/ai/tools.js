@@ -140,7 +140,7 @@ const BASE_TOOLS = [
 ]
 
 export function buildNeutralTools({ optimizeFor } = {}) {
-  if (optimizeFor === 'tokens') {
+  if (optimizeFor === 'tokens' || optimizeFor === 'balanced') {
     return [...BASE_TOOLS, QUERY_TOOL]
   }
   return [...BASE_TOOLS]

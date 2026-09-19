@@ -37,6 +37,32 @@ function synthesizeToolCallId(name, index) {
   return `${name}_${index}`
 }
 
+async function defaultGroundedFetch({ url, init }) {
+  let response
+  try {
+    response = await fetch(url, init)
+  } catch (err) {
+    return { ok: false, error: { kind: 'network', message: err?.message ?? 'Network error' } }
+  }
+  let json = null
+  try {
+    json = await response.json()
+  } catch {
+    json = null
+  }
+  if (!response.ok) {
+    return { ok: false, error: { kind: 'unknown', message: json?.error?.message ?? `HTTP ${response.status}` } }
+  }
+  return { ok: true, json }
+}
+
+function extractGroundingSources(candidate) {
+  const chunks = candidate?.groundingMetadata?.groundingChunks ?? []
+  return chunks
+    .map(chunk => ({ title: chunk?.web?.title ?? '', url: chunk?.web?.uri ?? '' }))
+    .filter(source => source.url)
+}
+
 function extractToolCalls(parts) {
   return parts
     .map((part, index) => ({ part, index }))
@@ -93,6 +119,41 @@ export const geminiProvider = {
       usage: {
         inputTokens: json?.usageMetadata?.promptTokenCount ?? 0,
         outputTokens: json?.usageMetadata?.candidatesTokenCount ?? 0,
+      },
+    }
+  },
+
+  async search({ query, apiKey, model, send }) {
+    const body = {
+      contents: [{ role: 'user', parts: [{ text: query }] }],
+      tools: [{ googleSearch: {} }],
+    }
+    const url = `${GEMINI_API_BASE}/${model}:generateContent`
+    const init = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify(body),
+    }
+
+    const transport = send ?? defaultGroundedFetch
+    const response = await transport({ url, init })
+
+    if (!response.ok) {
+      return { ok: false, error: response.error ?? { kind: 'unknown', message: 'Grounded search failed' } }
+    }
+
+    const candidate = response.json?.candidates?.[0]
+    const parts = candidate?.content?.parts ?? []
+    return {
+      ok: true,
+      text: joinTextParts(parts),
+      sources: extractGroundingSources(candidate),
+      usage: {
+        inputTokens: response.json?.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: response.json?.usageMetadata?.candidatesTokenCount ?? 0,
       },
     }
   },

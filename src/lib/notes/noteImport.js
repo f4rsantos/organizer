@@ -83,15 +83,36 @@ function buildTable(lines, start) {
   return { node: { type: 'table', content }, next: i }
 }
 
-function buildList(lines, start, kind) {
+function lineIndent(line) {
+  return line.match(/^\s*/)[0].length
+}
+
+function buildList(lines, start, kind, indent = 0) {
   const items = []
   let i = start
 
   while (i < lines.length) {
     const line = lines[i]
+    if (!line.trim()) break
+
+    const depth = lineIndent(line)
+    if (depth < indent) break
+
     const task = line.match(TASK)
     const bullet = line.match(BULLET)
     const ordered = line.match(ORDERED)
+
+    if (depth > indent) {
+      if (!items.length) break
+      const nestedKind = task ? 'taskList' : bullet ? 'bulletList' : ordered ? 'orderedList' : null
+      if (!nestedKind) break
+      const nested = buildList(lines, i, nestedKind, depth)
+      if (!nested) break
+      const lastItem = items[items.length - 1]
+      lastItem.content.push(nested.node)
+      i = nested.next
+      continue
+    }
 
     if (kind === 'taskList' && task) {
       items.push({

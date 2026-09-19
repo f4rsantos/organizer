@@ -1,7 +1,41 @@
 import { useState, useRef, useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/store/useStore'
+import { useStrings } from '@/lib/strings'
+import { selectActiveAgentRunPill } from '@/store/selectors'
 import { useNavTabs } from './useNavTabs'
 import { NavAddButton } from './NavAddButton'
+
+function AgentRunPill({ orientation, activeTab }) {
+  const pill = useStore(useShallow(selectActiveAgentRunPill))
+  const setActiveTab = useStore(s => s.setActiveTab)
+  const lang = useStore(s => s.lang ?? 'en')
+  const t = useStrings(lang)
+
+  if (!pill) return null
+  if (activeTab === 'aiAssistant') return null
+  if (pill.phase === 'working') return null
+
+  const label = pill.phase === 'failed' ? t.aiPillFailed
+    : pill.phase === 'interrupted' ? t.aiPillInterrupted
+    : t.aiPillReplyReady
+
+  const tone = pill.phase === 'failed' || pill.phase === 'interrupted' ? 'text-destructive' : 'text-primary'
+
+  return (
+    <button
+      onClick={() => setActiveTab?.('aiAssistant')}
+      title={label}
+      className={cn(
+        'text-xs font-medium transition-colors hover:underline',
+        tone,
+        orientation === 'collapsed' ? 'block' : 'block px-3 py-1',
+      )}>
+      {label}
+    </button>
+  )
+}
 
 function FolderMenu({ folder, activeTab, onTabChange, orientation, labelMode }) {
   const [open, setOpen] = useState(false)
@@ -77,7 +111,10 @@ export function TabBar({ activeTab, onTabChange }) {
   const showIcon = labelMode !== 'names'
   const showLabel = labelMode !== 'icons'
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center md:hidden">
+      <div className="flex w-full justify-center pb-1 px-safe">
+        <AgentRunPill orientation="bottom" activeTab={activeTab} />
+      </div>
       <div className="flex w-full border-t border-border bg-background/90 backdrop-blur-sm pb-safe px-safe">
         {items.map(item => (
           item.isFolder
@@ -121,6 +158,7 @@ export function SideBar({ activeTab, onTabChange, open, onToggle, mobileSide = f
                 </button>
         ))}
         <div className="flex-1 cursor-pointer w-full" onClick={onToggle} />
+        <AgentRunPill orientation="collapsed" activeTab={activeTab} />
       </nav>
     )
   }
@@ -146,6 +184,9 @@ export function SideBar({ activeTab, onTabChange, open, onToggle, mobileSide = f
               </button>
       ))}
       <div className="flex-1 cursor-pointer" onClick={onToggle} />
+      <div className="px-1 pb-2">
+        <AgentRunPill orientation="sidebar" activeTab={activeTab} />
+      </div>
     </nav>
   )
 }

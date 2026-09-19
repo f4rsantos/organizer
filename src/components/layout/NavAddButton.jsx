@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Sparkles } from 'lucide-react'
+import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Zap } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { QuickActionBar } from '@/components/tasks/QuickActionBar'
@@ -15,7 +15,7 @@ const ACTION_META = {
   kanban: { icon: Kanban, key: 'addCard' },
   event: { icon: CalendarDays, key: 'addEvent' },
   note: { icon: StickyNote, key: 'notesNew' },
-  quickaction: { icon: Sparkles, key: 'quickAction' },
+  quickaction: { icon: Zap, key: 'quickAction' },
 }
 
 export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {

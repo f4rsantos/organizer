@@ -99,18 +99,20 @@ function formatSlotCount(state, slots, slotName, labels) {
   return `${label} ${used}/${dailyCap}`
 }
 
-export function formatBudget(state, optimizeFor, slots, labels) {
-  if (optimizeFor === 'tokens') {
-    const totalSpend = SLOT_NAMES.reduce((sum, slotName) => sum + (state?.slots?.[slotName]?.estimatedSpend ?? 0), 0)
-    const amount = `~$${totalSpend.toFixed(2)}`
-    const template = labels?.spendToday
-    if (!template) return amount
-    return template.replace('{amount}', amount)
-  }
+function formatSlotSpend(state, slotName, labels) {
+  const label = labels?.[slotName] ?? slotName
+  const spend = state?.slots?.[slotName]?.estimatedSpend ?? 0
+  return `${label} ~$${spend.toFixed(2)}`
+}
 
+export function formatBudget(state, slots, labels) {
   const parts = SLOT_NAMES
     .filter(slotName => slots?.[slotName]?.provider && slots?.[slotName]?.model)
-    .map(slotName => formatSlotCount(state, slots, slotName, labels))
+    .map(slotName => (
+      slots[slotName]?.optimizeFor === 'tokens'
+        ? formatSlotSpend(state, slotName, labels)
+        : formatSlotCount(state, slots, slotName, labels)
+    ))
 
   return parts.join(' · ')
 }

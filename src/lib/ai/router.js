@@ -43,9 +43,19 @@ export function routeRun({
   escalationVerbs,
   slots,
 }) {
-  if (userForcedTier === 2) {
+  if (userForcedTier === 2 || userForcedTier === 'high') {
     const { slot, resolvedFrom } = resolveSlot(slots, 'high')
     return { tier: 2, slot, slotName: resolvedFrom, reason: 'user-forced-best' }
+  }
+
+  if (userForcedTier === 'low' || userForcedTier === 'oneShot') {
+    const { slot, resolvedFrom } = resolveSlot(slots, 'low')
+    return { tier: 'oneShot', slot, slotName: resolvedFrom, reason: 'user-forced-low' }
+  }
+
+  if (userForcedTier === 1 || userForcedTier === 'medium') {
+    const { slot, resolvedFrom } = resolveSlot(slots, 'medium')
+    return { tier: 1, slot, slotName: resolvedFrom, reason: 'user-forced-medium' }
   }
 
   if (isScopedOneShot({ goal, scope, parserConfidence, scopedVerbs })) {

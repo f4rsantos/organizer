@@ -4,6 +4,8 @@ import { DateParser } from '@/lib/parser/parsers/DateParser'
 import { getLocalePack } from '@/lib/parser/locales/index'
 import { format, isValid } from 'date-fns'
 import { AGENT_ENTITY_TYPES, AGENT_OP_TYPES } from './agentOverlay'
+import { markdownToDocForAgent } from './markdown'
+import { docToPlainText } from '@/lib/notes/noteExport'
 
 const datePipeline = new Pipeline([new DateParser()])
 
@@ -47,20 +49,52 @@ const DATE_FIELDS_BY_TYPE = {
 const ALLOWED_FIELDS_BY_TYPE = {
   task: [
     'title', 'notes', 'dueDate', 'done', 'priority', 'classId', 'recurrence',
-    'weekStart', 'weekEnd', 'eisenhower',
+    'weekStart', 'weekEnd', 'eisenhower', 'status', 'columnId', 'kanban',
   ],
   event: [
     'title', 'note', 'date', 'startDate', 'endDate', 'allDay', 'color',
     'startTime', 'endTime', 'semesterId',
   ],
-  note: ['title', 'body', 'folderId', 'favorite', 'archived'],
+  note: ['title', 'body', 'folderId', 'favorite', 'archived', 'status'],
   folder: ['name', 'parentId'],
   habit: [
     'title', 'cadenceDays', 'weekdays', 'requireNote', 'color', 'tone',
     'customMessage', 'targetKind', 'targetCount', 'targetDate',
   ],
   class: ['name', 'color', 'ects', 'professor'],
-  kanbanCard: ['title', 'columnId', 'order', 'checklist', 'notes', 'priority', 'dueDate', 'classId', 'semesterId'],
+  kanbanCard: ['title', 'columnId', 'order', 'checklist', 'notes', 'priority', 'dueDate', 'classId', 'semesterId', 'status'],
+}
+
+export function resolveKanbanColumnId(value, store) {
+  if (!value || typeof value !== 'string') return value
+  const boardId = store?.activeSemesterId ?? '__free__'
+  const columns = store?.kanban?.[boardId]?.columns ?? []
+  if (!columns.length) return value
+
+  const norm = value.trim().toLowerCase()
+  const byId = columns.find(c => c.id?.toLowerCase() === norm)
+  if (byId) return byId.id
+
+  const byTitle = columns.find(c => c.title?.toLowerCase() === norm)
+  if (byTitle) return byTitle.id
+
+  const subTitle = columns.find(c => c.title?.toLowerCase().includes(norm))
+  if (subTitle) return subTitle.id
+
+  if (norm === 'done' || norm === 'completed' || norm === 'finish') {
+    const doneCol = columns.find(c => c.id?.toLowerCase().includes('done') || c.title?.toLowerCase().includes('done')) ?? columns[columns.length - 1]
+    if (doneCol) return doneCol.id
+  }
+  if (norm === 'todo' || norm === 'to do' || norm === 'to-do') {
+    const todoCol = columns.find(c => c.id?.toLowerCase().includes('todo') || c.title?.toLowerCase().includes('to do')) ?? columns[0]
+    if (todoCol) return todoCol.id
+  }
+  if (norm === 'in progress' || norm === 'doing' || norm === 'progress') {
+    const progCol = columns.find(c => c.id?.toLowerCase().includes('prog') || c.title?.toLowerCase().includes('progress'))
+    if (progCol) return progCol.id
+  }
+
+  return value
 }
 
 function isKnownType(entityType) {
@@ -156,9 +190,60 @@ export function validateOp(op, { store, run, scope, context = {} } = {}) {
 
   if (op.type === 'delete') return { valid: true, op }
 
-  const payload = op.type === 'create' ? (op.entity ?? {}) : (op.patch ?? {})
+  const rawPayload = op.type === 'create' ? (op.entity ?? {}) : (op.patch ?? {})
+  const payload = { ...rawPayload }
+
+  if (op.entityType === 'task') {
+    if (payload.status !== undefined) {
+      const s = String(payload.status).toLowerCase()
+      if (s === 'done' || s === 'completed' || payload.status === true) {
+        payload.done = true
+      } else if (s === 'todo' || s === 'pending' || payload.status === false) {
+        payload.done = false
+      }
+      const matchedCol = resolveKanbanColumnId(String(payload.status), store)
+      if (matchedCol && matchedCol !== String(payload.status)) {
+        payload.columnId = matchedCol
+        payload.kanban = { columnId: matchedCol }
+      }
+      delete payload.status
+    }
+    if (payload.columnId) {
+      payload.columnId = resolveKanbanColumnId(payload.columnId, store)
+      payload.kanban = { columnId: payload.columnId }
+    }
+  }
+
+  if (op.entityType === 'kanbanCard') {
+    if (payload.status !== undefined && !payload.columnId) {
+      payload.columnId = resolveKanbanColumnId(String(payload.status), store)
+      delete payload.status
+    } else if (payload.columnId) {
+      payload.columnId = resolveKanbanColumnId(payload.columnId, store)
+    }
+  }
+
+  // Coerce common Gemini field-name variations for notes before validation
+  if (op.entityType === 'note') {
+    if (payload.content !== undefined && payload.body === undefined) {
+      payload.body = payload.content
+      delete payload.content
+    }
+    if (payload.text !== undefined && payload.body === undefined) {
+      payload.body = payload.text
+      delete payload.text
+    }
+  }
+
   const badFields = unknownFields(op.entityType, payload)
-  if (badFields.length) return { valid: false, reason: `disallowed-field:${badFields.join(',')}` }
+  if (badFields.length) {
+    // For notes, strip unknown fields rather than aborting — the body content is the real work
+    if (op.entityType === 'note') {
+      for (const f of badFields) delete payload[f]
+    } else {
+      return { valid: false, reason: `disallowed-field:${badFields.join(',')}` }
+    }
+  }
 
   const { value: resolvedPayload, unresolvedDateField } = resolveDatesInObject(op.entityType, payload, context)
   if (unresolvedDateField) return { valid: false, reason: `unresolved-date:${unresolvedDateField}` }
@@ -166,6 +251,35 @@ export function validateOp(op, { store, run, scope, context = {} } = {}) {
   const resolvedOp = op.type === 'create'
     ? { ...op, entity: resolvedPayload }
     : { ...op, patch: resolvedPayload }
+
+  // Convert note body from Markdown (what we sent the model) back to ProseMirror doc
+  if (op.entityType === 'note' && resolvedOp.patch?.body !== undefined) {
+    const markdownBody = resolvedOp.patch.body
+    if (typeof markdownBody === 'string' && markdownBody.trim()) {
+      try {
+        const { doc } = markdownToDocForAgent(markdownBody)
+        const plainText = docToPlainText(doc)
+        const updatedPatch = { ...resolvedOp.patch, body: plainText, doc }
+        return { valid: true, op: { ...resolvedOp, patch: updatedPatch } }
+      } catch {
+        // fall through — store body as-is if conversion fails
+      }
+    }
+  }
+
+  if (op.entityType === 'note' && resolvedOp.entity?.body !== undefined) {
+    const markdownBody = resolvedOp.entity.body
+    if (typeof markdownBody === 'string' && markdownBody.trim()) {
+      try {
+        const { doc } = markdownToDocForAgent(markdownBody)
+        const plainText = docToPlainText(doc)
+        const updatedEntity = { ...resolvedOp.entity, body: plainText, doc }
+        return { valid: true, op: { ...resolvedOp, entity: updatedEntity } }
+      } catch {
+        // fall through
+      }
+    }
+  }
 
   return { valid: true, op: resolvedOp }
 }
