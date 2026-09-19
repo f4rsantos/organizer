@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { noteHasContent } from './notesUtils'
+import { noteHasContent } from '../../../src/components/notes/notesUtils'
 
 describe('noteHasContent', () => {
   it('is false for a fresh empty note', () => {
