@@ -296,6 +296,8 @@ function normalizeNote(note) {
     archived: Boolean(note.archived),
     archivedAt: Number.isFinite(note.archivedAt) ? note.archivedAt : null,
     folderId: typeof note.folderId === 'string' ? note.folderId : null,
+    linkedEventKey: typeof note.linkedEventKey === 'string' ? note.linkedEventKey : null,
+    offlineOnly: Boolean(note.offlineOnly),
     order: Number.isFinite(note.order) ? note.order : 0,
     createdAt: Number.isFinite(note.createdAt) ? note.createdAt : Date.now(),
     updatedAt: Number.isFinite(note.updatedAt) ? note.updatedAt : Date.now(),

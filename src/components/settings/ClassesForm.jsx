@@ -72,11 +72,11 @@ export function ClassesForm({ semesterId, classes, workMode = false }) {
 
       <div className="space-y-2">
         {classes.map(cls => (
-          <div key={cls.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
+          <div key={cls.id} className="rounded-lg border border-border p-2.5">
             {editId === cls.id ? (
-              <>
-                <ClassColorDot color={editForm.color} onChange={c => setEditForm(f => ({ ...f, color: c }))} />
-                <Input className="h-8 flex-1" value={editForm.name}
+              <div className="flex flex-wrap items-center gap-2">
+                <ClassColorDot compact color={editForm.color} onChange={c => setEditForm(f => ({ ...f, color: c }))} />
+                <Input className="h-8 flex-1 min-w-[8rem]" value={editForm.name}
                   onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                 {!workMode && (
                   <Input type="number" min={0} max={30} className="h-8 w-20"
@@ -92,9 +92,9 @@ export function ClassesForm({ semesterId, classes, workMode = false }) {
                   onClick={cancelEdit}>
                   <X className="h-3.5 w-3.5" />
                 </Button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cls.color }} />
                 <span className="flex-1 text-sm font-medium">{cls.name}</span>
                 {!workMode && <span className="text-xs text-muted-foreground">{cls.ects} ECTS</span>}
@@ -106,7 +106,7 @@ export function ClassesForm({ semesterId, classes, workMode = false }) {
                   onClick={() => setDeleteId(cls.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
         ))}

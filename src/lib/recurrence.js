@@ -12,12 +12,12 @@ function stepDate(date, freq, interval) {
 }
 
 export function expandRecurringTask(task, rangeStart, rangeEnd) {
-  if (!isRecurring(task) || !task.dueDate) return []
+  if (!isRecurring(task)) return []
   const { freq, until } = task.recurrence
   const interval = Math.max(1, Number(task.recurrence.interval) || 1)
   const untilDate = until ? parseISO(until) : null
-  const start = task.dueDate ? parseISO(task.dueDate) : null
-  if (!start) return []
+  const start = task.dueDate ? parseISO(task.dueDate) : rangeStart
+  if (!start || Number.isNaN(start.getTime())) return []
 
   const occurrences = []
   let cursor = start

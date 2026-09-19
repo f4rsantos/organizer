@@ -3,10 +3,12 @@ import {
   importRawKey, aadForNotePresence,
 } from '@/lib/crypto'
 import {
-  NOTE_FRAGMENT_FIELD, NOTE_FLUSH_INTERVAL_MS, AWARENESS_HEARTBEAT_MS,
+  NOTE_FRAGMENT_FIELD, NOTE_TITLE_FIELD, NOTE_TITLE_META_FIELD,
+  NOTE_FLUSH_INTERVAL_MS, AWARENESS_HEARTBEAT_MS,
   AWARENESS_STALE_MS, AWARENESS_SWEEP_MS, AWARENESS_MAX_ENTRIES,
   createNoteDoc, encodeNoteDoc, decodeNoteDoc, applyStoredUpdate, mergeStoredUpdates,
   noteDocFragment, isNoteDocEmpty,
+  noteTitleText, noteTitleMeta, hasCollaborativeTitle, adoptCollaborativeTitle, resolveNoteTitle,
   tiptapJSONToStoredDoc, storedDocToTiptapJSON, plainTextFromDocJSON,
   storedDocBytes, compactStoredDoc,
   createNoteDocSession,
@@ -17,10 +19,12 @@ import {
 } from '@/lib/notes/yDoc'
 
 export {
-  NOTE_FRAGMENT_FIELD, NOTE_FLUSH_INTERVAL_MS, AWARENESS_HEARTBEAT_MS,
+  NOTE_FRAGMENT_FIELD, NOTE_TITLE_FIELD, NOTE_TITLE_META_FIELD,
+  NOTE_FLUSH_INTERVAL_MS, AWARENESS_HEARTBEAT_MS,
   AWARENESS_STALE_MS, AWARENESS_SWEEP_MS, AWARENESS_MAX_ENTRIES,
   createNoteDoc, encodeNoteDoc, decodeNoteDoc, applyStoredUpdate, mergeStoredUpdates,
   noteDocFragment, isNoteDocEmpty,
+  noteTitleText, noteTitleMeta, hasCollaborativeTitle, adoptCollaborativeTitle, resolveNoteTitle,
   tiptapJSONToStoredDoc, storedDocToTiptapJSON, plainTextFromDocJSON,
   storedDocBytes, compactStoredDoc,
   createNoteDocSession,
@@ -82,10 +86,15 @@ export async function openPresenceEntriesForNote({ presenceMap, sharedNoteId, te
 
 export function buildSharedNoteFromLocalNote({ note, schema, sharedNoteId, createdBy, now = Date.now() }) {
   const docJSON = note?.doc ?? schema.topNodeType.createAndFill().toJSON()
+  const title = note?.title ?? ''
+  const ydoc = decodeNoteDoc(tiptapJSONToStoredDoc(docJSON, schema))
+  adoptCollaborativeTitle(ydoc, title)
+  const ydocState = encodeNoteDoc(ydoc)
+  ydoc.destroy()
   return {
     id: sharedNoteId,
-    title: note?.title ?? '',
-    ydocState: tiptapJSONToStoredDoc(docJSON, schema),
+    title,
+    ydocState,
     createdBy: createdBy ?? null,
     createdAt: note?.createdAt ?? now,
     updatedAt: now,
@@ -94,9 +103,13 @@ export function buildSharedNoteFromLocalNote({ note, schema, sharedNoteId, creat
 }
 
 export function buildLocalNoteFromSharedNote({ sharedNote, schema, now = Date.now() }) {
-  const doc = storedDocToTiptapJSON(sharedNote?.ydocState ?? '', schema)
+  const stored = sharedNote?.ydocState ?? ''
+  const doc = storedDocToTiptapJSON(stored, schema)
+  const ydoc = decodeNoteDoc(stored)
+  const title = resolveNoteTitle(ydoc, sharedNote?.title)
+  ydoc.destroy()
   return {
-    title: sharedNote?.title ?? '',
+    title,
     kind: 'text',
     doc,
     body: plainTextFromDocJSON(doc),

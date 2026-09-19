@@ -1,5 +1,5 @@
 import { lazy, useEffect, useRef, useState } from 'react'
-import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus } from 'lucide-react'
+import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus, CloudOff } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
 import { useCollabActions } from '@/hooks/useCollabActions'
+import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
+import { useSharedNoteTitle } from '@/hooks/useSharedNoteTitle'
 import { LazyBoundary } from '@/components/common/LazyBoundary'
 import { NoteCanvas } from './NoteCanvas'
 import { exportNote } from '@/lib/notes/noteExport'
@@ -24,7 +26,7 @@ const EXPORT_FORMATS = [
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
-function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onShare }) {
+function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onToggleOfflineOnly, onShare }) {
   return (
     <>
       <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
@@ -47,6 +49,11 @@ function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, o
         onClick={onToggleArchive}>
         {note.archived ? <ArchiveRestore className="h-3.5 w-3.5 text-primary" /> : <Archive className="h-3.5 w-3.5" />}
       </Button>
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
+        title={note.offlineOnly ? t.notesOfflineOnlyOn : t.notesOfflineOnlyOff}
+        onClick={onToggleOfflineOnly}>
+        <CloudOff className={cn('h-3.5 w-3.5', note.offlineOnly && 'text-primary')} />
+      </Button>
       {canShare && (
         <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.collabShareNote} onClick={onShare}>
           <Share2 className="h-3.5 w-3.5" />
@@ -65,6 +72,7 @@ export function NoteEditor({
   const updateNote = useStore(s => s.updateNote)
   const deleteNote = useStore(s => s.deleteNote)
   const toggleFavoriteNote = useStore(s => s.toggleFavoriteNote)
+  const toggleOfflineOnlyNote = useStore(s => s.toggleOfflineOnlyNote)
   const archiveNote = useStore(s => s.archiveNote)
   const unarchiveNote = useStore(s => s.unarchiveNote)
   const shareNoteToTeam = useStore(s => s.shareNoteToTeam)
@@ -72,6 +80,8 @@ export function NoteEditor({
   const { teams, getTeamName } = useCollabActions()
   const sharedMeta = note.sharedMeta?.remote ? note.sharedMeta : null
   const teamName = sharedMeta ? getTeamName(sharedMeta.teamId) : null
+  const collab = useSharedNoteSession(sharedMeta)
+  const sharedTitle = useSharedNoteTitle(collab?.titleSource ?? null, note.title)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTeamId, setShareTeamId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -163,11 +173,13 @@ export function NoteEditor({
       </div>
       <div className="space-y-1">
         <input
-          value={note.title}
+          value={sharedMeta ? sharedTitle.title : note.title}
           placeholder={t.notesTitle}
-          readOnly={Boolean(sharedMeta)}
-          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40"
-          onChange={e => updateNote(note.id, { title: e.target.value })}
+          disabled={Boolean(sharedMeta) && !collab}
+          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40 disabled:opacity-60"
+          onChange={e => (sharedMeta
+            ? sharedTitle.onTitleChange(e.target.value)
+            : updateNote(note.id, { title: e.target.value }))}
         />
         <p className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
           <span>{t.notesLastEdit} {formatDistanceToNow(note.updatedAt, { addSuffix: true })}</span>
@@ -197,6 +209,7 @@ export function NoteEditor({
               onChangeKind={kind => updateNote(note.id, { kind })}
               onToggleFavorite={() => toggleFavoriteNote(note.id)}
               onToggleArchive={() => note.archived ? unarchiveNote(note.id) : archiveNote(note.id)}
+              onToggleOfflineOnly={() => toggleOfflineOnlyNote(note.id)}
               onShare={() => setShareOpen(true)}
             />
           )}
@@ -246,7 +259,7 @@ export function NoteEditor({
               errorLabel={t.chunkLoadError}
               retryLabel={t.chunkRetry}
             >
-              <RichNoteEditor note={note} />
+              <RichNoteEditor note={note} collabPlugins={collab?.plugins ?? null} />
             </LazyBoundary>
           )}
       </div>
