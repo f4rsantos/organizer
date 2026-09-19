@@ -88,6 +88,20 @@ describe('validateOp type and field checks', () => {
     expect(result.reason).toContain('disallowed-field')
   })
 
+  it('accepts reminderOffsetHours on a task update', () => {
+    const op = makeUpdateOp({ entityType: 'task', targetId: 'task_1', patch: { reminderOffsetHours: 3 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+    expect(result.op.patch.reminderOffsetHours).toBe(3)
+  })
+
+  it('accepts reminderOffsetHours on an event create', () => {
+    const op = makeCreateOp({ entityType: 'event', id: 'event_1', entity: { title: 'Meeting', date: '2026-09-20', reminderOffsetHours: 3 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+    expect(result.op.entity.reminderOffsetHours).toBe(3)
+  })
+
   it('accepts and normalizes status field on tasks to done boolean', () => {
     const op = makeUpdateOp({ entityType: 'task', targetId: 'task_1', patch: { status: 'done' } })
     const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })

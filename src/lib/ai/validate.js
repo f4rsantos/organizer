@@ -50,10 +50,11 @@ const ALLOWED_FIELDS_BY_TYPE = {
   task: [
     'title', 'notes', 'dueDate', 'done', 'priority', 'classId', 'recurrence',
     'weekStart', 'weekEnd', 'eisenhower', 'status', 'columnId', 'kanban',
+    'reminderOffsetHours',
   ],
   event: [
     'title', 'note', 'date', 'startDate', 'endDate', 'allDay', 'color',
-    'startTime', 'endTime', 'semesterId',
+    'startTime', 'endTime', 'semesterId', 'reminderOffsetHours',
   ],
   note: ['title', 'body', 'folderId', 'favorite', 'archived', 'status'],
   folder: ['name', 'parentId'],
