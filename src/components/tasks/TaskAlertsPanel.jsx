@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BellRing, Clock3, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -57,9 +57,9 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
 
   // Shared tasks come from different teams, so doneBy has to be read with the
   // identity for that task's team rather than one id for the whole panel.
-  const isTaskDone = task => (task?.sharedMeta?.remote
+  const isTaskDone = useCallback(task => (task?.sharedMeta?.remote
     ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
-    : !!task.done)
+    : !!task.done), [teamUserId])
 
   const dueToday = useMemo(() => {
     return (tasks ?? [])

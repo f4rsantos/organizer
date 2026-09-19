@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { Plus, FolderPlus, Archive, FileText, StickyNote, Search } from 'lucide-react'
 import { DndContext, DragOverlay, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
   ROOT,
   noteOrder,
   sortMosaicItems,
+  selectMosaicNotes,
   computeReorderTarget,
   reorderArray,
   resolveFolderHoverAction,
@@ -51,11 +52,12 @@ export function NotesTab() {
 
   const requestedNoteId = useStore(s => s.requestedNoteId)
   const setRequestedNote = useStore(s => s.setRequestedNote)
-  useEffect(() => {
-    if (!requestedNoteId) return
+  const [handledRequestId, setHandledRequestId] = useState(null)
+  if (requestedNoteId && handledRequestId !== requestedNoteId) {
+    setHandledRequestId(requestedNoteId)
     setSelectedId(requestedNoteId)
     setRequestedNote(null)
-  }, [requestedNoteId, setRequestedNote])
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -209,7 +211,7 @@ export function NotesTab() {
     }
   }
 
-  const onDragOver = ({ active, over }) => {
+  const onDragOver = ({ over }) => {
     if (!over) {
       if (dragHover) setDragHover(null)
       return
@@ -286,14 +288,12 @@ export function NotesTab() {
   }
 
   const searching = Boolean(query.trim())
-  const currentFolder = mosaicFolderId
-    ? (folders.find(f => f.id === mosaicFolderId) ? mosaicFolderId : null)
-    : null
-  const mosaicNotes = useMemo(() => {
-    const sorted = filtered.slice().sort(noteOrder)
-    if (searching) return sorted
-    return sorted.filter(n => (n.folderId ?? null) === currentFolder)
-  }, [filtered, searching, currentFolder])
+  const currentFolder = useMemo(() => {
+    if (!mosaicFolderId) return null
+    return folders.find(f => f.id === mosaicFolderId) ? mosaicFolderId : null
+  }, [mosaicFolderId, folders])
+  const sortedFiltered = useMemo(() => filtered.slice().sort(noteOrder), [filtered])
+  const mosaicNotes = selectMosaicNotes(sortedFiltered, searching, currentFolder)
   const noteCountFor = useMemo(() => {
     const counts = new Map()
     for (const n of filtered) {

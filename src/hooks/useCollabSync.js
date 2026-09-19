@@ -9,7 +9,8 @@ export function useCollabSync() {
   const collab = useStore(s => s.collab)
   const hydrated = useStore(s => s.hydrated === true)
   const enabled = useStore(s => s.settings?.collabEnabled === true) && hydrated
-  const memberships = collab?.memberships ?? []
+  const rawMemberships = collab?.memberships
+  const memberships = useMemo(() => rawMemberships ?? [], [rawMemberships])
   const setCollabUserId = useStore(s => s.setCollabUserId)
   const setCollabRuntimeTeam = useStore(s => s.setCollabRuntimeTeam)
   const clearCollabRuntimeTeam = useStore(s => s.clearCollabRuntimeTeam)

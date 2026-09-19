@@ -74,10 +74,16 @@ export function useAgentRun() {
   const [status, setStatus] = useState(IDLE)
   const [result, setResult] = useState(null)
   const [messages, setMessages] = useState([])
+  const [activeChatId, setActiveChatId] = useState(null)
   const cancelledRef = useRef(false)
   const historyRef = useRef([])
   const historyScopeRef = useRef(null)
   const activeChatIdRef = useRef(null)
+
+  const setActiveChat = useCallback(id => {
+    activeChatIdRef.current = id
+    setActiveChatId(id)
+  }, [])
 
   const startAgentRun = useStore(s => s.startAgentRun)
   const appendAgentOps = useStore(s => s.appendAgentOps)
@@ -89,7 +95,7 @@ export function useAgentRun() {
   const start = useCallback(async ({ goal, scope, localTier0 }) => {
     cancelledRef.current = false
     setStatus(RUNNING)
-    if (!activeChatIdRef.current) activeChatIdRef.current = nanoid()
+    if (!activeChatIdRef.current) setActiveChat(nanoid())
     const chatId = activeChatIdRef.current
     const userMsgId = nanoid()
     const userMsg = { id: userMsgId, role: 'user', content: goal, at: Date.now() }
@@ -220,7 +226,7 @@ export function useAgentRun() {
     setStatus(AWAITING_CONFIRM)
     setResult({ ...runOutcome, runId })
     return { ...runOutcome, runId }
-  }, [appendAgentOps, commitAgentRun, discardAgentRun, setActiveTab, setAgentRunStatus, startAgentRun])
+  }, [appendAgentOps, commitAgentRun, discardAgentRun, setActiveChat, setActiveTab, setAgentRunStatus, startAgentRun])
 
   const cancel = useCallback(() => {
     cancelledRef.current = true
@@ -261,11 +267,11 @@ export function useAgentRun() {
   const resetConversation = useCallback(() => {
     cancelledRef.current = true
     historyRef.current = []
-    activeChatIdRef.current = null
+    setActiveChat(null)
     setStatus(IDLE)
     setResult(null)
     setMessages([])
-  }, [])
+  }, [setActiveChat])
 
   const undoMessages = useCallback(targetRunId => {
     if (!targetRunId) return
@@ -291,11 +297,11 @@ export function useAgentRun() {
     if (!chat) return
     cancelledRef.current = true
     historyRef.current = []
-    activeChatIdRef.current = chat.id
+    setActiveChat(chat.id)
     setStatus(IDLE)
     setResult(null)
     setMessages(chat.messages || [])
-  }, [])
+  }, [setActiveChat])
 
-  return { start, cancel, commit, discard, resetConversation, undoMessages, loadChat, activeChatId: activeChatIdRef.current, status, run: result, messages, autoMode, setAutoMode }
+  return { start, cancel, commit, discard, resetConversation, undoMessages, loadChat, activeChatId, status, run: result, messages, autoMode, setAutoMode }
 }

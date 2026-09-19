@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { MessageSquare, LayoutGrid } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -87,21 +87,20 @@ export function AiTab() {
   const showTarget = hasTargetContent(run, status)
   const viewRequests = run?.viewRequests ?? []
 
-  const prevViewRequestsLen = useRef(0)
-  useEffect(() => {
-    if (viewRequests.length > prevViewRequestsLen.current) {
-      setTargetHidden(false)
-    }
-    prevViewRequestsLen.current = viewRequests.length
-  }, [viewRequests.length])
+  const [prevViewRequestsLen, setPrevViewRequestsLen] = useState(0)
+  if (viewRequests.length !== prevViewRequestsLen) {
+    if (viewRequests.length > prevViewRequestsLen) setTargetHidden(false)
+    setPrevViewRequestsLen(viewRequests.length)
+  }
 
-  useEffect(() => {
-    if (!aiContextRequest) return
+  const [handledContextRequest, setHandledContextRequest] = useState(null)
+  if (aiContextRequest && handledContextRequest !== aiContextRequest) {
+    setHandledContextRequest(aiContextRequest)
     setContextGoal(contextGoalPrefix(aiContextRequest.tab, t))
     setTargetHidden(false)
     setMobileView(VIEW_CONVERSATION)
     clearAiContextRequest()
-  }, [aiContextRequest, clearAiContextRequest, t])
+  }
 
   const handleStart = goal => { start({ goal, scope }) }
   const handleCommit = runId => { commit(runId) }

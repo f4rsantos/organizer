@@ -70,6 +70,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
       : null
 
   const rawElapsedSinceStart = useMemo(() => {
+    void tick
     if (!running || startedAt == null) return 0
     return Math.max(0, nowSecs() - startedAt)
   }, [running, startedAt, tick])
@@ -93,11 +94,13 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     : 0
 
   const secsToNextBreak = useMemo(() => {
+    void tick
     if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
     return secsUntilNextBreak(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])
 
   const scheduledPct = useMemo(() => {
+    void tick
     if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
     return scheduledWindowProgress(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])

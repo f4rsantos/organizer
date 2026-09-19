@@ -43,6 +43,11 @@ export function formatFolderNoteCount(count, t) {
   return `${count} ${unit}`
 }
 
+export function selectMosaicNotes(sortedFiltered, searching, currentFolder) {
+  if (searching) return sortedFiltered
+  return sortedFiltered.filter(n => (n.folderId ?? null) === currentFolder)
+}
+
 export function computeReorderTarget(itemIds, activeId, overId, action) {
   const from = itemIds.indexOf(activeId)
   let to = itemIds.indexOf(overId)

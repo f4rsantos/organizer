@@ -13,7 +13,6 @@ import { isSlotFilled, withSlotPatch, withSlotCleared } from './ai/aiSlotHelpers
 const DEFAULT_AI_SETTINGS = { optimizeFor: 'requests', slots: {} }
 
 function isNativeBuild() {
-  // eslint-disable-next-line no-undef
   return typeof __NATIVE_BUILD__ !== 'undefined' && __NATIVE_BUILD__ === true
 }
 

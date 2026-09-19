@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Zap } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
@@ -40,10 +40,9 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   const rangeFor = noneMode ? weekDateRange : null
   const dateToWeekFn = noneMode ? dateToWeek : null
 
-  const runAction = action => {
+  const runAction = useCallback(action => {
     if (action === 'note') {
-      const enabled = notesEnabled
-      if (enabled) {
+      if (notesEnabled) {
         const id = crypto.randomUUID?.() ?? String(Date.now())
         addNote({ id, kind: 'text' })
         setTab?.('notes')
@@ -60,7 +59,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       return
     }
     setDialog(action)
-  }
+  }, [notesEnabled, addNote, setTab, addKanbanCard, boardId, quickActionAppEnabled])
 
   const onClick = () => {
     if (configured === 'picker') setPickerOpen(true)
@@ -125,7 +124,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [quickActionAppEnabled, navbarShortcut, configured])
+  }, [quickActionAppEnabled, navbarShortcut, configured, runAction])
 
   if (!navbarVisible) return null
 
