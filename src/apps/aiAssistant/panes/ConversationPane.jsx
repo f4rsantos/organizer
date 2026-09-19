@@ -333,44 +333,40 @@ function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, autoMode, o
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 pt-1.5">
-        <div>
-          {onSetAutoMode ? (
-            <button
-              type="button"
-              onClick={() => onSetAutoMode(!autoMode)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 rounded font-normal capitalize"
+      <div className="flex items-center gap-1 pt-1.5">
+        {onSetAutoMode && (
+          <button
+            type="button"
+            onClick={() => onSetAutoMode(!autoMode)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 rounded font-normal capitalize"
+          >
+            {autoMode ? (t.aiModeAuto ?? 'auto') : (t.aiModeManual ?? 'manual')}
+          </button>
+        )}
+        {activeSlots.length > 0 && (
+          <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+            <SelectTrigger
+              size="sm"
+              className="h-6 gap-0 border-none bg-transparent hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent px-1 text-xs font-normal text-muted-foreground shadow-none hover:text-foreground focus:bg-transparent focus:outline-none [&_svg]:hidden"
+              aria-label="Model"
             >
-              {autoMode ? (t.aiModeAuto ?? 'auto') : (t.aiModeManual ?? 'manual')}
-            </button>
-          ) : <div />}
-        </div>
-        <div className="flex items-center gap-1">
-          {activeSlots.length > 0 && (
-            <Select value={selectedSlot} onValueChange={setSelectedSlot}>
-              <SelectTrigger
-                size="sm"
-                className="h-6 gap-0 border-none bg-transparent hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent px-1 text-xs font-normal text-muted-foreground shadow-none hover:text-foreground focus:bg-transparent focus:outline-none [&_svg]:hidden"
-                aria-label="Model"
-              >
-                <SelectValue>{currentModel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                side="top"
-                sideOffset={6}
-                align="end"
-                alignItemWithTrigger={false}
-                className="[&_[data-slot=select-scroll-down-button]]:!hidden [&_[data-slot=select-scroll-up-button]]:!hidden [&_[data-direction]]:!hidden [&_[data-slot*='scroll']]:!hidden"
-              >
-                {activeSlots.map(s => (
-                  <SelectItem key={s.name} value={s.name}>
-                    {s.model || s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+              <SelectValue>{currentModel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              side="top"
+              sideOffset={6}
+              align="end"
+              alignItemWithTrigger={false}
+              className="[&_[data-slot=select-scroll-down-button]]:!hidden [&_[data-slot=select-scroll-up-button]]:!hidden [&_[data-direction]]:!hidden [&_[data-slot*='scroll']]:!hidden"
+            >
+              {activeSlots.map(s => (
+                <SelectItem key={s.name} value={s.name}>
+                  {s.model || s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   )
