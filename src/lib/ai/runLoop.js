@@ -1,4 +1,4 @@
-import { buildContextBlock, buildSystemPrompt } from '@/lib/ai/context'
+import { buildContextBlock, buildSystemPrompt, scopedEntities } from '@/lib/ai/context'
 import { buildNeutralTools } from '@/lib/ai/tools'
 import { routeRun, routeRetry, clampIterationCap, DEFAULT_ITERATION_CAP } from '@/lib/ai/router'
 import { canStartRun } from '@/lib/ai/budget'
@@ -6,9 +6,13 @@ import { validateOps } from '@/lib/ai/validate'
 import { createAgentRun, withRunStatus, makeCreateOp, makeUpdateOp, makeDeleteOp } from '@/lib/ai/agentOverlay'
 import { applyOpsToRun } from '@/lib/ai/apply'
 import { getProvider } from '@/lib/ai/providers/index'
+import { performResearch } from '@/lib/ai/research'
+import { docToMarkdownForAgent } from '@/lib/ai/markdown'
 import { nanoid } from '@/lib/ids'
 
 export const BULK_OP_THRESHOLD = 5
+export const HISTORY_MAX_MESSAGES = 20
+export const CONTEXT_REFRESH_EVERY_TURNS = 5
 const STRUCTURAL_ENTITY_TYPES = ['class', 'semester']
 
 function nowMs(clock) {
@@ -75,6 +79,119 @@ function isDoneCall(call) {
   return call?.name === 'done'
 }
 
+const NON_MUTATING_TOOL_NAMES = ['research', 'query', 'fetch', 'openView', 'done']
+
+function isMutatingCall(call) {
+  return !NON_MUTATING_TOOL_NAMES.includes(call?.name)
+}
+
+const QUERY_ENTITY_LIST_BY_TYPE = {
+  task: 'tasks',
+  event: 'events',
+  note: 'notes',
+  folder: 'noteFolders',
+  habit: 'habits',
+  class: 'classes',
+  kanbanCard: 'kanbanCards',
+}
+
+function matchesFilter(entity, filter) {
+  if (!filter || typeof filter !== 'object') return true
+  return Object.entries(filter).every(([key, value]) => entity?.[key] === value)
+}
+
+function runQuery({ store, scope, args }) {
+  const entities = scopedEntities(store, scope)
+  const key = QUERY_ENTITY_LIST_BY_TYPE[args?.type]
+  const list = key ? entities[key] ?? [] : []
+  return list.filter(entity => matchesFilter(entity, args?.filter))
+}
+
+function runFetch({ store, args }) {
+  const ids = args?.ids ?? []
+  const notes = store?.notes ?? []
+  return ids
+    .map(id => notes.find(note => note.id === id))
+    .filter(Boolean)
+    .map(note => {
+      let bodyMarkdown = ''
+      try {
+        const doc = note.doc ?? (typeof note.body === 'string' && note.body.startsWith('{') ? JSON.parse(note.body) : null)
+        if (doc?.type === 'doc') {
+          bodyMarkdown = docToMarkdownForAgent(doc).markdown
+        } else {
+          bodyMarkdown = note.body ?? ''
+        }
+      } catch {
+        bodyMarkdown = note.body ?? ''
+      }
+      return { id: note.id, type: 'note', title: note.title ?? '', body: bodyMarkdown }
+    })
+}
+
+function describeResearchResult(query, result) {
+  if (!result?.ok) {
+    return `Research for "${query}" failed: ${result?.error?.message ?? result?.error?.kind ?? 'unknown error'}.`
+  }
+  const sourceLines = (result.sources ?? []).map(source => `- ${source.title || source.url}: ${source.url}`)
+  return [`Research findings for "${query}":`, result.findings ?? '', ...sourceLines].filter(Boolean).join('\n')
+}
+
+function describeQueryResult(args, matches) {
+  if (!matches.length) return `Query ${args?.type ?? ''} matched no items.`
+  const lines = matches.map(item => `${item.id}  ${item.title ?? item.name ?? ''}`)
+  return [`Query ${args?.type ?? ''} matched ${matches.length} item(s):`, ...lines].join('\n')
+}
+
+function describeFetchResult(fetched) {
+  if (!fetched.length) return 'Fetch returned no matching items.'
+  const lines = fetched.map(item => `${item.id}  "${item.title}"\n${item.body}`)
+  return ['Fetched item(s):', ...lines].join('\n\n')
+}
+
+async function handleNonMutatingToolCalls({ toolCalls, store, scope, currentSlot, resolveCredentials, instrumentation }) {
+  const transcriptMessages = []
+  const viewRequests = []
+
+  for (const call of toolCalls ?? []) {
+    if (call?.name === 'research') {
+      const query = call.args?.query ?? ''
+      const providerId = currentSlot?.provider
+      const result = hasGrounding(providerId)
+        ? await performResearch({
+          query,
+          provider: providerId,
+          credentials: resolveCredentials?.(providerId),
+          model: currentSlot?.model,
+        })
+        : { ok: false, findings: '', sources: [], error: { kind: 'unsupported' } }
+      instrumentation.research.push({ query, result })
+      transcriptMessages.push({ role: 'tool', content: describeResearchResult(query, result) })
+      continue
+    }
+
+    if (call?.name === 'query') {
+      const matches = runQuery({ store, scope, args: call.args })
+      transcriptMessages.push({ role: 'tool', content: describeQueryResult(call.args, matches) })
+      continue
+    }
+
+    if (call?.name === 'fetch') {
+      const fetched = runFetch({ store, args: call.args })
+      transcriptMessages.push({ role: 'tool', content: describeFetchResult(fetched) })
+      continue
+    }
+
+    if (call?.name === 'openView') {
+      viewRequests.push(call.args?.target)
+      transcriptMessages.push({ role: 'tool', content: `Opened view: ${call.args?.target ?? ''}` })
+      continue
+    }
+  }
+
+  return { transcriptMessages, viewRequests }
+}
+
 function hasGrounding(providerId) {
   return Boolean(getProvider(providerId)?.capabilities?.grounding)
 }
@@ -86,7 +203,7 @@ function toolsForSlot({ optimizeFor, providerId }) {
 }
 
 function opsFromToolCalls(toolCalls, run) {
-  return (toolCalls ?? []).filter(call => !isDoneCall(call)).flatMap(call => toolCallToOps(call, run))
+  return (toolCalls ?? []).filter(isMutatingCall).flatMap(call => toolCallToOps(call, run))
 }
 
 function requiresConfirmation(ops) {
@@ -97,10 +214,13 @@ function requiresConfirmation(ops) {
   return false
 }
 
-function buildMessages({ goal, contextBlock, systemPrompt, transcript }) {
+function buildMessages({ goal, contextBlock, systemPrompt, transcript, history, forceContext }) {
+  const hasHistory = Array.isArray(history) && history.length > 0
+  const userContent = forceContext ? `${goal}\n\nCONTEXT\n${contextBlock}` : goal
   const messages = [
     { role: 'system', content: systemPrompt },
-    { role: 'user', content: `${goal}\n\nCONTEXT\n${contextBlock}` },
+    ...(hasHistory ? history : []),
+    { role: 'user', content: userContent },
   ]
   return [...messages, ...transcript]
 }
@@ -116,10 +236,15 @@ function totalUsage(instrumentation) {
   }), { inputTokens: 0, outputTokens: 0 })
 }
 
+function slotOptimizeFor(slot, fallback) {
+  return slot?.optimizeFor ?? fallback ?? 'requests'
+}
+
 async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, run, store, context, instrumentation }) {
-  const systemPrompt = buildSystemPrompt({ optimizeFor })
-  const contextBlock = buildContextBlock({ store, scope, optimizeFor })
-  const tools = toolsForSlot({ optimizeFor, providerId: slot?.provider })
+  const effectiveOptimizeFor = slotOptimizeFor(slot, optimizeFor)
+  const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor })
+  const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
+  const tools = toolsForSlot({ optimizeFor: effectiveOptimizeFor, providerId: slot?.provider })
   const messages = buildMessages({ goal, contextBlock, systemPrompt, transcript: [] })
 
   const result = await send({
@@ -146,7 +271,8 @@ async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, r
   }
 
   const nextRun = applyOpsToRun(run, accepted)
-  return { status: 'awaitingConfirm', run: nextRun, rejected }
+  const replySummary = (result.text && result.text.trim()) ? result.text : fallbackReplySummary(nextRun.ops)
+  return { status: 'awaitingConfirm', run: nextRun, rejected, replySummary }
 }
 
 export async function runAgentLoop({
@@ -167,8 +293,9 @@ export async function runAgentLoop({
   autoMode,
   context = {},
   localTier0,
+  history = [],
 }) {
-  const instrumentation = { requests: [], startedAt: nowMs(clock), escalations: 0 }
+  const instrumentation = { requests: [], startedAt: nowMs(clock), escalations: 0, research: [], viewRequests: [] }
 
   if (localTier0?.matched) {
     const run = createAgentRun({ runId: localTier0.runId, scope, slot: null, model: null })
@@ -227,22 +354,32 @@ export async function runAgentLoop({
       clock,
       autoConfirmed: Boolean(autoMode) && !requiresConfirmation(oneShotResult.run.ops),
       partial: false,
+      replySummary: oneShotResult.replySummary ?? null,
     })
   }
 
   const cap = clampIterationCap(iterationCap ?? DEFAULT_ITERATION_CAP)
-  const systemPrompt = buildSystemPrompt({ optimizeFor })
   const transcript = []
   let currentSlot = route.slot
   let currentSlotName = routeSlotName(route)
   let escalated = false
   let doneSignalled = false
+  let replySummary = null
   let failure = null
+  let turnUserContent = null
+  let lastAssistantText = null
 
   for (let iteration = 0; iteration < cap; iteration += 1) {
-    const contextBlock = buildContextBlock({ store, scope, optimizeFor })
-    const messages = buildMessages({ goal, contextBlock, systemPrompt, transcript })
-    const tools = toolsForSlot({ optimizeFor, providerId: currentSlot?.provider })
+    const effectiveOptimizeFor = slotOptimizeFor(currentSlot, optimizeFor)
+    const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor })
+    const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
+    const turnNumber = Math.floor(history.length / 2)
+    const needsFreshContext = history.length === 0 || turnNumber % CONTEXT_REFRESH_EVERY_TURNS === 0
+    if (turnUserContent === null) {
+      turnUserContent = needsFreshContext ? `${goal}\n\nCONTEXT\n${contextBlock}` : goal
+    }
+    const messages = buildMessages({ goal, contextBlock, systemPrompt, transcript, history, forceContext: needsFreshContext })
+    const tools = toolsForSlot({ optimizeFor: effectiveOptimizeFor, providerId: currentSlot?.provider })
     const credentials = resolveCredentials?.(currentSlot?.provider)
 
     const result = await send({
@@ -302,26 +439,60 @@ export async function runAgentLoop({
     }
 
     const doneCall = (result.toolCalls ?? []).find(isDoneCall)
+
+    const { transcriptMessages: nonMutatingMessages, viewRequests } = await handleNonMutatingToolCalls({
+      toolCalls: result.toolCalls,
+      store,
+      scope,
+      currentSlot,
+      resolveCredentials,
+      instrumentation,
+    })
+    if (result.text) {
+      lastAssistantText = result.text
+    }
+
+    if (viewRequests.length) {
+      instrumentation.viewRequests.push(...viewRequests)
+    }
+
     if (doneCall || !result.toolCalls?.length) {
       doneSignalled = true
+      replySummary = doneCall?.args?.summary ?? (result.text || lastAssistantText) ?? null
       break
     }
 
     transcript.push({ role: 'assistant', content: result.text ?? '', toolCalls: result.toolCalls })
     transcript.push({ role: 'tool', content: describeAppliedOps(accepted) })
+    transcript.push(...nonMutatingMessages)
   }
 
   if (failure) {
     return finalizeResult({ run, instrumentation, clock, error: failure, partial: false, discard: true })
   }
 
+  if (!replySummary && lastAssistantText) {
+    replySummary = lastAssistantText
+  }
+
+  if (!replySummary || !replySummary.trim()) {
+    replySummary = fallbackReplySummary(run.ops)
+  }
+
   const partial = !doneSignalled
+  const nextHistory = [
+    ...history,
+    { role: 'user', content: turnUserContent ?? goal },
+    { role: 'assistant', content: replySummary ?? '' },
+  ].slice(-HISTORY_MAX_MESSAGES)
   return finalizeResult({
     run: withRunStatus(run, autoMode && !requiresConfirmation(run.ops) ? 'committed' : 'awaitingConfirm'),
     instrumentation,
     clock,
     autoConfirmed: Boolean(autoMode) && !requiresConfirmation(run.ops),
     partial,
+    replySummary,
+    nextHistory,
   })
 }
 
@@ -344,7 +515,12 @@ function describeAppliedOps(ops) {
   return `Applied ${ops.length} operation(s). Continue planning or call done.`
 }
 
-function finalizeResult({ run, instrumentation, clock, error = null, partial = false, autoConfirmed = false, discard = false, rateLimited = false }) {
+function fallbackReplySummary(ops) {
+  if (!ops?.length) return 'Done.'
+  return `Done — applied ${ops.length} change(s).`
+}
+
+function finalizeResult({ run, instrumentation, clock, error = null, partial = false, autoConfirmed = false, discard = false, rateLimited = false, replySummary = null, nextHistory = null }) {
   const usage = totalUsage(instrumentation)
   return {
     run,
@@ -353,6 +529,10 @@ function finalizeResult({ run, instrumentation, clock, error = null, partial = f
     usage,
     wallClockMs: nowMs(clock) - instrumentation.startedAt,
     escalations: instrumentation.escalations,
+    research: instrumentation.research ?? [],
+    viewRequests: instrumentation.viewRequests ?? [],
+    replySummary,
+    nextHistory,
     error,
     partial,
     autoConfirmed,

@@ -4,6 +4,7 @@ import { emptyJournal } from '@/lib/ai/journal'
 import { clearAllAiKeys } from '@/lib/ai/keys'
 import { clearAllConsent } from '@/components/settings/apps/ai/aiConsent'
 import { clearBudgetState } from '@/lib/ai/budget'
+import { AiTab } from './AiTab'
 
 export const aiAssistantApp = {
   id: 'aiAssistant',
@@ -24,5 +25,5 @@ export const aiAssistantApp = {
     }
   },
   SettingsModal: AiAppModal,
-  tab: null,
+  tab: { id: 'aiAssistant', component: AiTab },
 }
