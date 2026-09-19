@@ -21,12 +21,12 @@ import { TaskMentionPopup } from '../TaskMentionPopup'
 const SAVE_DEBOUNCE_MS = 400
 const EMPTY = []
 
-export function RichNoteEditor({ note, collabPlugins = null }) {
+export function RichNoteEditor({ note, collabPlugins = null, editable = true }) {
   if (note.sharedMeta?.remote && !collabPlugins) return null
-  return <NoteEditorSurface note={note} collabPlugins={collabPlugins} />
+  return <NoteEditorSurface note={note} collabPlugins={collabPlugins} editable={editable} />
 }
 
-function NoteEditorSurface({ note, collabPlugins }) {
+function NoteEditorSurface({ note, collabPlugins, editable }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const updateNote = useStore(s => s.updateNote)
@@ -62,6 +62,7 @@ function NoteEditorSurface({ note, collabPlugins }) {
 
   const editor = useEditor({
     extensions,
+    editable,
     ...(collaborative ? {} : { content: note.doc ?? undefined }),
     editorProps: {
       attributes: {
@@ -89,6 +90,11 @@ function NoteEditorSurface({ note, collabPlugins }) {
   }, [mention])
 
   useEffect(() => () => clearTimeout(saveTimer.current), [])
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    editor.setEditable(editable)
+  }, [editor, editable])
 
   useEffect(() => {
     if (!editor || collaborative) return

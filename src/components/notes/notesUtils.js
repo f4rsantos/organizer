@@ -1,6 +1,10 @@
 export const EMPTY = []
 export const ROOT = '__root__'
 
+export function noteHasContent(note) {
+  return Boolean(note?.body?.trim()) || (note?.strokes?.length ?? 0) > 0
+}
+
 export function noteOrder(a, b) {
   return (b.favorite - a.favorite) || ((a.order ?? 0) - (b.order ?? 0)) || (b.updatedAt - a.updatedAt)
 }

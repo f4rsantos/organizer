@@ -57,14 +57,21 @@ export function TableControls({ editor, scrollRef, t }) {
     editor.on('transaction', schedule)
     const scrollEl = scrollRef.current
     scrollEl?.addEventListener('scroll', schedule)
+    scrollEl?.addEventListener('pointerup', schedule)
     window.addEventListener('resize', schedule)
+    const viewport = window.visualViewport
+    viewport?.addEventListener('resize', schedule)
+    viewport?.addEventListener('scroll', schedule)
     schedule()
 
     return () => {
       editor.off('selectionUpdate', schedule)
       editor.off('transaction', schedule)
       scrollEl?.removeEventListener('scroll', schedule)
+      scrollEl?.removeEventListener('pointerup', schedule)
       window.removeEventListener('resize', schedule)
+      viewport?.removeEventListener('resize', schedule)
+      viewport?.removeEventListener('scroll', schedule)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [editor, scrollRef])

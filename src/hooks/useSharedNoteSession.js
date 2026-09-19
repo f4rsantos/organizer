@@ -51,6 +51,8 @@ export function useSharedNoteSession(sharedMeta) {
   const presenceMapRef = useRef(presenceMap)
   presenceMapRef.current = presenceMap
 
+  const hasMembership = Boolean(membership)
+
   useEffect(() => {
     if (!teamId || !sharedNoteId || !membershipRef.current) return
     let cancelled = false
@@ -162,7 +164,7 @@ export function useSharedNoteSession(sharedMeta) {
       pending.awareness?.destroy?.()
       pending.session.destroy().catch(() => {})
     }
-  }, [teamId, sharedNoteId, collabUserId, setCollabRuntimeTeam, setCollabError])
+  }, [teamId, sharedNoteId, collabUserId, hasMembership, setCollabRuntimeTeam, setCollabError])
 
   useEffect(() => {
     if (!storedState) return

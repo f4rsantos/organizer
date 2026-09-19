@@ -67,7 +67,8 @@ export function useCollabActions() {
 
   const teamUserId = teamId => resolveTeamUserId(userId, teamId)
 
-  const ensureCanEdit = (team, teamId) => {
+  const canEditSharedContent = teamId => {
+    const team = getTeam(teamId)
     if (!team) return false
     if (team.hostPersonId === teamUserId(teamId)) return true
     return team.membersCanEditShared !== false
@@ -87,7 +88,7 @@ export function useCollabActions() {
     const team = getTeam(teamId)
     if (!membership || !team || !userId) return null
     if (team.syncStatus === 'device-unlinked') return null
-    if (requireEdit && !ensureCanEdit(team, teamId)) return null
+    if (requireEdit && !canEditSharedContent(teamId)) return null
     return { membership, team }
   }
 
@@ -434,6 +435,7 @@ export function useCollabActions() {
   return {
     teams,
     getTeamName,
+    canEditSharedContent,
     shareTaskToTeam,
     shareEventToTeam,
     updateSharedEvent,
