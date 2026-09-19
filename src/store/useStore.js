@@ -9,6 +9,10 @@ import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 import { cacheCollabUserId } from '@/lib/collab/identity'
 import {
+  emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry,
+  dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
+} from '@/lib/notifications/queue'
+import {
   createAgentRun, appendOpsToRun, withRunStatus,
 } from '@/lib/ai/agentOverlay'
 import {
@@ -197,8 +201,9 @@ function buildInitialState() {
       notesMathSolveEquations: true,
       notesMathSelectionGraph: true,
       notesMathStepByStep: true,
-      focusAlertMode: 'none',
-      taskAlertMode: 'none',
+      notifications: { enabled: true, intrusiveness: 'toast', vibrate: false, sound: false, browserPush: false, bellVisibility: 'hideEmpty' },
+      taskAlertsEnabled: false,
+      taskAlertsInApp: true,
       taskReminderOffsets: [0],
       taskReminderTime: '09:00',
       taskDefaultToCalendar: false,
@@ -209,6 +214,7 @@ function buildInitialState() {
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],
         focusLabel: '', breakLabel: '',
         intervalResetMode: 'reset',
+        alertsEnabled: true,
       },
       pomodoro: {
         enabled: false,
@@ -245,6 +251,7 @@ function buildInitialState() {
     pomodoros: [],
     resetSignal: null,
     taskAlertStates: {},
+    notificationQueue: emptyNotificationQueue(),
     courseAvg: { previousAvg: null, numSemesters: 0 },
     holidays: [],
     dismissedNextSemester: {},
@@ -481,6 +488,26 @@ export const useStore = create((set, get) => ({
     delete prev[key]
     return persist({ ...s, taskAlertStates: prev })
   }),
+  queueNotification: (entry, intrusiveness) => set(s => ({
+    ...s,
+    notificationQueue: enqueueNotification(s.notificationQueue, entry, intrusiveness),
+  })),
+  dismissNotificationToast: id => set(s => ({
+    ...s,
+    notificationQueue: dismissToastEntry(s.notificationQueue, id),
+  })),
+  dismissActiveNotificationAlert: () => set(s => ({
+    ...s,
+    notificationQueue: dismissActiveAlertEntry(s.notificationQueue),
+  })),
+  clearUnreadNotification: id => set(s => ({
+    ...s,
+    notificationQueue: clearUnreadEntry(s.notificationQueue, id),
+  })),
+  clearAllUnreadNotifications: () => set(s => ({
+    ...s,
+    notificationQueue: clearAllUnread(s.notificationQueue),
+  })),
   deleteTask: id => set(s => persist({
     ...s,
     tasks: s.tasks.reduce((acc, t) => {

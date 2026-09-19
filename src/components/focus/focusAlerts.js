@@ -1,98 +1,7 @@
 import { useStrings as stringsFor } from '@/lib/strings'
+import { ensureNotificationPermission } from '@/lib/notifications/permission'
 
-const NOTIFICATION_MODES = new Set(['notification', 'both'])
-const VIBRATION_MODES = new Set(['vibration', 'both'])
 const TASK_REMINDER_TAG_PREFIX = 'organiser-task-scheduled:'
-
-async function playPingWithHowler() {
-  let Howler
-  try {
-    ({ Howler } = await import('howler'))
-  } catch {
-    return
-  }
-
-  const ctx = Howler.ctx
-  if (!ctx) return
-
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {})
-  }
-
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(880, ctx.currentTime)
-
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01)
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22)
-
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.start()
-  osc.stop(ctx.currentTime + 0.23)
-}
-
-function showBrowserNotification({ phase, lang }) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return
-  if (Notification.permission !== 'granted') return
-
-  const t = stringsFor(lang)
-  const title = t.focusNotifTitle
-  const body = phase === 'break' ? t.focusNotifBreakBody : t.focusNotifFocusBody
-
-  try {
-    new Notification(title, {
-      body,
-      icon: `${import.meta.env.BASE_URL}favicon.svg`,
-      badge: `${import.meta.env.BASE_URL}favicon.svg`,
-      tag: 'organiser-focus-alert',
-      renotify: true,
-    })
-  } catch {
-    // permission can be revoked mid-flight
-  }
-}
-
-export function requestBrowserNotificationPermission() {
-  if (typeof window === 'undefined' || !('Notification' in window)) return
-  if (Notification.permission !== 'default') return
-  Notification.requestPermission().catch(() => {})
-}
-
-export function triggerFocusAlert({ mode, phase, lang }) {
-  if (!mode || mode === 'none') return
-
-  if (VIBRATION_MODES.has(mode) && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-    if (phase === 'break') navigator.vibrate([22, 55, 22])
-    if (phase === 'focus') navigator.vibrate(24)
-  }
-
-  if (NOTIFICATION_MODES.has(mode)) {
-    void playPingWithHowler()
-    showBrowserNotification({ phase, lang })
-  }
-}
-
-export function triggerTaskDueNotification({ lang, title, body }) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return
-  if (Notification.permission !== 'granted') return
-
-  try {
-    void playPingWithHowler()
-    new Notification(stringsFor(lang).tasksNotifTitle, {
-      body: body ? `${title} - ${body}` : title,
-      icon: `${import.meta.env.BASE_URL}favicon.svg`,
-      badge: `${import.meta.env.BASE_URL}favicon.svg`,
-      tag: `organiser-task-due-${title}`,
-      renotify: false,
-    })
-  } catch {
-    // permission can be revoked mid-flight
-  }
-}
 
 export function buildScheduledTaskReminderTag(taskId, dueDateKey) {
   return `${TASK_REMINDER_TAG_PREFIX}${taskId}:${dueDateKey}`
@@ -107,13 +16,6 @@ export function supportsOfflineTaskReminderScheduling() {
 
 function getTaskReminderTitle(lang) {
   return stringsFor(lang).taskReminderTitle
-}
-
-async function ensureNotificationPermission() {
-  if (typeof window === 'undefined' || !('Notification' in window)) return false
-  if (Notification.permission === 'granted') return true
-  const permission = await Notification.requestPermission().catch(() => 'denied')
-  return permission === 'granted'
 }
 
 async function getServiceWorkerRegistration() {
@@ -165,7 +67,7 @@ export async function clearScheduledTaskReminders(tags = null) {
       notification.close()
     })
   } catch {
-    // worker may not be ready
+    return
   }
 }
 
@@ -189,7 +91,7 @@ export async function reconcileScheduledTaskReminders({ lang, reminders, maxRemi
       if (!desiredTags.has(tag)) notification.close()
     })
   } catch {
-    // worker may not be ready
+    return false
   }
 
   let scheduledAny = false

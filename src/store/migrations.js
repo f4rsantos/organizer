@@ -1,8 +1,9 @@
 import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
 import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
+import { normalizeNotificationSettings } from '../lib/notifications/settings'
 
-export const CURRENT_VERSION = 7
+export const CURRENT_VERSION = 8
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
@@ -16,6 +17,7 @@ const MIGRATIONS = [
   { toVersion: 5, migrate: migrateV5NavbarStandbyApps },
   { toVersion: 6, migrate: migrateV6QuickAction },
   { toVersion: 7, migrate: migrateV7GoalsToHabits },
+  { toVersion: 8, migrate: migrateV8UnifyNotifications },
 ]
 
 export function migrateState(raw) {
@@ -188,6 +190,38 @@ function migrateV7GoalsToHabits(state) {
   return next
 }
 
+function migrateV8UnifyNotifications(state) {
+  const settings = { ...(state.settings ?? {}) }
+  const focusAlertMode = settings.focusAlertMode ?? (settings.vibrateOnPageFocus ? 'vibration' : 'none')
+  const taskAlertMode = settings.taskAlertMode ?? (settings.taskAlertsEnabled ? 'in-app' : 'none')
+
+  const intrusiveness = 'toast'
+  const vibrate = focusAlertMode === 'vibration' || focusAlertMode === 'both'
+  const sound = focusAlertMode === 'notification' || focusAlertMode === 'both'
+    || taskAlertMode === 'notification' || taskAlertMode === 'both'
+  const browserPush = sound
+  const enabled = focusAlertMode !== 'none' || taskAlertMode !== 'none'
+
+  if (!settings.notifications || typeof settings.notifications !== 'object') {
+    settings.notifications = { enabled, intrusiveness, vibrate, sound, browserPush, bellVisibility: 'hideEmpty' }
+  }
+
+  const focus = { ...(settings.focus ?? {}) }
+  if (typeof focus.alertsEnabled !== 'boolean') focus.alertsEnabled = focusAlertMode !== 'none'
+  settings.focus = focus
+
+  if (typeof settings.taskAlertsEnabled !== 'boolean' || taskAlertMode !== 'none') {
+    settings.taskAlertsEnabled = taskAlertMode !== 'none'
+  }
+  settings.taskAlertsInApp = taskAlertMode === 'in-app' || taskAlertMode === 'both'
+
+  delete settings.focusAlertMode
+  delete settings.taskAlertMode
+  delete settings.vibrateOnPageFocus
+
+  return { ...state, settings }
+}
+
 export function plaintextToDoc(text) {
   const paragraphs = String(text).split(/\n{2,}/)
   return {
@@ -326,6 +360,7 @@ function getDefaultFocusSettings() {
     scheduledTimes: [],
     focusLabel: '',
     breakLabel: '',
+    alertsEnabled: true,
   }
 }
 
@@ -452,12 +487,13 @@ function normalizeSettings(settings) {
   if (typeof s.notesMathSolveEquations !== 'boolean') s.notesMathSolveEquations = true
   if (typeof s.notesMathSelectionGraph !== 'boolean') s.notesMathSelectionGraph = true
   if (typeof s.notesMathStepByStep !== 'boolean') s.notesMathStepByStep = true
-  if (typeof s.focusAlertMode !== 'string') {
-    s.focusAlertMode = s.vibrateOnPageFocus ? 'vibration' : 'none'
-  }
-  if (typeof s.taskAlertMode !== 'string') {
-    s.taskAlertMode = s.taskAlertsEnabled ? 'in-app' : 'none'
-  }
+  s.notifications = normalizeNotificationSettings(s.notifications)
+  if (typeof s.focus.alertsEnabled !== 'boolean') s.focus.alertsEnabled = true
+  if (typeof s.taskAlertsEnabled !== 'boolean') s.taskAlertsEnabled = false
+  if (typeof s.taskAlertsInApp !== 'boolean') s.taskAlertsInApp = true
+  delete s.focusAlertMode
+  delete s.taskAlertMode
+  delete s.vibrateOnPageFocus
   s.taskReminderOffsets = normalizeReminderOffsets(s.taskReminderOffsets)
   if (typeof s.taskReminderTime !== 'string' || !/^\d{2}:\d{2}$/.test(s.taskReminderTime)) {
     s.taskReminderTime = '09:00'

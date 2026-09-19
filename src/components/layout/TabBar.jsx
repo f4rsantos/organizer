@@ -6,6 +6,8 @@ import { useStrings } from '@/lib/strings'
 import { selectActiveAgentRunPill } from '@/store/selectors'
 import { useNavTabs } from './useNavTabs'
 import { NavAddButton } from './NavAddButton'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { useNotificationBell } from '@/hooks/useNotificationBell'
 
 function AgentRunPill({ orientation, activeTab }) {
   const pill = useStore(useShallow(selectActiveAgentRunPill))
@@ -34,6 +36,21 @@ function AgentRunPill({ orientation, activeTab }) {
       )}>
       {label}
     </button>
+  )
+}
+
+function NavNotificationBell() {
+  const { t, shouldShowBell, hasUnread, unread, upcoming } = useNotificationBell()
+  if (!shouldShowBell) return null
+  return (
+    <NotificationBell
+      unread={unread}
+      upcoming={upcoming}
+      hasUnread={hasUnread}
+      unreadLabel={t.notificationBellUnread}
+      upcomingLabel={t.notificationBellUpcoming}
+      emptyLabel={t.notificationBellEmpty}
+    />
   )
 }
 
@@ -158,6 +175,11 @@ export function SideBar({ activeTab, onTabChange, open, onToggle, mobileSide = f
                 </button>
         ))}
         <div className="flex-1 cursor-pointer w-full" onClick={onToggle} />
+        {!mobileSide && (
+          <div className="pb-1">
+            <NavNotificationBell />
+          </div>
+        )}
         <AgentRunPill orientation="collapsed" activeTab={activeTab} />
       </nav>
     )
@@ -184,7 +206,8 @@ export function SideBar({ activeTab, onTabChange, open, onToggle, mobileSide = f
               </button>
       ))}
       <div className="flex-1 cursor-pointer" onClick={onToggle} />
-      <div className="px-1 pb-2">
+      <div className="flex items-center justify-between px-1 pb-2">
+        {!mobileSide ? <NavNotificationBell /> : <span />}
         <AgentRunPill orientation="sidebar" activeTab={activeTab} />
       </div>
     </nav>

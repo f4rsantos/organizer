@@ -25,6 +25,7 @@ import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
+import { NotificationsHost } from '@/components/notifications/NotificationsHost'
 import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -344,6 +345,7 @@ export default function App() {
       <PresetUpdateDialog />
       {showStorageWarning && <StorageWarningModal onDismiss={() => setShowStorageWarning(false)} />}
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
+      <NotificationsHost />
     </AppShell>
   )
 }
