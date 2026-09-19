@@ -137,21 +137,33 @@ export function CalendarTab() {
     return m
   }
 
+  const clampDay = d => {
+    if (semStart && d < semStart) return semStart
+    if (semEnd && d > semEnd) return semEnd
+    return d
+  }
+
   const goPrev = () => setAnchor(a => {
-    if (view === 'day') return subDays(a, 1)
-    if (view === 'week') return subDays(a, 7)
+    if (view === 'day') return clampDay(subDays(a, 1))
+    if (view === 'week') return clampDay(subDays(a, 7))
     if (view === 'year') return new Date(a.getFullYear() - 1, a.getMonth(), a.getDate())
     return clampMonth(subMonths(a, 1))
   })
   const goNext = () => setAnchor(a => {
-    if (view === 'day') return addDays(a, 1)
-    if (view === 'week') return addDays(a, 7)
+    if (view === 'day') return clampDay(addDays(a, 1))
+    if (view === 'week') return clampDay(addDays(a, 7))
     if (view === 'year') return new Date(a.getFullYear() + 1, a.getMonth(), a.getDate())
     return clampMonth(addMonths(a, 1))
   })
 
-  const canPrev = view === 'month' ? (!semStart || startOfMonth(anchor) > startOfMonth(semStart)) : true
-  const canNext = view === 'month' ? (!semEnd || startOfMonth(anchor) < startOfMonth(semEnd)) : true
+  const canPrev = view === 'year' ? true
+    : view === 'month' ? (!semStart || startOfMonth(anchor) > startOfMonth(semStart))
+    : view === 'week' ? (!semStart || startOfWeek(anchor, { weekStartsOn }) > semStart)
+    : (!semStart || anchor > semStart)
+  const canNext = view === 'year' ? true
+    : view === 'month' ? (!semEnd || startOfMonth(anchor) < startOfMonth(semEnd))
+    : view === 'week' ? (!semEnd || endOfWeek(anchor, { weekStartsOn }) < semEnd)
+    : (!semEnd || anchor < semEnd)
 
   const shiftAnchor = (base, step) => {
     if (step === 0) return base
@@ -275,7 +287,7 @@ export function CalendarTab() {
           )
           return (
             <YearView year={pageAnchor.getFullYear()} tasks={tasks} holidays={holidays} events={events}
-              onOpenMonth={openMonth} onOpenDay={openDay} />
+              onOpenMonth={openMonth} onOpenDay={openDay} semStart={semStart} semEnd={semEnd} />
           )
         }}
       />

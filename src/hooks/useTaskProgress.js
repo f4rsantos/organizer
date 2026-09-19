@@ -6,7 +6,9 @@ export function useTaskProgress(semesterId, classes, week, tasksOverride = null,
   const allTasks = useStore(s => s.tasks)
   const source = Array.isArray(tasksOverride) ? tasksOverride : allTasks
   const semTasks = source.filter(t => t.semesterId === semesterId)
-  const weekTasks = week ? getTasksForWeek(semTasks, week) : semTasks
+  const weekTasks = week
+    ? semTasks.filter(t => isRecurring(t) || getTasksForWeek([t], week).length > 0)
+    : semTasks
   const expandedWeekTasks = weekBounds
     ? weekTasks.flatMap(t => (isRecurring(t)
         ? expandTasksForRange([t], weekBounds.start, weekBounds.end)

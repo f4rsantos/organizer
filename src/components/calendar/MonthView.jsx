@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { startOfWeek, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -6,7 +7,10 @@ import { readableTextColor } from '@/lib/calendar/contrast'
 import { useWeatherForecast } from '@/hooks/useWeatherForecast'
 import { WeatherIcon } from './WeatherIcon'
 
-const MAX_CHIPS = 3
+const MIN_CHIPS = 3
+const CHIP_ROW_HEIGHT = 15
+const HEADER_HEIGHT = 26
+const OVERFLOW_LABEL_HEIGHT = 13
 
 const isDark = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
 
@@ -21,7 +25,7 @@ function Chip({ color, children, onClick }) {
   )
 }
 
-function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen, weatherByDate }) {
+function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen, weatherByDate, maxChips }) {
   const isToday = isSameDay(day, new Date())
   const { dayHolidays, dayEvents, dayTasks } = itemsForDay(day, tasks, holidays, events)
   const lang = useStore(s => s.lang ?? 'en')
@@ -36,7 +40,7 @@ function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen
       return { key: 't' + tk.id, color: cls?.color ?? '#6366f1', label: cls ? `${tk.title} - ${cls.name}` : tk.title }
     }),
   ]
-  const shown = chips.slice(0, MAX_CHIPS)
+  const shown = chips.slice(0, maxChips)
   const overflow = chips.length - shown.length
 
   return (
@@ -57,12 +61,36 @@ function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen
   )
 }
 
+function useMaxChips(gridRef, weekCount) {
+  const [maxChips, setMaxChips] = useState(MIN_CHIPS)
+
+  useLayoutEffect(() => {
+    const node = gridRef.current
+    if (!node) return
+
+    const recompute = () => {
+      const rowHeight = node.getBoundingClientRect().height / weekCount
+      const available = rowHeight - HEADER_HEIGHT - OVERFLOW_LABEL_HEIGHT
+      const fit = Math.floor(available / CHIP_ROW_HEIGHT)
+      setMaxChips(Math.max(MIN_CHIPS, fit))
+    }
+
+    recompute()
+    const observer = new ResizeObserver(recompute)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [gridRef, weekCount])
+
+  return maxChips
+}
+
 export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
   const forecast = useWeatherForecast()
   const weatherByDate = forecast ? new Map(forecast.map(d => [d.date, d])) : null
+  const gridRef = useRef(null)
 
   const monthStart = startOfMonth(month)
   const gridStart = startOfWeek(monthStart, { weekStartsOn })
@@ -73,6 +101,7 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
   while (days.length < 42) days.push(new Date(days[days.length - 1].getTime() + 86400000))
   const weekCount = days.slice(35).some(d => isSameMonth(d, month)) ? 6 : 5
   const visibleDays = days.slice(0, weekCount * 7)
+  const maxChips = useMaxChips(gridRef, weekCount)
 
   const dowOffset = (weekStartsOn + 6) % 7
   const DOW = [...t.weekdaysShort.slice(dowOffset), ...t.weekdaysShort.slice(0, dowOffset)]
@@ -86,11 +115,11 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
+      <div ref={gridRef} className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
         {visibleDays.map(day => (
           <DayCell key={day.toISOString()} day={day} isCurrentMonth={isSameMonth(day, month)}
             tasks={tasks} holidays={holidays} events={events} classes={classes} onOpen={onOpenDay}
-            weatherByDate={weatherByDate} />
+            weatherByDate={weatherByDate} maxChips={maxChips} />
         ))}
       </div>
     </div>

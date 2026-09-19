@@ -420,6 +420,7 @@ export const cs = {
     collabTeamName: "Název týmu",
     collabTeamDays: "dní týmu",
     collabTeamDuration: "trvání týmu",
+    collabNeverExpires: "nikdy nevyprší",
     collabDays: "dní",
     collabJoinTeam: "Připojit se k týmu",
     collabInvitePlaceholder: "Vložte pozvánkový odkaz",
@@ -831,5 +832,7 @@ export const cs = {
     collabShareNote: 'Sdílet poznámku',
     collabShared: 'Sdíleno',
     notesSaveLocalCopy: 'Uložit místní kopii',
+    notesOfflineOnlyOn: 'Nechat poznámku jen offline (nesynchronizuje se)',
+    notesOfflineOnlyOff: 'Jen offline',
     collabSelectTeam: 'Vybrat tým',
 }

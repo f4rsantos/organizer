@@ -372,7 +372,7 @@ describe('encrypted presence records', () => {
     expect(serialized).not.toContain('#ff0000')
     expect(serialized).not.toContain('note-1')
     expect(serialized).not.toContain('"anchor"')
-    expect(serialized).not.toContain('42')
+    expect(serialized).not.toContain('"clientId"')
   })
 
   it('round-trips the full presence payload with the right key', async () => {

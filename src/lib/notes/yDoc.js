@@ -18,6 +18,8 @@ function fromBase64(b64) {
 }
 
 export const NOTE_FRAGMENT_FIELD = 'default'
+export const NOTE_TITLE_FIELD = 'title'
+export const NOTE_TITLE_META_FIELD = 'titleMeta'
 export const NOTE_FLUSH_INTERVAL_MS = 1500
 export const AWARENESS_HEARTBEAT_MS = 3000
 export const AWARENESS_STALE_MS = 12000
@@ -69,6 +71,33 @@ export function noteDocFragment(ydoc) {
 
 export function isNoteDocEmpty(ydoc) {
   return noteDocFragment(ydoc).length === 0
+}
+
+export function noteTitleText(ydoc) {
+  return ydoc.getText(NOTE_TITLE_FIELD)
+}
+
+export function noteTitleMeta(ydoc) {
+  return ydoc.getMap(NOTE_TITLE_META_FIELD)
+}
+
+export function hasCollaborativeTitle(ydoc) {
+  return noteTitleMeta(ydoc).get('migrated') === true
+}
+
+export function adoptCollaborativeTitle(ydoc, storedTitle) {
+  if (hasCollaborativeTitle(ydoc)) return false
+  ydoc.transact(() => {
+    const ytext = noteTitleText(ydoc)
+    if (ytext.length === 0 && storedTitle) ytext.insert(0, storedTitle)
+    noteTitleMeta(ydoc).set('migrated', true)
+  })
+  return true
+}
+
+export function resolveNoteTitle(ydoc, storedTitle) {
+  if (hasCollaborativeTitle(ydoc)) return noteTitleText(ydoc).toString()
+  return storedTitle ?? ''
 }
 
 export function tiptapJSONToStoredDoc(docJSON, schema) {

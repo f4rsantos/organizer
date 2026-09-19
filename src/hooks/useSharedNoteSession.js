@@ -59,7 +59,7 @@ export function useSharedNoteSession(sharedMeta) {
 
     const start = async () => {
       const [
-        { createNoteDocSession, createNoteAwareness, noteCollabExtensionPlugins, encodeAwarenessPresence, presenceEntryKey, presenceKeysToEvict, AWARENESS_HEARTBEAT_MS },
+        { createNoteDocSession, createNoteAwareness, noteCollabExtensionPlugins, encodeAwarenessPresence, presenceEntryKey, presenceKeysToEvict, noteTitleText, noteTitleMeta, adoptCollaborativeTitle, resolveNoteTitle, AWARENESS_HEARTBEAT_MS },
         { publishNotePresence, clearNotePresence, updateTeamState },
         { classifyCollabError },
       ] = await Promise.all([
@@ -81,12 +81,20 @@ export function useSharedNoteSession(sharedMeta) {
       const initialStored = (teamRef.current?.state?.notes ?? [])
         .find(note => note?.id === sharedNoteId)?.ydocState ?? ''
 
+      let flushedDoc = null
+
       const writeSharedNote = async encoded => {
         const applyUpdate = state => ({
           ...state,
           notes: (state?.notes ?? []).map(note => (
             note?.id === sharedNoteId
-              ? { ...note, ydocState: encoded, updatedAt: Date.now(), updatedBy: me }
+              ? {
+                ...note,
+                ydocState: encoded,
+                title: flushedDoc ? resolveNoteTitle(flushedDoc, note.title) : note.title,
+                updatedAt: Date.now(),
+                updatedBy: me,
+              }
               : note
           )),
         })
@@ -104,6 +112,7 @@ export function useSharedNoteSession(sharedMeta) {
       }
 
       const session = createNoteDocSession({ stored: initialStored, onFlush: writeSharedNote })
+      flushedDoc = session.ydoc
       const awareness = createNoteAwareness(session.ydoc, localUser)
       active = { session, awareness }
       sessionRef.current = active
@@ -133,6 +142,11 @@ export function useSharedNoteSession(sharedMeta) {
           awareness,
           cursorBuilder: buildCursorElement,
         }),
+        titleSource: {
+          text: noteTitleText(session.ydoc),
+          meta: noteTitleMeta(session.ydoc),
+          adopt: storedTitle => adoptCollaborativeTitle(session.ydoc, storedTitle),
+        },
       })
     }
 

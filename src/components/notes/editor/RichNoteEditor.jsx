@@ -8,7 +8,6 @@ import { TextStyleKit } from '@tiptap/extension-text-style'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
 import { lowlight } from './lowlight'
 import { MathSolve } from './extensions/MathSolve'
 import { MathGraph } from './extensions/MathGraph'
@@ -22,11 +21,9 @@ import { TaskMentionPopup } from '../TaskMentionPopup'
 const SAVE_DEBOUNCE_MS = 400
 const EMPTY = []
 
-export function RichNoteEditor({ note }) {
-  const collab = useSharedNoteSession(note.sharedMeta?.remote ? note.sharedMeta : null)
-  const isShared = Boolean(note.sharedMeta?.remote)
-  if (isShared && !collab) return null
-  return <NoteEditorSurface note={note} collabPlugins={collab?.plugins ?? null} />
+export function RichNoteEditor({ note, collabPlugins = null }) {
+  if (note.sharedMeta?.remote && !collabPlugins) return null
+  return <NoteEditorSurface note={note} collabPlugins={collabPlugins} />
 }
 
 function NoteEditorSurface({ note, collabPlugins }) {

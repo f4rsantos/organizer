@@ -4,7 +4,10 @@ import { sharedNoteSchema } from './noteSchema.js'
 import {
   buildSharedNoteFromLocalNote, buildLocalNoteFromSharedNote,
   decodeNoteDoc, encodeNoteDoc, applyStoredUpdate, storedDocToTiptapJSON,
+  tiptapJSONToStoredDoc, mergeStoredUpdates, noteTitleText, resolveNoteTitle,
+  hasCollaborativeTitle, adoptCollaborativeTitle,
 } from './noteDoc.js'
+import { applyTextDiff } from './yText.js'
 
 const schema = sharedNoteSchema()
 
@@ -126,5 +129,67 @@ describe('share deletes the local note, so the round trip must be lossless', () 
     const { shared } = shareThenSaveLocalCopy(localNote(RICH_DOC))
     const decoded = storedDocToTiptapJSON(shared.ydocState, schema)
     expect(PMNode.fromJSON(schema, decoded).eq(PMNode.fromJSON(schema, RICH_DOC))).toBe(true)
+  })
+})
+
+describe('collaborative note titles', () => {
+  it('seeds the title fragment when a note is shared', () => {
+    const { shared } = shareThenSaveLocalCopy(localNote(RICH_DOC))
+    const ydoc = decodeNoteDoc(shared.ydocState)
+    expect(noteTitleText(ydoc).toString()).toBe('My note')
+  })
+
+  it('restores an edited collaborative title into the local copy', () => {
+    const { shared } = shareThenSaveLocalCopy(localNote(RICH_DOC))
+    const ydoc = decodeNoteDoc(shared.ydocState)
+    applyTextDiff(noteTitleText(ydoc), 'My renamed note')
+    const restored = buildLocalNoteFromSharedNote({
+      sharedNote: { ...shared, ydocState: encodeNoteDoc(ydoc) },
+      schema,
+    })
+    expect(restored.title).toBe('My renamed note')
+  })
+
+  it('falls back to the flat title for notes shared before the fragment existed', () => {
+    const legacy = {
+      id: 'shared_legacy',
+      title: 'Legacy title',
+      ydocState: tiptapJSONToStoredDoc(RICH_DOC, schema),
+    }
+    const ydoc = decodeNoteDoc(legacy.ydocState)
+    expect(hasCollaborativeTitle(ydoc)).toBe(false)
+    expect(resolveNoteTitle(ydoc, legacy.title)).toBe('Legacy title')
+    expect(buildLocalNoteFromSharedNote({ sharedNote: legacy, schema }).title).toBe('Legacy title')
+  })
+
+  it('migrates a legacy title into the fragment on the first edit', () => {
+    const legacy = { title: 'Legacy title', ydocState: tiptapJSONToStoredDoc(RICH_DOC, schema) }
+    const ydoc = decodeNoteDoc(legacy.ydocState)
+    expect(hasCollaborativeTitle(ydoc)).toBe(false)
+    adoptCollaborativeTitle(ydoc, legacy.title)
+    expect(hasCollaborativeTitle(ydoc)).toBe(true)
+    applyTextDiff(noteTitleText(ydoc), 'Legacy title v2')
+    expect(resolveNoteTitle(ydoc, legacy.title)).toBe('Legacy title v2')
+  })
+
+  it('keeps a deliberately cleared title empty instead of reviving the flat one', () => {
+    const { shared } = shareThenSaveLocalCopy(localNote(RICH_DOC))
+    const ydoc = decodeNoteDoc(shared.ydocState)
+    applyTextDiff(noteTitleText(ydoc), '')
+    expect(resolveNoteTitle(ydoc, shared.title)).toBe('')
+  })
+
+  it('merges concurrent title edits from two members', () => {
+    const { shared } = shareThenSaveLocalCopy(localNote(RICH_DOC))
+    const alice = decodeNoteDoc(shared.ydocState)
+    const bob = decodeNoteDoc(shared.ydocState)
+
+    applyTextDiff(noteTitleText(alice), 'My note (draft)')
+    applyTextDiff(noteTitleText(bob), 'Our note')
+
+    const merged = mergeStoredUpdates(encodeNoteDoc(alice), encodeNoteDoc(bob))
+    const title = resolveNoteTitle(decodeNoteDoc(merged), shared.title)
+    expect(title).toContain('(draft)')
+    expect(title).toContain('Our')
   })
 })
