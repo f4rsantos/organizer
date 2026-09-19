@@ -264,11 +264,13 @@ function normalizeStandby(standby) {
 function normalizeApps(apps, settings) {
   const a = apps && typeof apps === 'object' ? apps : {}
   return {
+    ...a,
     collab: a.collab === true || settings.collabEnabled === true,
     notes: a.notes === true,
     eisenhower: a.eisenhower === true,
     googleCalendar: a.googleCalendar === true,
     habits: a.habits === true,
+    aiAssistant: a.aiAssistant === true,
     quickAction: a.quickAction !== false,
     quickActionTripleTap: Boolean(a.quickActionTripleTap),
     quickActionShortcut: a.quickActionShortcut !== undefined ? a.quickActionShortcut : undefined,

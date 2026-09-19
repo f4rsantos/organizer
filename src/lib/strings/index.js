@@ -15,3 +15,6 @@ export function useStrings(lang) {
   if (!MERGED[lang]) MERGED[lang] = { ...STRINGS.en, ...STRINGS[lang] }
   return MERGED[lang]
 }
+
+export const getStrings = useStrings
+

@@ -2,13 +2,13 @@ import { useMemo } from 'react'
 import { Gauge } from 'lucide-react'
 import { formatBudget, loadBudgetState } from '@/lib/ai/budget'
 
-export function BudgetMeter({ t, optimizeFor, slots }) {
+export function BudgetMeter({ t, slots }) {
   const budgetState = useMemo(() => loadBudgetState(), [])
   const labels = useMemo(() => ({
-    low: t.aiSlotLow, medium: t.aiSlotMedium, high: t.aiSlotHigh, spendToday: t.aiSpendToday,
+    low: t.aiSlotLow, medium: t.aiSlotMedium, high: t.aiSlotHigh,
   }), [t])
 
-  const summary = formatBudget(budgetState, optimizeFor, slots, labels)
+  const summary = formatBudget(budgetState, slots, labels)
   if (!summary) return null
 
   return (

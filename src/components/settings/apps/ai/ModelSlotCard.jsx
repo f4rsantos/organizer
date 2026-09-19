@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TestModelButton } from './TestModelButton'
 import { ConsentNotice } from './ConsentNotice'
+import { OptimizeForToggle } from './OptimizeForToggle'
 import { hasConsentedTo, grantConsent } from './aiConsent'
 import { localhostHintKey } from './aiSlotHelpers'
 import { loadAiKey, saveAiKey, loadBaseUrl, saveBaseUrl } from '@/lib/ai/keys'
@@ -17,6 +18,7 @@ export function ModelSlotCard({
   const provider = slot?.provider ?? ''
   const model = slot?.model ?? ''
   const dailyCap = slot?.dailyCap ?? ''
+  const optimizeFor = slot?.optimizeFor ?? 'requests'
   const [baseUrl, setBaseUrlState] = useState(() => loadBaseUrl(provider))
   const [apiKey, setApiKeyState] = useState(() => loadAiKey(provider))
   const [consented, setConsented] = useState(() => hasConsentedTo(provider, baseUrl))
@@ -53,7 +55,7 @@ export function ModelSlotCard({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3 min-w-0">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">{t[SLOT_LABEL_KEYS[slotName]]}</p>
@@ -105,6 +107,11 @@ export function ModelSlotCard({
             <Input type="number" min="0" value={dailyCap}
               onChange={e => onChange({ dailyCap: e.target.value === '' ? undefined : Number(e.target.value) })}
               placeholder={t.aiSlotDailyCapPlaceholder} className="text-xs" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>{t.aiOptimizeForLabel}</Label>
+            <OptimizeForToggle t={t} value={optimizeFor} onChange={value => onChange({ optimizeFor: value })} />
           </div>
 
           {model.trim() && (

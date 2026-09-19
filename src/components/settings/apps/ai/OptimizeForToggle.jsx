@@ -1,21 +1,33 @@
 import { cn } from '@/lib/utils'
 
 const OPTIONS = [
-  { value: 'requests', titleKey: 'aiOptimizeRequestsTitle', descKey: 'aiOptimizeRequestsDesc' },
-  { value: 'tokens', titleKey: 'aiOptimizeTokensTitle', descKey: 'aiOptimizeTokensDesc' },
+  { value: 'requests', labelKey: 'aiOptimizeRequestsShort' },
+  { value: 'balanced', labelKey: 'aiOptimizeBalancedShort' },
+  { value: 'tokens', labelKey: 'aiOptimizeTokensShort' },
 ]
 
+const INDEX_BY_VALUE = { requests: 0, balanced: 1, tokens: 2 }
+
 export function OptimizeForToggle({ t, value, onChange }) {
+  const activeIndex = INDEX_BY_VALUE[value] ?? 1
+
   return (
-    <div className="space-y-2">
+    <div className="relative flex w-full items-center rounded-full bg-muted p-0.5 text-xs">
+      <div
+        className="absolute inset-y-0.5 w-1/3 rounded-full bg-background shadow-sm transition-transform"
+        style={{ transform: `translateX(${activeIndex * 100}%)` }}
+      />
       {OPTIONS.map(option => (
-        <button key={option.value} type="button" onClick={() => onChange(option.value)}
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
           className={cn(
-            'w-full text-left rounded-xl border p-3 transition-colors',
-            value === option.value ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
-          )}>
-          <p className="text-sm font-medium">{t[option.titleKey]}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{t[option.descKey]}</p>
+            'relative z-10 flex-1 min-w-0 truncate rounded-full px-1.5 py-1 text-center font-medium transition-colors',
+            value === option.value ? 'text-foreground' : 'text-muted-foreground',
+          )}
+        >
+          {t[option.labelKey]}
         </button>
       ))}
     </div>

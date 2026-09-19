@@ -29,7 +29,6 @@ export function AiAppModal({ open, onOpenChange }) {
   const providers = listProviders()
   const enabled = apps.aiAssistant === true
   const slots = aiSettings.slots ?? {}
-  const optimizeFor = aiSettings.optimizeFor ?? 'requests'
   const configured = enabled && isSlotFilled(slots.medium)
 
   const persistAiSettings = nextAiSettings => {
@@ -43,15 +42,6 @@ export function AiAppModal({ open, onOpenChange }) {
 
   const handleSetupSlotClear = () => {
     persistAiSettings(withSlotCleared(aiSettings, 'medium'))
-  }
-
-  const handleOptimizeForChange = value => {
-    persistAiSettings({ ...aiSettings, optimizeFor: value })
-  }
-
-  const handleSetupFinish = () => {
-    const currentApps = useStore.getState().settings?.apps ?? {}
-    updateSettings({ apps: { ...currentApps, aiAssistant: true } })
   }
 
   const toggle = value => {
@@ -68,6 +58,22 @@ export function AiAppModal({ open, onOpenChange }) {
     persistAiSettings(withSlotCleared(aiSettings, slotName))
   }
 
+  const handleAutoModeChange = value => {
+    persistAiSettings({ ...aiSettings, autoMode: Boolean(value) })
+  }
+
+  const handleDefaultSlotChange = value => {
+    persistAiSettings({ ...aiSettings, selectedSlot: value })
+  }
+
+  const handleShortcutChange = value => {
+    const currentApps = useStore.getState().settings?.apps ?? {}
+    updateSettings({ apps: { ...currentApps, aiAssistantShortcut: value } })
+  }
+
+  const shortcut = apps.aiAssistantShortcut ?? null
+  const defaultSlot = aiSettings.selectedSlot ?? 'medium'
+
   const handleDisableConfirmed = () => {
     wipeAppData(aiAssistantApp.wipe)
     const currentApps = useStore.getState().settings?.apps ?? {}
@@ -76,30 +82,34 @@ export function AiAppModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t.aiAssistant}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">{t.aiEnable}</p>
-              <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
+        <div className="max-h-[85vh] overflow-y-auto overflow-x-hidden space-y-4">
+          {!configured && (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{t.aiEnable}</p>
+                <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
+              </div>
+              <Switch checked={enabled} onCheckedChange={toggle} />
             </div>
-            <Switch checked={enabled} onCheckedChange={toggle} />
-          </div>
+          )}
 
           {enabled && (configured ? (
             <ConfiguredView t={t} slots={slots} providers={providers} isNativeBuild={isNativeBuild()}
-              optimizeFor={optimizeFor} onSlotChange={handleSlotChange} onSlotClear={handleSlotClear}
-              onOptimizeForChange={handleOptimizeForChange} />
+              enabled={enabled} onToggle={toggle}
+              onSlotChange={handleSlotChange} onSlotClear={handleSlotClear}
+              autoMode={aiSettings.autoMode === true} onAutoModeChange={handleAutoModeChange}
+              defaultSlot={defaultSlot} onDefaultSlotChange={handleDefaultSlotChange}
+              shortcut={shortcut} onShortcutChange={handleShortcutChange} />
           ) : (
             <div className="space-y-6 border-t border-border/50 pt-4">
               <p className="text-xs text-muted-foreground leading-relaxed">{t.aiSetupIntro}</p>
               <SetupFlow t={t} mediumSlot={slots.medium} providers={providers} isNativeBuild={isNativeBuild()}
-                optimizeFor={optimizeFor} onSlotChange={handleSetupSlotChange} onSlotClear={handleSetupSlotClear}
-                onOptimizeForChange={handleOptimizeForChange} onFinish={handleSetupFinish} />
+                onSlotChange={handleSetupSlotChange} onSlotClear={handleSetupSlotClear} />
             </div>
           ))}
         </div>

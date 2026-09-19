@@ -163,6 +163,8 @@ function buildInitialState() {
     lang: 'pt',
     onboardingDone: false,
     activeTab: null,
+    currentTab: null,
+    aiContextRequest: null,
     requestedNoteId: null,
     scheduleImports: [],
     activeSemesterId: null,
@@ -264,6 +266,9 @@ export const useStore = create((set, get) => ({
   setLang: lang => set(s => persist({ ...s, lang })),
 
   setActiveTab: tab => set(s => ({ ...s, activeTab: tab })),
+  setCurrentTab: tab => set(s => ({ ...s, currentTab: tab })),
+  requestAiContext: tab => set(s => ({ ...s, activeTab: 'aiAssistant', aiContextRequest: { tab, at: Date.now() } })),
+  clearAiContextRequest: () => set(s => ({ ...s, aiContextRequest: null })),
   setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
 
   // Find-or-create the note linked to a calendar event/occurrence. `key` is
@@ -1221,8 +1226,15 @@ function applyAgentOpThroughStoreActions(get, op) {
 
 function summarizeAgentRunOps(ops) {
   const summary = {}
+  const seen = {}
   for (const op of ops ?? []) {
     const key = `${op.entityType}:${op.type}`
+    const id = op.targetId ?? op.id
+    if (id) {
+      if (!seen[key]) seen[key] = new Set()
+      if (seen[key].has(id)) continue
+      seen[key].add(id)
+    }
     summary[key] = (summary[key] ?? 0) + 1
   }
   return summary

@@ -163,6 +163,7 @@ export default function App() {
   })
   useEffect(() => {
     writeLastTab(activeTab)
+    useStore.getState().setCurrentTab(activeTab)
   }, [activeTab])
 
   // State loads from IndexedDB after the first render, so the tab chosen by the
@@ -234,6 +235,21 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [quickActionAppEnabled, quickActionShortcut])
+
+  const aiAssistantEnabled = useStore(s => s.settings?.apps?.aiAssistant === true)
+  const aiAssistantShortcut = useStore(s => s.settings?.apps?.aiAssistantShortcut)
+
+  useEffect(() => {
+    if (!aiAssistantEnabled || !aiAssistantShortcut) return
+    const handleKeyDown = e => {
+      if (matchesShortcut(e, aiAssistantShortcut)) {
+        e.preventDefault()
+        useStore.getState().requestAiContext(activeTab)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [aiAssistantEnabled, aiAssistantShortcut, activeTab])
 
   const quickActionTripleTap = useStore(s => s.settings?.apps?.quickActionTripleTap ?? false)
 
