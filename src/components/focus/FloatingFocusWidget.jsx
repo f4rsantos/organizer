@@ -20,9 +20,7 @@ import {
 const WIDGET_WIDTH = 208
 const WIDGET_HEIGHT = 108
 const DEFAULT_MARGIN = 16
-const WHEEL_SOURCE_SIZE = 200
 const WHEEL_MINI_SIZE = 48
-const WHEEL_SCALE = WHEEL_MINI_SIZE / WHEEL_SOURCE_SIZE
 
 function supportsDocumentPip() {
   return typeof window !== 'undefined' && 'documentPictureInPicture' in window
@@ -43,13 +41,8 @@ function defaultPosition() {
 function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, onToggle, onReset, interactive }) {
   return (
     <div className="flex items-center gap-3 p-3">
-      <div
-        className="relative shrink-0 overflow-hidden"
-        style={{ width: WHEEL_MINI_SIZE, height: WHEEL_MINI_SIZE }}
-      >
-        <div style={{ transform: `scale(${WHEEL_SCALE})`, transformOrigin: 'top left' }}>
-          <FocusWheel pct={wheelPct} isBreak={isBreak} label="" sublabel="" />
-        </div>
+      <div className="relative shrink-0" style={{ width: WHEEL_MINI_SIZE, height: WHEEL_MINI_SIZE }}>
+        <FocusWheel pct={wheelPct} isBreak={isBreak} size={WHEEL_MINI_SIZE} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-medium tabular-nums">{label}</span>
@@ -85,9 +78,21 @@ function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, 
   )
 }
 
+function copyDocumentStyles(targetDocument) {
+  for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) {
+    targetDocument.head.appendChild(node.cloneNode(true))
+  }
+  const rootClass = document.documentElement.className
+  if (rootClass) targetDocument.documentElement.className = rootClass
+}
+
 function PipWindow({ onClose, children }) {
   const [pipWindow, setPipWindow] = useState(null)
   const openedRef = useRef(false)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   useEffect(() => {
     if (openedRef.current) return
@@ -99,22 +104,20 @@ function PipWindow({ onClose, children }) {
       .then(pipWin => {
         if (cancelled) { pipWin.close(); return }
         win = pipWin
+        copyDocumentStyles(pipWin.document)
         const style = pipWin.document.createElement('style')
-        style.textContent = `
-          :root { color-scheme: light dark; }
-          body { margin: 0; font-family: system-ui, sans-serif; background: canvas; color: canvastext; }
-        `
+        style.textContent = 'body { margin: 0; }'
         pipWin.document.head.appendChild(style)
-        pipWin.addEventListener('pagehide', onClose, { once: true })
+        pipWin.addEventListener('pagehide', () => onCloseRef.current(), { once: true })
         setPipWindow(pipWin)
       })
-      .catch(() => onClose())
+      .catch(() => onCloseRef.current())
 
     return () => {
       cancelled = true
       win?.close()
     }
-  }, [onClose])
+  }, [])
 
   if (!pipWindow) return null
   return createPortal(children, pipWindow.document.body)
@@ -333,7 +336,7 @@ export function FloatingFocusWidget() {
       )}
       {detached && pipSupported && (
         <PipWindow onClose={() => setDetached(false)}>
-          <div className="rounded-2xl border border-border bg-card text-card-foreground">
+          <div className="h-screen w-screen bg-card text-card-foreground">
             {content}
           </div>
         </PipWindow>
