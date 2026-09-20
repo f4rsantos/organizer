@@ -112,6 +112,8 @@ export const pirate = {
   passingGradeDesc: 'Least mark needed to stay afloat. Used fer pass marks an\' th\' default target mark.',
   focusAlertsEnabledLabel: 'Steady Aim alerts',
   focusAlertsEnabledDesc: 'Sound off when the glass turns betwixt steady aim an\' rest.',
+  focusFloatingWidgetLabel: 'Floatin\' hourglass',
+  focusFloatingWidgetDesc: 'Shows a wee floatin\' hourglass over other decks while a watch be runnin\'.',
   taskAlertModeLabel: 'Chore reckoning-day alerts',
   taskAlertModeDesc: 'Sound off when a chore comes due or an early warnin\' fires.',
   taskAlertInAppLabel: 'On-deck panel',

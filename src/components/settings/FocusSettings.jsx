@@ -12,6 +12,7 @@ export function FocusSettings() {
   const t = useStrings(lang)
 
   const alertsEnabled = focus.alertsEnabled ?? true
+  const floatingWidgetEnabled = focus.floatingWidgetEnabled ?? true
 
   return (
     <div className="space-y-4">
@@ -28,6 +29,18 @@ export function FocusSettings() {
       </div>
 
       {alertsEnabled && <NotificationDeliverySettings />}
+
+      <div className="space-y-1.5">
+        <Label>{t.focusFloatingWidgetLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.focusFloatingWidgetDesc}</p>
+        <button type="button" onClick={() => updateFocusSettings({ floatingWidgetEnabled: !floatingWidgetEnabled })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {floatingWidgetEnabled
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {floatingWidgetEnabled ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
 
       <div className="space-y-1.5">
         <Label>{lang === 'pt' ? 'Após pausa' : 'After break'}</Label>

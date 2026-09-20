@@ -112,6 +112,8 @@ export const de = {
     passingGradeDesc: 'Mindestnote zum Bestehen. Wird für Bestanden-Markierungen und die Standard-Zielnote verwendet.',
     focusAlertsEnabledLabel: 'Fokus-Alarme',
     focusAlertsEnabledDesc: 'Alarm beim Phasenwechsel zwischen Fokus und Pause.',
+    focusFloatingWidgetLabel: 'Schwebender Timer',
+    focusFloatingWidgetDesc: 'Zeigt während einer laufenden Sitzung einen kleinen schwebenden Timer über anderen Tabs an.',
     taskAlertModeLabel: 'Fälligkeits-Alarme für Aufgaben',
     taskAlertModeDesc: 'Alarm, wenn eine Aufgabe fällig wird oder eine Vorlauf-Erinnerung auslöst.',
     taskAlertInAppLabel: 'Panel in der App',

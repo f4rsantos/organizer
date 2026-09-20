@@ -216,6 +216,8 @@ export const cs = {
     passingGradeDesc: "Minimální známka pro splnění. Používá se pro označení splnění a jako výchozí cílová známka.",
     focusAlertsEnabledLabel: "Upozornění soustředění",
     focusAlertsEnabledDesc: "Upozorní při změně fáze mezi soustředěním a pauzou.",
+    focusFloatingWidgetLabel: "Plovoucí časovač",
+    focusFloatingWidgetDesc: "Zobrazí malý plovoucí časovač nad ostatními kartami, dokud běží relace.",
     taskAlertModeLabel: "Upozornění na termíny úkolů",
     taskAlertModeDesc: "Upozorní, když má úkol termín nebo se spustí předstihové připomenutí.",
     taskAlertInAppLabel: "Panel v aplikaci",

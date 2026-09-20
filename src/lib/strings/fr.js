@@ -112,6 +112,8 @@ export const fr = {
     passingGradeDesc: 'Note minimale pour réussir. Utilisée pour les mentions de réussite et la note cible par défaut.',
     focusAlertsEnabledLabel: 'Alertes Focus',
     focusAlertsEnabledDesc: 'Alerte au changement de phase entre focus et pause.',
+    focusFloatingWidgetLabel: 'Minuteur flottant',
+    focusFloatingWidgetDesc: "Affiche un petit minuteur flottant par-dessus les autres onglets pendant une session.",
     taskAlertModeLabel: 'Alertes d\'échéance des tâches',
     taskAlertModeDesc: 'Alerte quand une tâche arrive à échéance ou qu\'un rappel anticipé se déclenche.',
     taskAlertInAppLabel: 'Panneau dans l\'app',

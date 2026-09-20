@@ -8,4 +8,5 @@ export const defaultFocus = {
   focusLabel: '',
   breakLabel: '',
   alertsEnabled: true,
+  floatingWidgetEnabled: true,
 }

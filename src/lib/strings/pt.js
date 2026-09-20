@@ -112,6 +112,8 @@ export const pt = {
     passingGradeDesc: 'Nota mínima para passar. Usada nas marcas de aprovação e como nota-alvo por omissão.',
     focusAlertsEnabledLabel: 'Alertas de foco',
     focusAlertsEnabledDesc: 'Alerta quando a fase do cronómetro muda entre foco e pausa.',
+    focusFloatingWidgetLabel: 'Temporizador flutuante',
+    focusFloatingWidgetDesc: 'Mostra um pequeno temporizador flutuante sobre outros separadores enquanto uma sessão decorre.',
     taskAlertModeLabel: 'Alertas de prazo das tarefas',
     taskAlertModeDesc: 'Alerta quando uma tarefa vence ou dispara um lembrete antecipado.',
     taskAlertInAppLabel: 'Painel na app',

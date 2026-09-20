@@ -112,6 +112,8 @@ export const es = {
     passingGradeDesc: 'Nota mínima para aprobar. Se usa para marcar aprobados y como nota objetivo por defecto.',
     focusAlertsEnabledLabel: 'Alertas de Enfoque',
     focusAlertsEnabledDesc: 'Alerta cuando la fase del temporizador cambia entre enfoque y pausa.',
+    focusFloatingWidgetLabel: 'Temporizador flotante',
+    focusFloatingWidgetDesc: 'Muestra un pequeño temporizador flotante sobre otras pestañas mientras una sesión está en curso.',
     taskAlertModeLabel: 'Alertas de fecha límite',
     taskAlertModeDesc: 'Alerta cuando una tarea vence o se dispara un recordatorio anticipado.',
     taskAlertInAppLabel: 'Panel en la app',

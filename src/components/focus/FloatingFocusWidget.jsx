@@ -86,41 +86,31 @@ function copyDocumentStyles(targetDocument) {
   if (rootClass) targetDocument.documentElement.className = rootClass
 }
 
-function PipWindow({ onClose, children }) {
-  const [pipWindow, setPipWindow] = useState(null)
-  const openedRef = useRef(false)
+function PipWindow({ pipWindow, onClose, children }) {
   const onCloseRef = useRef(onClose)
   useEffect(() => {
     onCloseRef.current = onClose
   })
 
   useEffect(() => {
-    if (openedRef.current) return
-    openedRef.current = true
-    let win = null
-    let cancelled = false
+    const handlePageHide = () => onCloseRef.current()
+    pipWindow.addEventListener('pagehide', handlePageHide)
+    return () => pipWindow.removeEventListener('pagehide', handlePageHide)
+  }, [pipWindow])
 
-    window.documentPictureInPicture.requestWindow({ width: WIDGET_WIDTH + 24, height: WIDGET_HEIGHT + 24 })
-      .then(pipWin => {
-        if (cancelled) { pipWin.close(); return }
-        win = pipWin
-        copyDocumentStyles(pipWin.document)
-        const style = pipWin.document.createElement('style')
-        style.textContent = 'body { margin: 0; }'
-        pipWin.document.head.appendChild(style)
-        pipWin.addEventListener('pagehide', () => onCloseRef.current(), { once: true })
-        setPipWindow(pipWin)
-      })
-      .catch(() => onCloseRef.current())
-
-    return () => {
-      cancelled = true
-      win?.close()
-    }
-  }, [])
-
-  if (!pipWindow) return null
   return createPortal(children, pipWindow.document.body)
+}
+
+async function openPipWindow() {
+  const pipWin = await window.documentPictureInPicture.requestWindow({
+    width: WIDGET_WIDTH + 24,
+    height: WIDGET_HEIGHT + 24,
+  })
+  copyDocumentStyles(pipWin.document)
+  const style = pipWin.document.createElement('style')
+  style.textContent = 'body { margin: 0; }'
+  pipWin.document.head.appendChild(style)
+  return pipWin
 }
 
 export function FloatingFocusWidget() {
@@ -144,7 +134,7 @@ export function FloatingFocusWidget() {
   })
 
   const [position, setPosition] = useState(defaultPosition)
-  const [detached, setDetached] = useState(false)
+  const [pipWindow, setPipWindow] = useState(null)
   const [overlayActive, setOverlayActive] = useState(false)
   const [lastActive, setLastActive] = useState(active)
   const dragRef = useRef(null)
@@ -155,13 +145,22 @@ export function FloatingFocusWidget() {
   const pipSupported = useMemo(() => supportsDocumentPip(), [])
   const overlaySupported = useMemo(() => focusOverlayAvailable(), [])
 
+  const pipWindowRef = useRef(pipWindow)
+  useEffect(() => {
+    pipWindowRef.current = pipWindow
+  })
+
   if (active !== lastActive) {
     setLastActive(active)
     if (!active) {
-      setDetached(false)
+      setPipWindow(null)
       setOverlayActive(false)
     }
   }
+
+  useEffect(() => {
+    if (!active) pipWindowRef.current?.close()
+  }, [active])
 
   useEffect(() => {
     if (!overlaySupported) return undefined
@@ -250,7 +249,7 @@ export function FloatingFocusWidget() {
     if (!wasMoved) setActiveTab('focus')
   }
 
-  if (!active || activeTab === 'focus') return null
+  if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false) return null
 
   const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, start, pause, resume, reset } = clock
   const isBreak = phase === 'break'
@@ -291,9 +290,18 @@ export function FloatingFocusWidget() {
     if (granted) setOverlayActive(true)
   }
 
+  const handleDetach = async () => {
+    try {
+      const pipWin = await openPipWindow()
+      setPipWindow(pipWin)
+    } catch {
+      setPipWindow(null)
+    }
+  }
+
   return (
     <>
-      {!detached && !overlayActive && (
+      {!pipWindow && !overlayActive && (
         <div
           ref={widgetRef}
           role="button"
@@ -325,7 +333,7 @@ export function FloatingFocusWidget() {
                 aria-label={t.focusDetach}
                 onPointerDown={e => e.stopPropagation()}
                 onPointerUp={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); setDetached(true) }}
+                onClick={e => { e.stopPropagation(); handleDetach() }}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <PictureInPicture2 className="h-3 w-3" />
@@ -334,8 +342,8 @@ export function FloatingFocusWidget() {
           </div>
         </div>
       )}
-      {detached && pipSupported && (
-        <PipWindow onClose={() => setDetached(false)}>
+      {pipWindow && (
+        <PipWindow pipWindow={pipWindow} onClose={() => setPipWindow(null)}>
           <div className="h-screen w-screen bg-card text-card-foreground">
             {content}
           </div>

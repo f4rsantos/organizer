@@ -128,6 +128,8 @@ export const en = {
     kanbanChecklistPreviewPerCard: 'Case by case',
     focusAlertsEnabledLabel: 'Focus alerts',
     focusAlertsEnabledDesc: 'Alert when the timer phase changes between focus and break.',
+    focusFloatingWidgetLabel: 'Floating timer',
+    focusFloatingWidgetDesc: 'Show a small floating timer over other tabs while a session is running.',
     taskAlertModeLabel: 'Task due-date alerts',
     taskAlertModeDesc: 'Alert when a task is due or a lead-time reminder fires.',
     taskAlertInAppLabel: 'In-app panel',
