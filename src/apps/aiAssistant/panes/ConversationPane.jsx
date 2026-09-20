@@ -244,96 +244,98 @@ function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, autoMode, o
   }
 
   return (
-    <div className={cn('w-full rounded-2xl border border-border bg-card', size === 'lg' ? 'p-4' : 'p-3')}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="text/*,.md,.txt,.js,.ts,.jsx,.tsx,.py,.json,.csv,.xml,.html,.css,.pdf,image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      {(scope || attachments.length > 0) && (
-        <div className="flex flex-wrap items-center gap-1.5 pb-2">
-          {scope && <ScopeChip scope={scope} t={t} />}
-          {attachments.map(a => (
-            <span
-              key={a.name}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 pl-1 pr-0.5 py-0.5 text-xs text-primary max-w-[160px]"
-            >
-              {a.kind === 'image'
-                ? <img src={a.dataUrl} alt={a.name} className="h-4 w-4 rounded-full object-cover shrink-0" />
-                : <Paperclip className="h-3 w-3 shrink-0" />}
-              <span className="truncate">{a.name}</span>
+    <div className="w-full space-y-1.5">
+      <div className={cn('w-full rounded-2xl border border-border bg-card', size === 'lg' ? 'p-4' : 'p-3')}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="text/*,.md,.txt,.js,.ts,.jsx,.tsx,.py,.json,.csv,.xml,.html,.css,.pdf,image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {(scope || attachments.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5 pb-2">
+            {scope && <ScopeChip scope={scope} t={t} />}
+            {attachments.map(a => (
+              <span
+                key={a.name}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 pl-1 pr-0.5 py-0.5 text-xs text-primary max-w-[160px]"
+              >
+                {a.kind === 'image'
+                  ? <img src={a.dataUrl} alt={a.name} className="h-4 w-4 rounded-full object-cover shrink-0" />
+                  : <Paperclip className="h-3 w-3 shrink-0" />}
+                <span className="truncate">{a.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(a.name)}
+                  className="p-0.5 rounded-full hover:bg-primary/20 transition-colors shrink-0"
+                  aria-label={`Remove ${a.name}`}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAttachClick}
+            disabled={busy}
+            title={t.aiAttachFile ?? 'Attach file'}
+            aria-label={t.aiAttachFile ?? 'Attach file'}
+            className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full h-7 w-7 flex items-center justify-center transition-colors shrink-0 disabled:opacity-30"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <AutoGrowTextarea
+              value={goal}
+              onChange={e => setGoal(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t.aiGoalPlaceholder}
+              disabled={busy}
+            />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {micSupported && (
               <button
                 type="button"
-                onClick={() => removeAttachment(a.name)}
-                className="p-0.5 rounded-full hover:bg-primary/20 transition-colors shrink-0"
-                aria-label={`Remove ${a.name}`}
+                onClick={() => (isListening ? stop() : start())}
+                title={isListening ? t.voiceInputStopAria : t.voiceInputAria}
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
+                  isListening ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground hover:bg-secondary',
+                )}
               >
-                <X className="h-2.5 w-2.5" />
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleAttachClick}
-          disabled={busy}
-          title={t.aiAttachFile ?? 'Attach file'}
-          aria-label={t.aiAttachFile ?? 'Attach file'}
-          className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full h-7 w-7 flex items-center justify-center transition-colors shrink-0 disabled:opacity-30"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <AutoGrowTextarea
-            value={goal}
-            onChange={e => setGoal(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t.aiGoalPlaceholder}
-            disabled={busy}
-          />
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {micSupported && (
-            <button
-              type="button"
-              onClick={() => (isListening ? stop() : start())}
-              title={isListening ? t.voiceInputStopAria : t.voiceInputAria}
-              className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
-                isListening ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground hover:bg-secondary',
-              )}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
-          )}
-          {busy ? (
-            <button
-              type="button"
-              onClick={onCancel}
-              title={t.aiCancelRun}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-80"
-            >
-              <Square className="h-3 w-3 fill-current" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSubmit(buildGoalWithAttachments())}
-              disabled={!goal.trim()}
-              title={t.aiStartRun}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-80 disabled:opacity-30"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
-          )}
+            )}
+            {busy ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                title={t.aiCancelRun}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-80"
+              >
+                <Square className="h-3 w-3 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSubmit(buildGoalWithAttachments())}
+                disabled={!goal.trim()}
+                title={t.aiStartRun}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-80 disabled:opacity-30"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-1 pt-1.5">
+      <div className="flex items-center gap-1">
         {onSetAutoMode && (
           <button
             type="button"
