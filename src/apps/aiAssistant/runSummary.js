@@ -6,6 +6,10 @@ const ENTITY_LABEL_KEYS = {
   habit: { create: 'aiSummaryHabitCreated', update: 'aiSummaryHabitUpdated', delete: 'aiSummaryHabitDeleted' },
   class: { create: 'aiSummaryClassCreated', update: 'aiSummaryClassUpdated', delete: 'aiSummaryClassDeleted' },
   kanbanCard: { create: 'aiSummaryCardCreated', update: 'aiSummaryCardUpdated', delete: 'aiSummaryCardDeleted' },
+  gradeComponent: { create: 'aiSummaryGradeComponentCreated', update: 'aiSummaryGradeComponentUpdated', delete: 'aiSummaryGradeComponentDeleted' },
+  focusControl: { create: 'aiSummaryFocusControlCreated' },
+  notificationControl: { create: 'aiSummaryNotificationControlCreated' },
+  updateSafeSettings: { create: 'aiSummaryUpdateSafeSettingsCreated' },
 }
 
 export function summarizeOps(ops) {

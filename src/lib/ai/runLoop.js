@@ -119,6 +119,24 @@ function toolCallToOps(call, run) {
     }))
   }
 
+  if (name === 'focusControl') {
+    return [makeCreateOp({ entityType: 'focusControl', id: nanoid(), entity: { action: args?.action } })]
+  }
+
+  if (name === 'notificationControl') {
+    const { action, id, title, body, delayMinutes } = args ?? {}
+    const entity = { action }
+    if (id !== undefined) entity.id = id
+    if (title !== undefined) entity.title = title
+    if (body !== undefined) entity.body = body
+    if (delayMinutes !== undefined) entity.delayMinutes = delayMinutes
+    return [makeCreateOp({ entityType: 'notificationControl', id: nanoid(), entity })]
+  }
+
+  if (name === 'updateSafeSettings') {
+    return [makeCreateOp({ entityType: 'updateSafeSettings', id: nanoid(), entity: args?.fields ?? {} })]
+  }
+
   return []
 }
 
@@ -307,9 +325,9 @@ function slotOptimizeFor(slot, fallback) {
   return slot?.optimizeFor ?? fallback ?? 'requests'
 }
 
-async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, customInstructions, run, store, context, instrumentation }) {
+async function runOneShot({ send, slot, credentials, goal, scope, optimizeFor, customInstructions, viewingTab, run, store, context, instrumentation }) {
   const effectiveOptimizeFor = slotOptimizeFor(slot, optimizeFor)
-  const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions })
+  const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions, viewingTab })
   const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
   const tools = toolsForSlot({ optimizeFor: effectiveOptimizeFor, providerId: slot?.provider })
   const messages = buildMessages({ goal, contextBlock, systemPrompt, transcript: [] })
@@ -351,6 +369,7 @@ export async function runAgentLoop({
   scope,
   optimizeFor,
   customInstructions,
+  viewingTab,
   slots,
   parserConfidence,
   userForcedTier,
@@ -409,6 +428,7 @@ export async function runAgentLoop({
       scope,
       optimizeFor,
       customInstructions,
+      viewingTab,
       run,
       store,
       context,
@@ -440,7 +460,7 @@ export async function runAgentLoop({
 
   for (let iteration = 0; iteration < cap; iteration += 1) {
     const effectiveOptimizeFor = slotOptimizeFor(currentSlot, optimizeFor)
-    const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions })
+    const systemPrompt = buildSystemPrompt({ optimizeFor: effectiveOptimizeFor, customInstructions, viewingTab })
     const contextBlock = buildContextBlock({ store, scope, optimizeFor: effectiveOptimizeFor })
     const turnNumber = Math.floor(history.length / 2)
     const needsFreshContext = history.length === 0 || turnNumber % CONTEXT_REFRESH_EVERY_TURNS === 0

@@ -1,6 +1,21 @@
 export const JOURNAL_RING_CAPACITY = 10
 
+function flattenGradeComponents(store) {
+  const components = []
+  for (const semGrades of Object.values(store?.grades ?? {})) {
+    for (const classGrades of Object.values(semGrades ?? {})) {
+      for (const component of classGrades?.components ?? []) {
+        components.push(component)
+      }
+    }
+  }
+  return components
+}
+
 function findEntity(store, entityType, id) {
+  if (entityType === 'gradeComponent') {
+    return flattenGradeComponents(store).find(item => item?.id === id) ?? null
+  }
   const source = {
     task: store?.tasks,
     event: store?.events,

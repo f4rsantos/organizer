@@ -1227,10 +1227,160 @@ const AGENT_OP_ACTIONS_BY_TYPE = {
   class: { create: 'addClass', update: 'updateClass', delete: 'deleteClass' },
 }
 
+function focusSecsNow() {
+  return Math.floor(Date.now() / 1000)
+}
+
+const FOCUS_CONTROL_HANDLERS = {
+  start: actions => actions.setFocusSync({
+    status: 'started',
+    phase: 'focus',
+    startedAt: focusSecsNow(),
+    totalElapsedBase: 0,
+    cycleElapsedBase: 0,
+    breakSecsLeftBase: 0,
+    activeBreakSource: null,
+  }),
+  pause: actions => {
+    const sync = actions.focusSync ?? {}
+    if (sync.status !== 'started' || sync.startedAt == null) return
+    const elapsed = Math.max(0, focusSecsNow() - sync.startedAt)
+    if (sync.phase === 'break') {
+      actions.setFocusSync({
+        status: 'paused',
+        startedAt: null,
+        breakSecsLeftBase: Math.max(0, (sync.breakSecsLeftBase ?? 0) - elapsed),
+      })
+      return
+    }
+    actions.setFocusSync({
+      status: 'paused',
+      startedAt: null,
+      totalElapsedBase: (sync.totalElapsedBase ?? 0) + elapsed,
+      cycleElapsedBase: (sync.cycleElapsedBase ?? 0) + elapsed,
+    })
+  },
+  resume: actions => {
+    if (actions.focusSync?.status === 'started') return
+    actions.setFocusSync({ status: 'started', startedAt: focusSecsNow() })
+  },
+  reset: actions => actions.setFocusSync({
+    status: 'paused',
+    phase: 'focus',
+    startedAt: null,
+    totalElapsedBase: 0,
+    cycleElapsedBase: 0,
+    breakSecsLeftBase: 0,
+    activeBreakSource: null,
+  }),
+  skipBreak: actions => {
+    const sync = actions.focusSync ?? {}
+    if (sync.phase !== 'break') return
+    const resetMode = actions.settings?.focus?.intervalResetMode ?? 'reset'
+    actions.setFocusSync({
+      phase: 'focus',
+      startedAt: sync.status === 'started' ? focusSecsNow() : null,
+      cycleElapsedBase: 0,
+      totalElapsedBase: resetMode === 'continue' ? (sync.totalElapsedBase ?? 0) : 0,
+      breakSecsLeftBase: 0,
+      activeBreakSource: null,
+    })
+  },
+}
+
+function classSemesterId(get, classId) {
+  return get().classes.find(c => c.id === classId)?.semesterId ?? null
+}
+
+function findGradeComponent(get, componentId) {
+  const grades = get().grades ?? {}
+  for (const [semId, semGrades] of Object.entries(grades)) {
+    for (const [classId, classGrades] of Object.entries(semGrades ?? {})) {
+      const component = (classGrades?.components ?? []).find(c => c.id === componentId)
+      if (component) return { semId, classId, component, classGrades }
+    }
+  }
+  return null
+}
+
+function applyGradeComponentOp(get, op) {
+  const actions = get()
+  const targetId = op.type === 'create' ? op.id : op.targetId
+
+  if (op.type === 'create') {
+    const { classId, targetGrade, ...fields } = op.entity ?? {}
+    if (!classId) return
+    const semId = classSemesterId(get, classId)
+    const semGrades = actions.grades?.[semId] ?? {}
+    const classGrades = semGrades[classId] ?? { components: [], targetGrade: 9.5 }
+    actions.setGradeComponents(semId, classId, [...classGrades.components, { id: targetId, ...fields }])
+    if (targetGrade !== undefined) actions.setTargetGrade(semId, classId, targetGrade)
+    return
+  }
+
+  const found = findGradeComponent(get, targetId)
+  if (!found) return
+  const { semId, classId, classGrades } = found
+
+  if (op.type === 'update') {
+    const { targetGrade, ...fields } = op.patch ?? {}
+    if (Object.keys(fields).length) {
+      actions.setGradeComponents(semId, classId, classGrades.components.map(c => (
+        c.id === targetId ? { ...c, ...fields } : c
+      )))
+    }
+    if (targetGrade !== undefined) actions.setTargetGrade(semId, classId, targetGrade)
+    return
+  }
+
+  if (op.type === 'delete') {
+    actions.setGradeComponents(semId, classId, classGrades.components.filter(c => c.id !== targetId))
+  }
+}
+
+function applyFocusControlOp(get, op) {
+  const actions = get()
+  const action = op.entity?.action
+  if (!FOCUS_CONTROL_HANDLERS[action]) return
+  FOCUS_CONTROL_HANDLERS[action](actions)
+}
+
+function applyNotificationControlOp(get, op) {
+  const actions = get()
+  const { action, id, title, body, delayMinutes } = op.entity ?? {}
+  if (action === 'dismissToast') { actions.dismissNotificationToast(id); return }
+  if (action === 'dismissAlert') { actions.dismissActiveNotificationAlert(); return }
+  if (action === 'clearUnread') { actions.clearUnreadNotification(id); return }
+  if (action === 'clearAllUnread') { actions.clearAllUnreadNotifications(); return }
+  if (action === 'createReminder') {
+    const delayMs = Number.isFinite(delayMinutes) ? delayMinutes * 60 * 1000 : 0
+    actions.queueNotification({
+      id: nanoid(),
+      tag: null,
+      source: 'ai',
+      title: title ?? '',
+      body: body ?? '',
+      createdAt: Date.now() + delayMs,
+    }, actions.settings?.notifications?.intrusiveness ?? 'toast')
+  }
+}
+
+function applyUpdateSafeSettingsOp(get, op) {
+  const actions = get()
+  const fields = op.entity ?? {}
+  if (!Object.keys(fields).length) return
+  actions.updateSettings(fields)
+}
+
 function applyAgentOpThroughStoreActions(get, op) {
   const actions = get()
   const entityType = op.entityType
   const targetId = op.type === 'create' ? op.id : op.targetId
+
+  if (entityType === 'gradeComponent') { applyGradeComponentOp(get, op); return }
+  if (entityType === 'focusControl') { applyFocusControlOp(get, op); return }
+  if (entityType === 'notificationControl') { applyNotificationControlOp(get, op); return }
+  if (entityType === 'updateSafeSettings') { applyUpdateSafeSettingsOp(get, op); return }
 
   if (entityType === 'folder') {
     if (op.type === 'create') { actions.addNoteFolder(op.entity?.name, op.entity?.parentId ?? null); return }

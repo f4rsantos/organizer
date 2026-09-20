@@ -6,6 +6,17 @@ export const TOOL_TARGET_TYPES = [
   'habit',
   'class',
   'kanbanCard',
+  'gradeComponent',
+]
+
+export const FOCUS_CONTROL_ACTIONS = ['start', 'pause', 'resume', 'reset', 'skipBreak']
+
+export const NOTIFICATION_CONTROL_ACTIONS = [
+  'dismissToast',
+  'dismissAlert',
+  'clearUnread',
+  'clearAllUnread',
+  'createReminder',
 ]
 
 const ID_SCHEMA = { type: 'string' }
@@ -129,6 +140,46 @@ const FETCH_TOOL = {
   },
 }
 
+const FOCUS_CONTROL_TOOL = {
+  name: 'focusControl',
+  description: 'Start, pause, resume, reset the focus session, or skip its current break',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: { type: 'string', enum: FOCUS_CONTROL_ACTIONS },
+    },
+    required: ['action'],
+  },
+}
+
+const NOTIFICATION_CONTROL_TOOL = {
+  name: 'notificationControl',
+  description: 'Dismiss a pending toast or alert by id, clear all unread notifications, or create a one-off reminder not tied to a task or event',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: { type: 'string', enum: NOTIFICATION_CONTROL_ACTIONS },
+      id: { type: 'string' },
+      title: { type: 'string' },
+      body: { type: 'string' },
+      delayMinutes: { type: 'number' },
+    },
+    required: ['action'],
+  },
+}
+
+const UPDATE_SAFE_SETTINGS_TOOL = {
+  name: 'updateSafeSettings',
+  description: 'Update a small allowlisted set of user preferences (task/focus/calendar alert prefs and similar). Unlisted keys are rejected.',
+  parameters: {
+    type: 'object',
+    properties: {
+      fields: { type: 'object' },
+    },
+    required: ['fields'],
+  },
+}
+
 const BASE_TOOLS = [
   CREATE_TOOL,
   UPDATE_TOOL,
@@ -137,6 +188,9 @@ const BASE_TOOLS = [
   RESEARCH_TOOL,
   DONE_TOOL,
   FETCH_TOOL,
+  FOCUS_CONTROL_TOOL,
+  NOTIFICATION_CONTROL_TOOL,
+  UPDATE_SAFE_SETTINGS_TOOL,
 ]
 
 export function buildNeutralTools({ optimizeFor } = {}) {

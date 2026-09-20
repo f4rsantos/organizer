@@ -3,7 +3,8 @@ import { Pipeline } from '@/lib/parser/Pipeline'
 import { DateParser } from '@/lib/parser/parsers/DateParser'
 import { getLocalePack } from '@/lib/parser/locales/index'
 import { format, isValid } from 'date-fns'
-import { AGENT_ENTITY_TYPES, AGENT_OP_TYPES } from './agentOverlay'
+import { AGENT_ENTITY_TYPES, AGENT_ACTION_TYPES, AGENT_OP_TYPES } from './agentOverlay'
+import { FOCUS_CONTROL_ACTIONS, NOTIFICATION_CONTROL_ACTIONS } from './tools'
 import { markdownToDocForAgent } from './markdown'
 import { docToPlainText } from '@/lib/notes/noteExport'
 
@@ -44,6 +45,7 @@ const DATE_FIELDS_BY_TYPE = {
   habit: ['targetDate'],
   class: [],
   kanbanCard: ['dueDate'],
+  gradeComponent: [],
 }
 
 const ALLOWED_FIELDS_BY_TYPE = {
@@ -64,7 +66,29 @@ const ALLOWED_FIELDS_BY_TYPE = {
   ],
   class: ['name', 'color', 'ects', 'professor'],
   kanbanCard: ['title', 'columnId', 'order', 'checklist', 'notes', 'priority', 'dueDate', 'classId', 'semesterId', 'status'],
+  gradeComponent: ['classId', 'name', 'weight', 'grade', 'targetGrade'],
 }
+
+export const AI_SETTABLE_SETTINGS_KEYS = [
+  'taskAlertsEnabled',
+  'taskAlertsInApp',
+  'taskReminderOffsets',
+  'taskReminderTime',
+  'taskDefaultToCalendar',
+  'hideCompletedTasks',
+  'weekStartsOn',
+  'calendarNowColor',
+  'notesViewMode',
+  'kanbanShowChecklistInline',
+  'kanbanChecklistPreviewMode',
+  'kanbanAutoAddToFirstColumn',
+  'kanbanSeparateByTeam',
+  'kanbanSeparateByClass',
+  'defaultTab',
+]
+
+const FOCUS_CONTROL_FIELDS = ['action']
+const NOTIFICATION_CONTROL_FIELDS = ['action', 'id', 'title', 'body', 'delayMinutes']
 
 export function resolveKanbanColumnId(value, store) {
   if (!value || typeof value !== 'string') return value
@@ -99,7 +123,23 @@ export function resolveKanbanColumnId(value, store) {
 }
 
 function isKnownType(entityType) {
-  return AGENT_ENTITY_TYPES.includes(entityType)
+  return AGENT_ENTITY_TYPES.includes(entityType) || AGENT_ACTION_TYPES.includes(entityType)
+}
+
+function isActionType(entityType) {
+  return AGENT_ACTION_TYPES.includes(entityType)
+}
+
+function allGradeComponents(store) {
+  const components = []
+  for (const semGrades of Object.values(store?.grades ?? {})) {
+    for (const [classId, classGrades] of Object.entries(semGrades ?? {})) {
+      for (const component of classGrades?.components ?? []) {
+        if (component?.id) components.push({ ...component, classId })
+      }
+    }
+  }
+  return components
 }
 
 function resolveDatesInObject(entityType, obj, context) {
@@ -119,6 +159,10 @@ function resolveDatesInObject(entityType, obj, context) {
 
 function collectKnownIds(store, entityType) {
   const ids = new Set()
+  if (entityType === 'gradeComponent') {
+    for (const component of allGradeComponents(store)) ids.add(component.id)
+    return ids
+  }
   const source = {
     task: store?.tasks,
     event: store?.events,
@@ -175,6 +219,40 @@ function unknownFields(entityType, obj) {
   return Object.keys(obj ?? {}).filter(key => !allowed.includes(key))
 }
 
+function validateFocusControlOp(op, payload) {
+  const badFields = Object.keys(payload ?? {}).filter(key => !FOCUS_CONTROL_FIELDS.includes(key))
+  if (badFields.length) return { valid: false, reason: `disallowed-field:${badFields.join(',')}` }
+  if (!FOCUS_CONTROL_ACTIONS.includes(payload.action)) return { valid: false, reason: 'invalid-field:action' }
+  return { valid: true, op: { ...op, entity: payload } }
+}
+
+function validateNotificationControlOp(op, payload) {
+  const badFields = Object.keys(payload ?? {}).filter(key => !NOTIFICATION_CONTROL_FIELDS.includes(key))
+  if (badFields.length) return { valid: false, reason: `disallowed-field:${badFields.join(',')}` }
+  if (!NOTIFICATION_CONTROL_ACTIONS.includes(payload.action)) return { valid: false, reason: 'invalid-field:action' }
+  if ((payload.action === 'dismissToast' || payload.action === 'clearUnread') && typeof payload.id !== 'string') {
+    return { valid: false, reason: 'missing-id' }
+  }
+  if (payload.action === 'createReminder' && typeof payload.title !== 'string') {
+    return { valid: false, reason: 'missing-field:title' }
+  }
+  return { valid: true, op: { ...op, entity: payload } }
+}
+
+function validateUpdateSafeSettingsOp(op, payload) {
+  const badFields = Object.keys(payload ?? {}).filter(key => !AI_SETTABLE_SETTINGS_KEYS.includes(key))
+  if (badFields.length) return { valid: false, reason: `disallowed-field:${badFields.join(',')}` }
+  if (!Object.keys(payload ?? {}).length) return { valid: false, reason: 'malformed-op' }
+  return { valid: true, op: { ...op, entity: payload } }
+}
+
+function validateActionOp(op, payload) {
+  if (op.entityType === 'focusControl') return validateFocusControlOp(op, payload)
+  if (op.entityType === 'notificationControl') return validateNotificationControlOp(op, payload)
+  if (op.entityType === 'updateSafeSettings') return validateUpdateSafeSettingsOp(op, payload)
+  return { valid: false, reason: 'unknown-entity-type' }
+}
+
 export function validateOp(op, { store, run, scope, context = {} } = {}) {
   if (!op || typeof op !== 'object') return { valid: false, reason: 'malformed-op' }
   if (!AGENT_OP_TYPES.includes(op.type)) return { valid: false, reason: 'unknown-op-type' }
@@ -193,6 +271,31 @@ export function validateOp(op, { store, run, scope, context = {} } = {}) {
 
   const rawPayload = op.type === 'create' ? (op.entity ?? {}) : (op.patch ?? {})
   const payload = { ...rawPayload }
+
+  if (isActionType(op.entityType)) {
+    return validateActionOp(op, payload)
+  }
+
+  if (op.entityType === 'gradeComponent') {
+    if (payload.weight !== undefined) {
+      const weight = Number(payload.weight)
+      if (!Number.isFinite(weight) || weight <= 0) return { valid: false, reason: 'invalid-field:weight' }
+      payload.weight = weight
+    }
+    if (payload.grade !== undefined && payload.grade !== null) {
+      const grade = Number(payload.grade)
+      if (!Number.isFinite(grade)) return { valid: false, reason: 'invalid-field:grade' }
+      payload.grade = grade
+    }
+    if (payload.targetGrade !== undefined) {
+      const targetGrade = Number(payload.targetGrade)
+      if (!Number.isFinite(targetGrade) || targetGrade <= 0) return { valid: false, reason: 'invalid-field:targetGrade' }
+      payload.targetGrade = targetGrade
+    }
+    if (op.type === 'create' && typeof payload.classId !== 'string') {
+      return { valid: false, reason: 'missing-classId' }
+    }
+  }
 
   if (op.entityType === 'task') {
     if (payload.status !== undefined) {

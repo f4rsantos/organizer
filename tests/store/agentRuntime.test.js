@@ -80,6 +80,134 @@ describe('commitAgentRun', () => {
   })
 })
 
+describe('commitAgentRun gradeComponent', () => {
+  it('creates a component under the class semester and applies a targetGrade', async () => {
+    const store = await freshStore({ classes: [{ id: 'class_1', name: 'Philosophy', semesterId: 'sem_1' }], grades: {} })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'gradeComponent', id: 'grade_1', entity: { classId: 'class_1', name: 'Exam', weight: 0.5, targetGrade: 9 } },
+    ])
+    store.getState().commitAgentRun(runId)
+    const state = store.getState()
+    expect(state.grades.sem_1.class_1.components).toEqual([{ id: 'grade_1', name: 'Exam', weight: 0.5 }])
+    expect(state.grades.sem_1.class_1.targetGrade).toBe(9)
+  })
+
+  it('updates an existing component grade', async () => {
+    const store = await freshStore({
+      classes: [{ id: 'class_1', name: 'Philosophy', semesterId: 'sem_1' }],
+      grades: { sem_1: { class_1: { components: [{ id: 'grade_1', name: 'Exam', weight: 0.5, grade: null }], targetGrade: 9.5 } } },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'update', entityType: 'gradeComponent', targetId: 'grade_1', patch: { grade: 8 } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().grades.sem_1.class_1.components[0].grade).toBe(8)
+  })
+
+  it('deletes an existing component', async () => {
+    const store = await freshStore({
+      classes: [{ id: 'class_1', name: 'Philosophy', semesterId: 'sem_1' }],
+      grades: { sem_1: { class_1: { components: [{ id: 'grade_1', name: 'Exam', weight: 0.5, grade: null }], targetGrade: 9.5 } } },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'delete', entityType: 'gradeComponent', targetId: 'grade_1' },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().grades.sem_1.class_1.components).toEqual([])
+  })
+})
+
+describe('commitAgentRun focusControl', () => {
+  it('starts the focus session', async () => {
+    const store = await freshStore()
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'focusControl', id: 'a1', entity: { action: 'start' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().focusSync.status).toBe('started')
+    expect(store.getState().focusSync.phase).toBe('focus')
+  })
+
+  it('pauses a running focus session', async () => {
+    const store = await freshStore({
+      focusSync: { status: 'started', phase: 'focus', startedAt: Math.floor(Date.now() / 1000) - 10, totalElapsedBase: 0, cycleElapsedBase: 0, breakSecsLeftBase: 0, activeBreakSource: null },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'focusControl', id: 'a1', entity: { action: 'pause' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().focusSync.status).toBe('paused')
+  })
+
+  it('resets the focus session', async () => {
+    const store = await freshStore({
+      focusSync: { status: 'started', phase: 'focus', startedAt: 100, totalElapsedBase: 500, cycleElapsedBase: 500, breakSecsLeftBase: 0, activeBreakSource: null },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'focusControl', id: 'a1', entity: { action: 'reset' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    const sync = store.getState().focusSync
+    expect(sync.status).toBe('paused')
+    expect(sync.totalElapsedBase).toBe(0)
+  })
+})
+
+describe('commitAgentRun notificationControl', () => {
+  it('dismisses a toast by id', async () => {
+    const store = await freshStore({
+      notificationQueue: { toasts: [{ id: 'toast_1', tag: null, source: null, title: 'x', body: '', createdAt: 1 }], unread: [], activeAlert: null },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'notificationControl', id: 'a1', entity: { action: 'dismissToast', id: 'toast_1' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().notificationQueue.toasts).toHaveLength(0)
+  })
+
+  it('clears all unread notifications', async () => {
+    const store = await freshStore({
+      notificationQueue: { toasts: [], unread: [{ id: 'u1', tag: null, source: null, title: '', body: '', createdAt: 1 }], activeAlert: null },
+    })
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'notificationControl', id: 'a1', entity: { action: 'clearAllUnread' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().notificationQueue.unread).toHaveLength(0)
+  })
+
+  it('creates a one-off reminder as a queued notification', async () => {
+    const store = await freshStore()
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'notificationControl', id: 'a1', entity: { action: 'createReminder', title: 'Drink water', body: 'Stay hydrated' } },
+    ])
+    store.getState().commitAgentRun(runId)
+    const queue = store.getState().notificationQueue
+    expect(queue.toasts.some(t => t.title === 'Drink water') || queue.activeAlert?.title === 'Drink water').toBe(true)
+  })
+})
+
+describe('commitAgentRun updateSafeSettings', () => {
+  it('applies an allowlisted settings patch', async () => {
+    const store = await freshStore()
+    const runId = store.getState().startAgentRun({ scope: { type: 'global' } })
+    store.getState().appendAgentOps(runId, [
+      { type: 'create', entityType: 'updateSafeSettings', id: 'a1', entity: { taskAlertsEnabled: true } },
+    ])
+    store.getState().commitAgentRun(runId)
+    expect(store.getState().settings.taskAlertsEnabled).toBe(true)
+  })
+})
+
 describe('discardAgentRun', () => {
   it('leaves the rest of the state byte-identical, only dropping the run', async () => {
     const store = await freshStore()

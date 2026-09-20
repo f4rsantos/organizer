@@ -80,6 +80,21 @@ describe('applyOpsToRun', () => {
     expect(next.entities.habits).toEqual([{ id: 'h1', title: 'Read daily' }])
   })
 
+  it('renders a proposed grade component into the overlay', () => {
+    const run = createAgentRun({ runId: 'r1', scope: null, slot: 'medium', model: 'x' })
+    const op = makeCreateOp({ entityType: 'gradeComponent', id: 'g1', entity: { classId: 'class_1', name: 'Quiz', weight: 0.2 } })
+    const next = applyOpsToRun(run, [op])
+    expect(next.entities.gradeComponents).toEqual([{ id: 'g1', classId: 'class_1', name: 'Quiz', weight: 0.2 }])
+  })
+
+  it('leaves entities untouched for a focusControl action op', () => {
+    const run = createAgentRun({ runId: 'r1', scope: null, slot: 'medium', model: 'x' })
+    const op = makeCreateOp({ entityType: 'focusControl', id: 'a1', entity: { action: 'start' } })
+    const next = applyOpsToRun(run, [op])
+    expect(next.ops).toEqual([op])
+    expect(next.entities).toEqual(run.entities)
+  })
+
   it('appends new ops after existing ones and prepends new inverses', () => {
     const run = createAgentRun({ runId: 'r1', scope: null, slot: 'medium', model: 'x' })
     const first = makeCreateOp({ entityType: 'task', id: 't1', entity: { title: 'A' } })

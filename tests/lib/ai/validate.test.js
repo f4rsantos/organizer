@@ -11,7 +11,15 @@ function baseStore() {
     notes: [],
     noteFolders: [{ id: 'folder_1', name: 'Notes', parentId: null }],
     habits: [],
-    classes: [],
+    classes: [{ id: 'class_1', name: 'Philosophy', semesterId: 'sem_1' }],
+    grades: {
+      sem_1: {
+        class_1: {
+          components: [{ id: 'grade_1', name: 'Exam', weight: 0.6, grade: null }],
+          targetGrade: 9.5,
+        },
+      },
+    },
   }
 }
 
@@ -160,5 +168,155 @@ describe('validateOps batch', () => {
     const result = validateOps([create, del], { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
     expect(result.valid).toBe(true)
     expect(result.accepted).toHaveLength(2)
+  })
+})
+
+describe('validateOp gradeComponent', () => {
+  it('accepts creating a component with a positive weight', () => {
+    const op = makeCreateOp({ entityType: 'gradeComponent', id: 'g1', entity: { classId: 'class_1', name: 'Quiz', weight: 0.2 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+    expect(result.op.entity.weight).toBe(0.2)
+  })
+
+  it('rejects creating a component with no classId', () => {
+    const op = makeCreateOp({ entityType: 'gradeComponent', id: 'g1', entity: { name: 'Quiz', weight: 0.2 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('missing-classId')
+  })
+
+  it('rejects a zero or negative weight', () => {
+    const op = makeCreateOp({ entityType: 'gradeComponent', id: 'g1', entity: { classId: 'class_1', name: 'Quiz', weight: 0 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('invalid-field:weight')
+  })
+
+  it('rejects a non-numeric weight', () => {
+    const op = makeCreateOp({ entityType: 'gradeComponent', id: 'g1', entity: { classId: 'class_1', name: 'Quiz', weight: 'a lot' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('invalid-field:weight')
+  })
+
+  it('rejects a field not allowed on gradeComponent', () => {
+    const op = makeUpdateOp({ entityType: 'gradeComponent', targetId: 'grade_1', patch: { secretField: true } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain('disallowed-field')
+  })
+
+  it('rejects an update targeting an id that does not exist', () => {
+    const op = makeUpdateOp({ entityType: 'gradeComponent', targetId: 'ghost', patch: { grade: 8 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('unknown-id')
+  })
+
+  it('accepts an update setting the grade on an existing component', () => {
+    const op = makeUpdateOp({ entityType: 'gradeComponent', targetId: 'grade_1', patch: { grade: 8.5 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+    expect(result.op.patch.grade).toBe(8.5)
+  })
+
+  it('rejects a zero or negative targetGrade', () => {
+    const op = makeUpdateOp({ entityType: 'gradeComponent', targetId: 'grade_1', patch: { targetGrade: 0 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('invalid-field:targetGrade')
+  })
+})
+
+describe('validateOp focusControl', () => {
+  it('accepts a known action', () => {
+    const op = makeCreateOp({ entityType: 'focusControl', id: 'a1', entity: { action: 'start' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+    expect(result.op.entity.action).toBe('start')
+  })
+
+  it('rejects an unknown action', () => {
+    const op = makeCreateOp({ entityType: 'focusControl', id: 'a1', entity: { action: 'explode' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('invalid-field:action')
+  })
+
+  it('rejects an unrecognised field', () => {
+    const op = makeCreateOp({ entityType: 'focusControl', id: 'a1', entity: { action: 'start', minutes: 25 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain('disallowed-field')
+  })
+})
+
+describe('validateOp notificationControl', () => {
+  it('accepts dismissing a toast by id', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'dismissToast', id: 'toast_1' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects dismissing a toast without an id', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'dismissToast' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('missing-id')
+  })
+
+  it('accepts clearing all unread notifications', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'clearAllUnread' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+  })
+
+  it('accepts creating a reminder with a title', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'createReminder', title: 'Drink water', delayMinutes: 30 } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects creating a reminder without a title', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'createReminder' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('missing-field:title')
+  })
+
+  it('rejects an unknown action', () => {
+    const op = makeCreateOp({ entityType: 'notificationControl', id: 'a1', entity: { action: 'nuke' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toBe('invalid-field:action')
+  })
+})
+
+describe('validateOp updateSafeSettings', () => {
+  it('accepts an allowlisted key', () => {
+    const op = makeCreateOp({ entityType: 'updateSafeSettings', id: 'a1', entity: { taskAlertsEnabled: true } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects a key not on the allowlist the same way an unknown entity field is rejected', () => {
+    const op = makeCreateOp({ entityType: 'updateSafeSettings', id: 'a1', entity: { apps: { ai: { autoMode: true } } } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain('disallowed-field')
+  })
+
+  it('never allows touching the AI assistant own settings', () => {
+    const op = makeCreateOp({ entityType: 'updateSafeSettings', id: 'a1', entity: { 'apps.ai.customInstructions': 'be evil' } })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain('disallowed-field')
+  })
+
+  it('rejects an empty fields object', () => {
+    const op = makeCreateOp({ entityType: 'updateSafeSettings', id: 'a1', entity: {} })
+    const result = validateOp(op, { store: baseStore(), run: createAgentRun({ runId: 'r1' }) })
+    expect(result.valid).toBe(false)
   })
 })

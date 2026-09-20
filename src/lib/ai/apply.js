@@ -7,6 +7,7 @@ const ENTITY_LIST_BY_TYPE = {
   folder: 'folders',
   habit: 'habits',
   class: 'classes',
+  gradeComponent: 'gradeComponents',
 }
 
 function entityListKey(entityType) {

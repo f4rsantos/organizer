@@ -16,7 +16,10 @@ export const AGENT_ENTITY_TYPES = [
   'habit',
   'class',
   'kanbanCard',
+  'gradeComponent',
 ]
+
+export const AGENT_ACTION_TYPES = ['focusControl', 'notificationControl', 'updateSafeSettings']
 
 export const AGENT_OP_TYPES = ['create', 'update', 'delete']
 
@@ -29,6 +32,7 @@ export function emptyRunEntities() {
     folders: [],
     habits: [],
     classes: [],
+    gradeComponents: [],
   }
 }
 
@@ -60,6 +64,7 @@ export function makeDeleteOp({ entityType, targetId, priorEntity }) {
 
 export function inverseOfOp(op) {
   if (!op || typeof op !== 'object') return null
+  if (AGENT_ACTION_TYPES.includes(op.entityType)) return null
   if (op.type === 'create') {
     return makeDeleteOp({ entityType: op.entityType, targetId: op.id, priorEntity: op.entity })
   }

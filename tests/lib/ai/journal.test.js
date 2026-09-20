@@ -107,6 +107,18 @@ describe('invalidated inverse ops', () => {
     expect(isRunUndoable(run, { tasks: [{ id: 't1' }] })).toBe(true)
   })
 
+  it('allows a gradeComponent create-inverse when the component is genuinely gone', () => {
+    const inverseCreate = { type: 'create', entityType: 'gradeComponent', entity: { id: 'grade_1', name: 'Exam' } }
+    const store = { grades: { sem_1: { class_1: { components: [] } } } }
+    expect(isInverseOpApplicable(inverseCreate, store)).toBe(true)
+  })
+
+  it('refuses a gradeComponent delete-inverse when the component no longer exists', () => {
+    const inverseDelete = { type: 'delete', entityType: 'gradeComponent', targetId: 'grade_1' }
+    const store = { grades: { sem_1: { class_1: { components: [] } } } }
+    expect(isInverseOpApplicable(inverseDelete, store)).toBe(false)
+  })
+
   it('markEntryUndoable flips undoable without applying anything', () => {
     let journal = pushJournalEntry(emptyJournal(), buildJournalEntry({ run: runWith([]) }))
     journal = markEntryUndoable(journal, 'r1', false)

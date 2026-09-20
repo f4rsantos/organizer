@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { buildNeutralTools, buildProactiveTools, TOOL_TARGET_TYPES } from '@/lib/ai/tools'
+import {
+  buildNeutralTools, buildProactiveTools, TOOL_TARGET_TYPES,
+  FOCUS_CONTROL_ACTIONS, NOTIFICATION_CONTROL_ACTIONS,
+} from '@/lib/ai/tools'
 
 describe('buildNeutralTools', () => {
   it('omits query in requests mode', () => {
@@ -20,7 +23,10 @@ describe('buildNeutralTools', () => {
   it('includes the fixed set of non-query tools in both modes', () => {
     const requestsNames = buildNeutralTools({ optimizeFor: 'requests' }).map(tool => tool.name)
     const tokensNames = buildNeutralTools({ optimizeFor: 'tokens' }).map(tool => tool.name)
-    const expectedBase = ['create', 'update', 'delete', 'openView', 'research', 'done', 'fetch']
+    const expectedBase = [
+      'create', 'update', 'delete', 'openView', 'research', 'done', 'fetch',
+      'focusControl', 'notificationControl', 'updateSafeSettings',
+    ]
     for (const name of expectedBase) {
       expect(requestsNames).toContain(name)
       expect(tokensNames).toContain(name)
@@ -46,12 +52,41 @@ describe('buildNeutralTools', () => {
       'habit',
       'class',
       'kanbanCard',
+      'gradeComponent',
     ])
   })
 
   it('defaults to requests-mode behaviour when optimizeFor is omitted', () => {
     const tools = buildNeutralTools()
     expect(tools.some(tool => tool.name === 'query')).toBe(false)
+  })
+
+  it('focusControl exposes the full lifecycle action enum', () => {
+    const tools = buildNeutralTools()
+    const focusControl = tools.find(tool => tool.name === 'focusControl')
+    expect(focusControl.parameters.properties.action.enum).toEqual(FOCUS_CONTROL_ACTIONS)
+    expect(focusControl.parameters.required).toEqual(['action'])
+  })
+
+  it('notificationControl exposes its action enum and optional fields', () => {
+    const tools = buildNeutralTools()
+    const notificationControl = tools.find(tool => tool.name === 'notificationControl')
+    expect(notificationControl.parameters.properties.action.enum).toEqual(NOTIFICATION_CONTROL_ACTIONS)
+    expect(notificationControl.parameters.required).toEqual(['action'])
+  })
+
+  it('updateSafeSettings takes an object of fields', () => {
+    const tools = buildNeutralTools()
+    const updateSafeSettings = tools.find(tool => tool.name === 'updateSafeSettings')
+    expect(updateSafeSettings.parameters.properties.fields.type).toBe('object')
+    expect(updateSafeSettings.parameters.required).toEqual(['fields'])
+  })
+
+  it('never adds the new action tools to the proactive tool list', () => {
+    const proactiveNames = buildProactiveTools().map(tool => tool.name)
+    expect(proactiveNames).not.toContain('focusControl')
+    expect(proactiveNames).not.toContain('notificationControl')
+    expect(proactiveNames).not.toContain('updateSafeSettings')
   })
 })
 
