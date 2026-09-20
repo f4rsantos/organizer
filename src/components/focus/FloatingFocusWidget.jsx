@@ -6,8 +6,7 @@ import { useStrings } from '@/lib/strings'
 import { useFocusClock } from './useFocusClock'
 import { defaultFocus } from './focusTab/constants'
 import { fmtTimer } from './focusTab/formatters'
-import { CenterPomodoro } from './focusTab/CenterPomodoro'
-import { growthFromSecs, sizeFromPct } from './pomodoro/utils'
+import { FocusWheel } from './focusTab/FocusWheel'
 import { clampWidgetPosition, isFocusSessionActive } from '@/lib/focus/floatingWidget'
 import {
   focusOverlayAvailable,
@@ -17,11 +16,13 @@ import {
   hideFocusOverlay,
   addOverlayControlListener,
 } from '@/lib/focus/overlayBridge'
-import { cn } from '@/lib/utils'
 
 const WIDGET_WIDTH = 208
 const WIDGET_HEIGHT = 108
 const DEFAULT_MARGIN = 16
+const WHEEL_SOURCE_SIZE = 200
+const WHEEL_MINI_SIZE = 48
+const WHEEL_SCALE = WHEEL_MINI_SIZE / WHEEL_SOURCE_SIZE
 
 function supportsDocumentPip() {
   return typeof window !== 'undefined' && 'documentPictureInPicture' in window
@@ -39,14 +40,16 @@ function defaultPosition() {
   })
 }
 
-function FloatingFocusContent({ t, running, isBreak, label, sublabel, pomodoroOverlay, onToggle, onReset, interactive }) {
+function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, onToggle, onReset, interactive }) {
   return (
     <div className="flex items-center gap-3 p-3">
-      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-        {pomodoroOverlay}
-        {!pomodoroOverlay && (
-          <div className={cn('h-3 w-3 rounded-full', running ? 'bg-primary animate-pulse' : 'bg-muted-foreground/50')} />
-        )}
+      <div
+        className="relative shrink-0 overflow-hidden"
+        style={{ width: WHEEL_MINI_SIZE, height: WHEEL_MINI_SIZE }}
+      >
+        <div style={{ transform: `scale(${WHEEL_SCALE})`, transformOrigin: 'top left' }}>
+          <FocusWheel pct={wheelPct} isBreak={isBreak} label="" sublabel="" />
+        </div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-medium tabular-nums">{label}</span>
@@ -59,6 +62,7 @@ function FloatingFocusContent({ t, running, isBreak, label, sublabel, pomodoroOv
               type="button"
               aria-label={running ? t.focusPause : t.focusResume}
               onPointerDown={e => e.stopPropagation()}
+              onPointerUp={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onToggle() }}
               className="rounded-full p-1.5 text-foreground hover:bg-muted"
             >
@@ -69,6 +73,7 @@ function FloatingFocusContent({ t, running, isBreak, label, sublabel, pomodoroOv
             type="button"
             aria-label={t.focusReset}
             onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onReset() }}
             className="rounded-full p-1.5 text-foreground hover:bg-muted"
           >
@@ -119,7 +124,6 @@ export function FloatingFocusWidget() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const focus = useStore(s => s.settings?.focus ?? defaultFocus)
-  const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
   const focusSync = useStore(s => s.focusSync)
   const setActiveTab = useStore(s => s.setActiveTab)
 
@@ -252,6 +256,9 @@ export function FloatingFocusWidget() {
     ? cycleElapsed / (focus.intervalMins * 60)
     : Number.isFinite(scheduledPct) ? scheduledPct : 0
 
+  const breakDenom = focus.useInterval ? focus.intervalBreakMins * 60 : focus.scheduledBreakMins * 60
+  const wheelPct = isBreak ? 1 - breakSecsLeft / breakDenom : focusPct
+
   const label = isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)
   const sublabel = isBreak ? t.focusBreak : (running ? t.focus : t.focusReady)
 
@@ -262,10 +269,6 @@ export function FloatingFocusWidget() {
     else resume()
   }
 
-  const pomodoroOverlay = pomodoroEnabled && phase === 'focus' && (running || cycleElapsed > 0)
-    ? <CenterPomodoro pct={Math.min(1, Math.max(0, focusPct))} faceIdx={0} size={Math.min(40, sizeFromPct(growthFromSecs(cycleElapsed)))} />
-    : null
-
   const content = (
     <FloatingFocusContent
       t={t}
@@ -273,7 +276,7 @@ export function FloatingFocusWidget() {
       isBreak={isBreak}
       label={label}
       sublabel={sublabel}
-      pomodoroOverlay={pomodoroOverlay}
+      wheelPct={Math.min(1, Math.max(0, wheelPct))}
       onToggle={handleToggle}
       onReset={reset}
       interactive
@@ -306,6 +309,7 @@ export function FloatingFocusWidget() {
                 type="button"
                 aria-label={t.focusAlwaysOnTop}
                 onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); handleRequestOverlay() }}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
@@ -317,6 +321,7 @@ export function FloatingFocusWidget() {
                 type="button"
                 aria-label={t.focusDetach}
                 onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); setDetached(true) }}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
