@@ -335,7 +335,7 @@ function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, autoMode, o
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-1">
         {onSetAutoMode && (
           <button
             type="button"
