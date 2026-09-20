@@ -29,6 +29,7 @@ export function useNotificationBell() {
 
   const queue = useStore(s => s.notificationQueue)
   const anyUnread = hasUnread(queue)
+  const clearAllUnreadNotifications = useStore(s => s.clearAllUnreadNotifications)
 
   const shouldShowBell = (() => {
     if (!notifications.enabled) return false
@@ -43,5 +44,6 @@ export function useNotificationBell() {
     hasUnread: anyUnread,
     unread,
     upcoming,
+    onClearUnread: clearAllUnreadNotifications,
   }
 }

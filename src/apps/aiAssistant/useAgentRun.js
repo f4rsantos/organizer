@@ -92,7 +92,7 @@ export function useAgentRun() {
   const discardAgentRun = useStore(s => s.discardAgentRun)
   const setActiveTab = useStore(s => s.setActiveTab)
 
-  const start = useCallback(async ({ goal, scope, localTier0 }) => {
+  const start = useCallback(async ({ goal, scope, localTier0, viewingTab }) => {
     cancelledRef.current = false
     setStatus(RUNNING)
     if (!activeChatIdRef.current) setActiveChat(nanoid())
@@ -131,6 +131,7 @@ export function useAgentRun() {
       scope: scope ?? null,
       optimizeFor,
       customInstructions: aiSettings.customInstructions,
+      viewingTab,
       slots,
       parserConfidence: localTier0?.confidence ?? 0,
       estimatedOpCount: localTier0?.estimatedOpCount ?? 0,

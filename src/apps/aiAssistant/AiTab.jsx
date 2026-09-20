@@ -12,22 +12,8 @@ import { SwipePager } from '@/components/calendar/SwipePager'
 const VIEW_CONVERSATION = 'conversation'
 const VIEW_TARGET = 'target'
 
-const TAB_CONTEXT_LABEL_KEYS = {
-  notes: 'aiContextTabNotes',
-  tasks: 'aiContextTabTasks',
-  kanban: 'aiContextTabKanban',
-  calendar: 'aiContextTabCalendar',
-  grades: 'aiContextTabGrades',
-  focus: 'aiContextTabFocus',
-}
-
-function contextGoalPrefix(request, t) {
-  if (request?.suggestionText) return request.suggestionText
-  const key = TAB_CONTEXT_LABEL_KEYS[request?.tab]
-  if (!key) return ''
-  const label = t[key]
-  if (!label) return ''
-  return (t.aiContextPrefixTemplate ?? '').replace('{context}', label)
+function contextGoalPrefill(request) {
+  return request?.suggestionText || ''
 }
 
 function MobileViewSwitch({ view, onChange, t }) {
@@ -83,6 +69,7 @@ export function AiTab() {
   const [targetHidden, setTargetHidden] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [contextGoal, setContextGoal] = useState(null)
+  const [viewingTab, setViewingTab] = useState(null)
 
   const scope = run?.run?.scope ?? null
   const showTarget = hasTargetContent(run, status)
@@ -97,13 +84,14 @@ export function AiTab() {
   const [handledContextRequest, setHandledContextRequest] = useState(null)
   if (aiContextRequest && handledContextRequest !== aiContextRequest) {
     setHandledContextRequest(aiContextRequest)
-    setContextGoal(contextGoalPrefix(aiContextRequest, t))
+    setContextGoal(contextGoalPrefill(aiContextRequest))
+    setViewingTab(aiContextRequest.suggestionText ? null : (aiContextRequest.tab ?? null))
     setTargetHidden(false)
     setMobileView(VIEW_CONVERSATION)
     clearAiContextRequest()
   }
 
-  const handleStart = goal => { start({ goal, scope }) }
+  const handleStart = goal => { start({ goal, scope, viewingTab }) }
   const handleCommit = runId => { commit(runId) }
   const handleDiscard = runId => { discard(runId) }
   const handleUndo = runId => {

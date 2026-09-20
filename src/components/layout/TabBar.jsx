@@ -40,7 +40,7 @@ function AgentRunPill({ orientation, activeTab }) {
 }
 
 function NavNotificationBell() {
-  const { t, shouldShowBell, hasUnread, unread, upcoming } = useNotificationBell()
+  const { t, shouldShowBell, hasUnread, unread, upcoming, onClearUnread } = useNotificationBell()
   if (!shouldShowBell) return null
   return (
     <NotificationBell
@@ -50,6 +50,8 @@ function NavNotificationBell() {
       unreadLabel={t.notificationBellUnread}
       upcomingLabel={t.notificationBellUpcoming}
       emptyLabel={t.notificationBellEmpty}
+      clearLabel={t.notificationBellClear}
+      onClearUnread={onClearUnread}
     />
   )
 }

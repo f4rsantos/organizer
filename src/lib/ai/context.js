@@ -268,6 +268,21 @@ export function buildCustomInstructionsBlock(customInstructions) {
   return ['USER PREFERENCES', 'The user has set these standing preferences. Follow them unless they conflict with a direct instruction in this run:', clipped].join('\n')
 }
 
+const VIEWING_TAB_DESCRIPTIONS = {
+  notes: 'their notes',
+  tasks: 'their tasks',
+  kanban: 'their kanban board',
+  calendar: 'their calendar',
+  grades: 'their grades',
+  focus: 'their focus/pomodoro session',
+}
+
+export function buildViewingContextBlock(tab) {
+  const description = VIEWING_TAB_DESCRIPTIONS[tab]
+  if (!description) return ''
+  return `The user opened you while looking at ${description}. Use this only as background — do not greet them by naming what they were looking at unless it is relevant to what they ask.`
+}
+
 const FOLLOW_UP_OFFER_LINES = [
   'If what you just did has an obvious optional next step (for example: you created an event or a task with a due date and it has no reminder set), end your done summary with a short offer to do that next step too, phrased as a question. Only offer one such follow-up, only when it is genuinely obvious, and never invent unrelated suggestions. Otherwise end the summary plainly with no offer.',
   'A later user message may simply answer a follow-up question you asked (e.g. "yes", "sim", "3 horas antes"). Read it in light of your own last message and act on it directly instead of asking the user to repeat the whole request.',
@@ -277,11 +292,13 @@ export function buildFollowUpOfferBlock() {
   return FOLLOW_UP_OFFER_LINES.join('\n')
 }
 
-export function buildSystemPrompt({ optimizeFor, customInstructions } = {}) {
+export function buildSystemPrompt({ optimizeFor, customInstructions, viewingTab } = {}) {
   const mode = normalizeOptimizeFor(optimizeFor)
   const lines = [...SYSTEM_PROMPT_BASE, MODE_PROMPT_LINES[mode], buildFollowUpOfferBlock()]
   const customBlock = buildCustomInstructionsBlock(customInstructions)
   if (customBlock) lines.push(customBlock)
+  const viewingBlock = buildViewingContextBlock(viewingTab)
+  if (viewingBlock) lines.push(viewingBlock)
   return lines.join('\n')
 }
 
