@@ -53,7 +53,7 @@ export function TargetPane({ scope, run, viewingTab, viewingNoteId, onHide, t })
           onClick={onHide}
           title={t.aiHideTarget ?? 'Hide'}
           aria-label={t.aiHideTarget ?? 'Hide'}
-          className="absolute top-2 right-2 z-30 p-1.5 rounded-lg bg-card/90 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border shadow-xs backdrop-blur-sm transition-colors"
+          className="absolute top-2 right-2 z-30 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           <PanelRightClose className="h-4 w-4" />
         </button>
