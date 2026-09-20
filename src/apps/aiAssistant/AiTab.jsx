@@ -91,7 +91,10 @@ export function AiTab() {
     clearAiContextRequest()
   }
 
-  const handleStart = goal => { start({ goal, scope, viewingTab }) }
+  const handleStart = goal => {
+    start({ goal, scope, viewingTab })
+    setViewingTab(null)
+  }
   const handleCommit = runId => { commit(runId) }
   const handleDiscard = runId => { discard(runId) }
   const handleUndo = runId => {
@@ -119,6 +122,7 @@ export function AiTab() {
         autoMode={autoMode}
         onSetAutoMode={setAutoMode}
         prefillGoal={contextGoal}
+        viewingTab={viewingTab}
         t={t}
       />
     </div>
