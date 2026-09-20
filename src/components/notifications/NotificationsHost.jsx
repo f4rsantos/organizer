@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { getNotificationSettings } from '@/lib/notifications/settings'
@@ -8,7 +8,8 @@ import { CenterAlert } from './CenterAlert'
 export function NotificationsHost() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const notifications = useStore(s => getNotificationSettings(s.settings))
+  const rawNotificationSettings = useStore(s => s.settings?.notifications)
+  const notifications = useMemo(() => getNotificationSettings({ notifications: rawNotificationSettings }), [rawNotificationSettings])
   const toasts = useStore(s => s.notificationQueue?.toasts ?? [])
   const activeAlert = useStore(s => s.notificationQueue?.activeAlert ?? null)
   const dismissNotificationToast = useStore(s => s.dismissNotificationToast)
