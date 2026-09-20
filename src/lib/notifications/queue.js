@@ -36,6 +36,11 @@ export function dismissToast(queue, id) {
   }
 }
 
+export function readToast(queue, id) {
+  const q = queue ?? emptyNotificationQueue()
+  return { ...q, toasts: q.toasts.filter(t => t.id !== id) }
+}
+
 export function dismissActiveAlert(queue) {
   const q = queue ?? emptyNotificationQueue()
   return { ...q, activeAlert: null }

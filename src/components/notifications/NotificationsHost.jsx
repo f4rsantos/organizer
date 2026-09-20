@@ -13,6 +13,7 @@ export function NotificationsHost() {
   const toasts = useStore(s => s.notificationQueue?.toasts ?? [])
   const activeAlert = useStore(s => s.notificationQueue?.activeAlert ?? null)
   const dismissNotificationToast = useStore(s => s.dismissNotificationToast)
+  const readNotificationToast = useStore(s => s.readNotificationToast)
   const dismissActiveNotificationAlert = useStore(s => s.dismissActiveNotificationAlert)
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export function NotificationsHost() {
   return (
     <>
       {notifications.intrusiveness === 'toast' && (
-        <ToastStack toasts={toasts} onDismiss={dismissNotificationToast} />
+        <ToastStack toasts={toasts} onDismiss={readNotificationToast} />
       )}
       {notifications.intrusiveness === 'alert' && (
         <CenterAlert alert={activeAlert} dismissLabel={t.notificationDismiss} onDismiss={dismissActiveNotificationAlert} />

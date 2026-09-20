@@ -9,7 +9,7 @@ import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 import { cacheCollabUserId } from '@/lib/collab/identity'
 import {
-  emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry,
+  emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
 } from '@/lib/notifications/queue'
 import {
@@ -511,6 +511,10 @@ export const useStore = create((set, get) => ({
   dismissNotificationToast: id => set(s => ({
     ...s,
     notificationQueue: dismissToastEntry(s.notificationQueue, id),
+  })),
+  readNotificationToast: id => set(s => ({
+    ...s,
+    notificationQueue: readToastEntry(s.notificationQueue, id),
   })),
   dismissActiveNotificationAlert: () => set(s => ({
     ...s,

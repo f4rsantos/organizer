@@ -3,6 +3,7 @@ import {
   emptyNotificationQueue,
   enqueueNotification,
   dismissToast,
+  readToast,
   dismissActiveAlert,
   clearUnread,
   clearAllUnread,
@@ -64,6 +65,20 @@ describe('dismissToast', () => {
     q = dismissToast(q, 'b')
     expect(q.unread).toHaveLength(1)
     expect(q.unread[0].id).toBe('b')
+  })
+})
+
+describe('readToast', () => {
+  it('removes the toast without adding it to unread', () => {
+    let q = enqueueNotification(emptyNotificationQueue(), { id: 'a', title: 'Hi' }, 'toast')
+    q = readToast(q, 'a')
+    expect(q.toasts).toEqual([])
+    expect(q.unread).toEqual([])
+  })
+
+  it('is a no-op for an unknown id', () => {
+    const q = emptyNotificationQueue()
+    expect(readToast(q, 'missing')).toEqual(q)
   })
 })
 

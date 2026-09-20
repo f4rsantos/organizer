@@ -21,7 +21,7 @@ export function NotificationBell({ unread, upcoming, unreadLabel, upcomingLabel,
           title={unreadLabel}
           className={cn(
             'flex items-center justify-center rounded-lg p-2 transition-colors',
-            hasUnread ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground',
+            hasUnread ? 'text-primary' : 'text-muted-foreground/40 hover:text-muted-foreground',
           )}
         />
       }>
