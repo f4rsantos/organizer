@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Play, Pause, RotateCcw, PictureInPicture2, MonitorUp, X } from 'lucide-react'
+import { Play, Pause, RotateCcw, SkipForward, PictureInPicture2, MonitorUp, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useFocusClock } from './useFocusClock'
@@ -41,7 +41,7 @@ function defaultPosition() {
   })
 }
 
-function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, size }) {
+function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, onSkipBreak, size }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
       {!isBreak && (
@@ -54,6 +54,18 @@ function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, size })
           className="rounded-full p-1.5 text-foreground hover:bg-muted"
         >
           {running ? <Pause className={size} /> : <Play className={size} />}
+        </button>
+      )}
+      {isBreak && (
+        <button
+          type="button"
+          aria-label={t.focusSkipBreak}
+          onPointerDown={e => e.stopPropagation()}
+          onPointerUp={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onSkipBreak() }}
+          className="rounded-full p-1.5 text-foreground hover:bg-muted"
+        >
+          <SkipForward className={size} />
         </button>
       )}
       <button
@@ -70,7 +82,7 @@ function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, size })
   )
 }
 
-function FloatingFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset, interactive }) {
+function FloatingFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset, onSkipBreak, interactive }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="relative shrink-0" style={{ width: WHEEL_MINI_SIZE, height: WHEEL_MINI_SIZE }}>
@@ -80,17 +92,17 @@ function FloatingFocusContent({ t, running, isBreak, label, wheelPct, onToggle, 
         <span className="truncate text-base font-medium tabular-nums">{label}</span>
       </div>
       {interactive && (
-        <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} size="h-3.5 w-3.5" />
+        <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} onSkipBreak={onSkipBreak} size="h-3.5 w-3.5" />
       )}
     </div>
   )
 }
 
-function PipFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset }) {
+function PipFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset, onSkipBreak }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-4">
       <FocusWheel pct={wheelPct} isBreak={isBreak} size={PIP_WHEEL_SIZE} label={label} />
-      <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} size="h-4 w-4" />
+      <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} onSkipBreak={onSkipBreak} size="h-4 w-4" />
     </div>
   )
 }
@@ -270,7 +282,7 @@ export function FloatingFocusWidget() {
 
   if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false || dismissed) return null
 
-  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, start, pause, resume, reset } = clock
+  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, start, pause, resume, reset, skipBreak } = clock
   const isBreak = phase === 'break'
 
   const focusPct = focus.useInterval
@@ -300,6 +312,7 @@ export function FloatingFocusWidget() {
       wheelPct={clampedWheelPct}
       onToggle={handleToggle}
       onReset={reset}
+      onSkipBreak={skipBreak}
       interactive
     />
   )
@@ -313,6 +326,7 @@ export function FloatingFocusWidget() {
       wheelPct={clampedWheelPct}
       onToggle={handleToggle}
       onReset={reset}
+      onSkipBreak={skipBreak}
     />
   )
 
