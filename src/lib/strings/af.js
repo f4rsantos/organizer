@@ -71,7 +71,7 @@ export const af = {
     high: 'Hoog', medium: 'Medium', low: 'Laag', none: 'Geen',
     checklist: 'Kontrolelys', addItem: 'Voeg item by', editCard: 'Wysig kaart',
     focusStart: 'Begin', focusPause: 'Pouse', focusResume: 'Hervat', focusReset: 'Herstel', focusSkipBreak: 'Slaan pouse oor',
-    focusReady: 'gereed', focusBreak: 'pouse', focusDetach: 'Maak swewende tydhouer los', focusAlwaysOnTop: 'Wys bo-oor ander apps',
+    focusReady: 'gereed', focusBreak: 'pouse', focusDetach: 'Maak swewende tydhouer los', focusAlwaysOnTop: 'Wys bo-oor ander apps', focusDismissWidget: 'Maak swewende tydhouer toe',
     focusPhrases: ['hou aan', 'bly daarby', 'jy doen wonderlik', 'een stap op \'n slag', 'diep werk', 'bly teenwoordig'],
     quickActionTaskWords: ['banana'],
     quickActionTaskWordsPlural: ['banana'],

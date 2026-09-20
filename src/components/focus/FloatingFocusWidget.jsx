@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Play, Pause, RotateCcw, PictureInPicture2, MonitorUp } from 'lucide-react'
+import { Play, Pause, RotateCcw, PictureInPicture2, MonitorUp, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useFocusClock } from './useFocusClock'
@@ -153,6 +153,7 @@ export function FloatingFocusWidget() {
   const [position, setPosition] = useState(defaultPosition)
   const [pipWindow, setPipWindow] = useState(null)
   const [overlayActive, setOverlayActive] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   const [lastActive, setLastActive] = useState(active)
   const dragRef = useRef(null)
   const widgetRef = useRef(null)
@@ -172,6 +173,7 @@ export function FloatingFocusWidget() {
     if (!active) {
       setPipWindow(null)
       setOverlayActive(false)
+      setDismissed(false)
     }
   }
 
@@ -266,7 +268,7 @@ export function FloatingFocusWidget() {
     if (!wasMoved) setActiveTab('focus')
   }
 
-  if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false) return null
+  if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false || dismissed) return null
 
   const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, start, pause, resume, reset } = clock
   const isBreak = phase === 'break'
@@ -368,6 +370,16 @@ export function FloatingFocusWidget() {
                 <PictureInPicture2 className="h-3 w-3" />
               </button>
             )}
+            <button
+              type="button"
+              aria-label={t.focusDismissWidget}
+              onPointerDown={e => e.stopPropagation()}
+              onPointerUp={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); setDismissed(true) }}
+              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         </div>
       )}
