@@ -171,6 +171,7 @@ function buildInitialState() {
     aiContextRequest: null,
     proactiveSuggestion: null,
     requestedNoteId: null,
+    openNoteId: null,
     scheduleImports: [],
     activeSemesterId: null,
     semesters: [],
@@ -276,7 +277,12 @@ export const useStore = create((set, get) => ({
 
   setActiveTab: tab => set(s => ({ ...s, activeTab: tab })),
   setCurrentTab: tab => set(s => ({ ...s, currentTab: tab })),
-  requestAiContext: tab => set(s => ({ ...s, activeTab: 'aiAssistant', aiContextRequest: { tab, at: Date.now() } })),
+  setOpenNoteId: id => set(s => ({ ...s, openNoteId: id })),
+  requestAiContext: tab => set(s => ({
+    ...s,
+    activeTab: 'aiAssistant',
+    aiContextRequest: { tab, noteId: tab === 'notes' ? s.openNoteId : null, at: Date.now() },
+  })),
   clearAiContextRequest: () => set(s => ({ ...s, aiContextRequest: null })),
   setProactiveSuggestion: suggestion => set(s => ({ ...s, proactiveSuggestion: suggestion })),
   clearProactiveSuggestion: () => set(s => ({ ...s, proactiveSuggestion: null })),

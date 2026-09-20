@@ -24,7 +24,7 @@ const VIEWING_TAB_COMPONENTS = {
   focus: FocusTab,
 }
 
-export function TargetPane({ scope, run, viewingTab, onHide, t }) {
+export function TargetPane({ scope, run, viewingTab, viewingNoteId, onHide, t }) {
   const store = useStore.getState()
   const activeRunId = useStore(s => s.agentRuntime?.activeRunId)
   const setRequestedNote = useStore(s => s.setRequestedNote)
@@ -36,7 +36,7 @@ export function TargetPane({ scope, run, viewingTab, onHide, t }) {
   const isNote = !isKanban && !isTask && (scope?.type === 'note' || scope?.type === 'folder' || effectiveOps.some(op => op.entityType === 'note'))
   const isCalendar = !isKanban && !isTask && !isNote && (scope?.type === 'event' || effectiveOps.some(op => op.entityType === 'event'))
 
-  const noteId = isNote ? targetNoteId(scope, effectiveOps) : null
+  const noteId = isNote ? targetNoteId(scope, effectiveOps) : (!hasRunContent && viewingTab === 'notes' ? viewingNoteId : null)
 
   useEffect(() => {
     if (noteId) setRequestedNote(noteId)

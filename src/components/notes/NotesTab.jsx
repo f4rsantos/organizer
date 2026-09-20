@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Plus, FolderPlus, Archive, FileText, StickyNote, Search } from 'lucide-react'
 import { DndContext, DragOverlay, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
@@ -58,6 +58,12 @@ export function NotesTab() {
     setSelectedId(requestedNoteId)
     setRequestedNote(null)
   }
+
+  const setOpenNoteId = useStore(s => s.setOpenNoteId)
+  useEffect(() => {
+    setOpenNoteId(selectedId)
+    return () => setOpenNoteId(null)
+  }, [selectedId, setOpenNoteId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

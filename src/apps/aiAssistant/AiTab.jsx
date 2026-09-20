@@ -70,6 +70,7 @@ export function AiTab() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [contextGoal, setContextGoal] = useState(null)
   const [viewingTab, setViewingTab] = useState(null)
+  const [viewingNoteId, setViewingNoteId] = useState(null)
 
   const scope = run?.run?.scope ?? null
   const showTarget = hasTargetContent(run, status) || Boolean(viewingTab)
@@ -86,6 +87,7 @@ export function AiTab() {
     setHandledContextRequest(aiContextRequest)
     setContextGoal(contextGoalPrefill(aiContextRequest))
     setViewingTab(aiContextRequest.suggestionText ? null : (aiContextRequest.tab ?? null))
+    setViewingNoteId(aiContextRequest.noteId ?? null)
     setTargetHidden(false)
     setMobileView(VIEW_CONVERSATION)
     clearAiContextRequest()
@@ -127,7 +129,7 @@ export function AiTab() {
 
   const target = (
     <div className="h-full min-h-0 flex flex-col">
-      <TargetPane scope={scope} run={run} viewingTab={viewingTab} onHide={() => setTargetHidden(true)} t={t} />
+      <TargetPane scope={scope} run={run} viewingTab={viewingTab} viewingNoteId={viewingNoteId} onHide={() => setTargetHidden(true)} t={t} />
     </div>
   )
 
