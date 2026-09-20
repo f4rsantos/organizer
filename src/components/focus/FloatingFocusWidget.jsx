@@ -21,6 +21,9 @@ const WIDGET_WIDTH = 208
 const WIDGET_HEIGHT = 108
 const DEFAULT_MARGIN = 16
 const WHEEL_MINI_SIZE = 48
+const PIP_WHEEL_SIZE = 140
+const PIP_WIDTH = 220
+const PIP_HEIGHT = 220
 
 function supportsDocumentPip() {
   return typeof window !== 'undefined' && 'documentPictureInPicture' in window
@@ -38,6 +41,35 @@ function defaultPosition() {
   })
 }
 
+function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, size }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {!isBreak && (
+        <button
+          type="button"
+          aria-label={running ? t.focusPause : t.focusResume}
+          onPointerDown={e => e.stopPropagation()}
+          onPointerUp={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onToggle() }}
+          className="rounded-full p-1.5 text-foreground hover:bg-muted"
+        >
+          {running ? <Pause className={size} /> : <Play className={size} />}
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label={t.focusReset}
+        onPointerDown={e => e.stopPropagation()}
+        onPointerUp={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onReset() }}
+        className="rounded-full p-1.5 text-foreground hover:bg-muted"
+      >
+        <RotateCcw className={size} />
+      </button>
+    </div>
+  )
+}
+
 function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, onToggle, onReset, interactive }) {
   return (
     <div className="flex items-center gap-3 p-3">
@@ -49,31 +81,17 @@ function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, 
         <span className="truncate text-xs text-muted-foreground">{sublabel}</span>
       </div>
       {interactive && (
-        <div className="flex shrink-0 items-center gap-1">
-          {!isBreak && (
-            <button
-              type="button"
-              aria-label={running ? t.focusPause : t.focusResume}
-              onPointerDown={e => e.stopPropagation()}
-              onPointerUp={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onToggle() }}
-              className="rounded-full p-1.5 text-foreground hover:bg-muted"
-            >
-              {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            </button>
-          )}
-          <button
-            type="button"
-            aria-label={t.focusReset}
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onReset() }}
-            className="rounded-full p-1.5 text-foreground hover:bg-muted"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} size="h-3.5 w-3.5" />
       )}
+    </div>
+  )
+}
+
+function PipFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-4">
+      <FocusWheel pct={wheelPct} isBreak={isBreak} size={PIP_WHEEL_SIZE} label={label} />
+      <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} size="h-4 w-4" />
     </div>
   )
 }
@@ -103,8 +121,8 @@ function PipWindow({ pipWindow, onClose, children }) {
 
 async function openPipWindow() {
   const pipWin = await window.documentPictureInPicture.requestWindow({
-    width: WIDGET_WIDTH + 24,
-    height: WIDGET_HEIGHT + 24,
+    width: PIP_WIDTH,
+    height: PIP_HEIGHT,
   })
   copyDocumentStyles(pipWin.document)
   const style = pipWin.document.createElement('style')
@@ -271,6 +289,8 @@ export function FloatingFocusWidget() {
     else resume()
   }
 
+  const clampedWheelPct = Math.min(1, Math.max(0, wheelPct))
+
   const content = (
     <FloatingFocusContent
       t={t}
@@ -278,10 +298,22 @@ export function FloatingFocusWidget() {
       isBreak={isBreak}
       label={label}
       sublabel={sublabel}
-      wheelPct={Math.min(1, Math.max(0, wheelPct))}
+      wheelPct={clampedWheelPct}
       onToggle={handleToggle}
       onReset={reset}
       interactive
+    />
+  )
+
+  const pipContent = (
+    <PipFocusContent
+      t={t}
+      running={running}
+      isBreak={isBreak}
+      label={label}
+      wheelPct={clampedWheelPct}
+      onToggle={handleToggle}
+      onReset={reset}
     />
   )
 
@@ -345,7 +377,7 @@ export function FloatingFocusWidget() {
       {pipWindow && (
         <PipWindow pipWindow={pipWindow} onClose={() => setPipWindow(null)}>
           <div className="h-screen w-screen bg-card text-card-foreground">
-            {content}
+            {pipContent}
           </div>
         </PipWindow>
       )}
