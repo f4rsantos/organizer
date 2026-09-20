@@ -51,6 +51,8 @@ export function useSharedNoteSession(sharedMeta) {
   const presenceMapRef = useRef(presenceMap)
   presenceMapRef.current = presenceMap
 
+  const hasMembership = Boolean(membership)
+
   useEffect(() => {
     if (!teamId || !sharedNoteId || !membershipRef.current) return
     let cancelled = false
@@ -59,11 +61,11 @@ export function useSharedNoteSession(sharedMeta) {
 
     const start = async () => {
       const [
-        { createNoteDocSession, createNoteAwareness, noteCollabExtensionPlugins, encodeAwarenessPresence, presenceEntryKey, presenceKeysToEvict, AWARENESS_HEARTBEAT_MS },
+        { createNoteDocSession, createNoteAwareness, noteCollabExtensionPlugins, encodeAwarenessPresence, presenceEntryKey, presenceKeysToEvict, noteTitleText, noteTitleMeta, adoptCollaborativeTitle, resolveNoteTitle, AWARENESS_HEARTBEAT_MS },
         { publishNotePresence, clearNotePresence, updateTeamState },
         { classifyCollabError },
       ] = await Promise.all([
-        import('@/lib/collab/noteDoc'),
+        import('@/lib/notes/yDoc'),
         import('@/lib/collab/firebase'),
         import('@/lib/collab/errors'),
       ])
@@ -81,12 +83,20 @@ export function useSharedNoteSession(sharedMeta) {
       const initialStored = (teamRef.current?.state?.notes ?? [])
         .find(note => note?.id === sharedNoteId)?.ydocState ?? ''
 
+      let flushedDoc = null
+
       const writeSharedNote = async encoded => {
         const applyUpdate = state => ({
           ...state,
           notes: (state?.notes ?? []).map(note => (
             note?.id === sharedNoteId
-              ? { ...note, ydocState: encoded, updatedAt: Date.now(), updatedBy: me }
+              ? {
+                ...note,
+                ydocState: encoded,
+                title: flushedDoc ? resolveNoteTitle(flushedDoc, note.title) : note.title,
+                updatedAt: Date.now(),
+                updatedBy: me,
+              }
               : note
           )),
         })
@@ -104,6 +114,7 @@ export function useSharedNoteSession(sharedMeta) {
       }
 
       const session = createNoteDocSession({ stored: initialStored, onFlush: writeSharedNote })
+      flushedDoc = session.ydoc
       const awareness = createNoteAwareness(session.ydoc, localUser)
       active = { session, awareness }
       sessionRef.current = active
@@ -133,6 +144,11 @@ export function useSharedNoteSession(sharedMeta) {
           awareness,
           cursorBuilder: buildCursorElement,
         }),
+        titleSource: {
+          text: noteTitleText(session.ydoc),
+          meta: noteTitleMeta(session.ydoc),
+          adopt: storedTitle => adoptCollaborativeTitle(session.ydoc, storedTitle),
+        },
       })
     }
 
@@ -148,7 +164,7 @@ export function useSharedNoteSession(sharedMeta) {
       pending.awareness?.destroy?.()
       pending.session.destroy().catch(() => {})
     }
-  }, [teamId, sharedNoteId, collabUserId, setCollabRuntimeTeam, setCollabError])
+  }, [teamId, sharedNoteId, collabUserId, hasMembership, setCollabRuntimeTeam, setCollabError])
 
   useEffect(() => {
     if (!storedState) return
@@ -160,7 +176,10 @@ export function useSharedNoteSession(sharedMeta) {
     if (!awareness || !sharedNoteId) return
     let cancelled = false
     const teamKey = membershipRef.current?.teamKey ?? null
-    import('@/lib/collab/noteDoc').then(async ({ openPresenceEntriesForNote, applyAwarenessPresence }) => {
+    Promise.all([
+      import('@/lib/collab/noteDoc'),
+      import('@/lib/notes/yDoc'),
+    ]).then(async ([{ openPresenceEntriesForNote }, { applyAwarenessPresence }]) => {
       const entries = await openPresenceEntriesForNote({ presenceMap, sharedNoteId, teamId, teamKey })
       if (cancelled) return
       applyAwarenessPresence(awareness, entries)

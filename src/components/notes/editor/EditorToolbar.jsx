@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { cn } from '@/lib/utils'
 import { PRESET_COLORS } from '@/lib/constants'
 import { useSpeechInput } from '@/hooks/useSpeechInput'
+import { formatShortcut } from '@/lib/shortcuts'
 
 const FONT_SIZES = [
   { value: null, labelKey: 'notesSizeNormal' },
@@ -18,9 +19,31 @@ const FONT_SIZES = [
   { value: '1.6em', labelKey: 'notesSizeHuge' },
 ]
 
-function ToolButton({ icon: Icon, active, disabled, title, onClick }) {
+const TOOL_SHORTCUTS = {
+  bold: { key: 'b', ctrl: true },
+  italic: { key: 'i', ctrl: true },
+  strike: { key: 's', ctrl: true, shift: true },
+  heading1: { key: '1', ctrl: true, alt: true },
+  heading2: { key: '2', ctrl: true, alt: true },
+  heading3: { key: '3', ctrl: true, alt: true },
+  bulletList: { key: '8', ctrl: true, shift: true },
+  orderedList: { key: '7', ctrl: true, shift: true },
+  taskList: { key: '9', ctrl: true, shift: true },
+  quote: { key: 'b', ctrl: true, shift: true },
+  codeBlock: { key: 'c', ctrl: true, alt: true },
+  undo: { key: 'z', ctrl: true },
+  redo: { key: 'z', ctrl: true, shift: true },
+}
+
+function toolTitle(label, shortcutId) {
+  const shortcut = TOOL_SHORTCUTS[shortcutId]
+  if (!shortcut) return label
+  return `${label} (${formatShortcut(shortcut)})`
+}
+
+function ToolButton({ icon: Icon, active, disabled, title, shortcut, onClick }) {
   return (
-    <Button type="button" variant="ghost" size="icon" title={title} disabled={disabled}
+    <Button type="button" variant="ghost" size="icon" title={shortcut ? toolTitle(title, shortcut) : title} disabled={disabled}
       onMouseDown={e => e.preventDefault()}
       onClick={onClick}
       className={cn('h-7 w-7 shrink-0', active && 'bg-primary/15 text-primary')}>
@@ -91,38 +114,38 @@ export function EditorToolbar({ editor, t, lang }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border/60 bg-card/40 p-1">
-        <ToolButton icon={Bold} title={t.notesBold} active={editor.isActive('bold')}
+        <ToolButton icon={Bold} title={t.notesBold} shortcut="bold" active={editor.isActive('bold')}
           onClick={() => chain().toggleBold().run()} />
-        <ToolButton icon={Italic} title={t.notesItalic} active={editor.isActive('italic')}
+        <ToolButton icon={Italic} title={t.notesItalic} shortcut="italic" active={editor.isActive('italic')}
           onClick={() => chain().toggleItalic().run()} />
-        <ToolButton icon={Strikethrough} title={t.notesStrike} active={editor.isActive('strike')}
+        <ToolButton icon={Strikethrough} title={t.notesStrike} shortcut="strike" active={editor.isActive('strike')}
           onClick={() => chain().toggleStrike().run()} />
 
         <span className="mx-1 h-4 w-px bg-border" />
 
-        <ToolButton icon={Heading1} title={t.notesHeading1} active={editor.isActive('heading', { level: 1 })}
+        <ToolButton icon={Heading1} title={t.notesHeading1} shortcut="heading1" active={editor.isActive('heading', { level: 1 })}
           onClick={() => chain().toggleHeading({ level: 1 }).run()} />
-        <ToolButton icon={Heading2} title={t.notesHeading2} active={editor.isActive('heading', { level: 2 })}
+        <ToolButton icon={Heading2} title={t.notesHeading2} shortcut="heading2" active={editor.isActive('heading', { level: 2 })}
           onClick={() => chain().toggleHeading({ level: 2 }).run()} />
-        <ToolButton icon={Heading3} title={t.notesHeading3} active={editor.isActive('heading', { level: 3 })}
+        <ToolButton icon={Heading3} title={t.notesHeading3} shortcut="heading3" active={editor.isActive('heading', { level: 3 })}
           onClick={() => chain().toggleHeading({ level: 3 }).run()} />
 
         <span className="mx-1 h-4 w-px bg-border" />
 
-        <ToolButton icon={List} title={t.notesBulletList} active={editor.isActive('bulletList')}
+        <ToolButton icon={List} title={t.notesBulletList} shortcut="bulletList" active={editor.isActive('bulletList')}
           onClick={() => chain().toggleBulletList().run()} />
-        <ToolButton icon={ListOrdered} title={t.notesOrderedList} active={editor.isActive('orderedList')}
+        <ToolButton icon={ListOrdered} title={t.notesOrderedList} shortcut="orderedList" active={editor.isActive('orderedList')}
           onClick={() => chain().toggleOrderedList().run()} />
-        <ToolButton icon={ListChecks} title={t.notesTaskList} active={editor.isActive('taskList')}
+        <ToolButton icon={ListChecks} title={t.notesTaskList} shortcut="taskList" active={editor.isActive('taskList')}
           onClick={() => chain().toggleTaskList().run()} />
-        <ToolButton icon={Quote} title={t.notesQuote} active={editor.isActive('blockquote')}
+        <ToolButton icon={Quote} title={t.notesQuote} shortcut="quote" active={editor.isActive('blockquote')}
           onClick={() => chain().toggleBlockquote().run()} />
 
         <span className="mx-1 h-4 w-px bg-border" />
 
         <ToolButton icon={TableIcon} title={t.notesInsertTable}
           onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
-        <ToolButton icon={Code} title={t.notesCodeBlock} active={editor.isActive('codeBlock')}
+        <ToolButton icon={Code} title={t.notesCodeBlock} shortcut="codeBlock" active={editor.isActive('codeBlock')}
           onClick={() => chain().toggleCodeBlock().run()} />
         <ToolButton icon={Minus} title={t.notesDivider}
           onClick={() => chain().setHorizontalRule().run()} />
@@ -210,9 +233,9 @@ export function EditorToolbar({ editor, t, lang }) {
             onClick={() => (speech.isListening ? speech.stop() : speech.start())} />
         )}
 
-        <ToolButton icon={Undo2} title={t.notesUndo} disabled={!editor.can().undo()}
+        <ToolButton icon={Undo2} title={t.notesUndo} shortcut="undo" disabled={!editor.can().undo()}
           onClick={() => chain().undo().run()} />
-        <ToolButton icon={Redo2} title={t.notesRedo} disabled={!editor.can().redo()}
+        <ToolButton icon={Redo2} title={t.notesRedo} shortcut="redo" disabled={!editor.can().redo()}
           onClick={() => chain().redo().run()} />
       </div>
 

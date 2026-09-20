@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
-import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
+import { isSharedLocalHidden, applyAgentOverlay } from '@/lib/collab/mergeUtils'
 
 function mapRemoteNote(note, teamId, sharedNoteFolders) {
   const id = `shared:${teamId}:${note.id}`
@@ -31,6 +31,7 @@ export function useMergedNotes() {
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const sharedNoteFolders = useStore(s => s.sharedNoteFolders ?? {})
+  const activeRun = useStore(s => s.agentRuntime?.runs?.[s.agentRuntime?.activeRunId] ?? null)
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
@@ -41,6 +42,6 @@ export function useMergedNotes() {
       return (team?.state?.notes ?? []).map(note => mapRemoteNote(note, membership.teamId, sharedNoteFolders))
     })
 
-    return [...local, ...remote]
-  }, [localNotes, collabEnabled, memberships, runtimeTeams, sharedNoteFolders])
+    return applyAgentOverlay([...local, ...remote], activeRun, 'note')
+  }, [localNotes, collabEnabled, memberships, runtimeTeams, sharedNoteFolders, activeRun])
 }

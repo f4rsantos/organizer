@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { differenceInCalendarWeeks, isWithinInterval, parseISO } from 'date-fns'
 import { useStore } from '@/store/useStore'
-import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
+import { isSharedLocalHidden, applyAgentOverlay } from '@/lib/collab/mergeUtils'
 
 function toLocalWeek(date, semesterStart) {
   return differenceInCalendarWeeks(date, semesterStart, { weekStartsOn: 1 }) + 1
@@ -67,6 +67,7 @@ export function useMergedTasks(semesterId) {
   const collabUserId = useStore(s => s.collab?.userId ?? null)
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
   const activeSemesterId = useStore(s => s.activeSemesterId)
+  const activeRun = useStore(s => s.agentRuntime?.runs?.[s.agentRuntime?.activeRunId] ?? null)
   const semester = useMemo(
     () => semesters.find(candidate => candidate.id === semesterId) ?? null,
     [semesters, semesterId],
@@ -89,6 +90,9 @@ export function useMergedTasks(semesterId) {
         .filter(Boolean)
     })
 
-    return [...local, ...remote]
-  }, [localTasks, collabEnabled, memberships, collabUserId, runtimeTeams, semesterId, activeSemesterId, semester])
+    return applyAgentOverlay([...local, ...remote], activeRun, 'task')
+  }, [
+    localTasks, collabEnabled, memberships, collabUserId, runtimeTeams,
+    semesterId, activeSemesterId, semester, activeRun,
+  ])
 }

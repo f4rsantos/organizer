@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -6,6 +7,10 @@ import { useStrings } from '@/lib/strings'
 
 export function ShareToTeamDialog({ open, onOpenChange, title, teams, value, onValueChange, onConfirm }) {
   const t = useStrings()
+  const teamLabels = useMemo(
+    () => Object.fromEntries(teams.map(team => [team.teamId, team.name])),
+    [teams],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -17,7 +22,7 @@ export function ShareToTeamDialog({ open, onOpenChange, title, teams, value, onV
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Select value={value} onValueChange={onValueChange}>
+          <Select items={teamLabels} value={value} onValueChange={onValueChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t.collabSelectTeam} />
             </SelectTrigger>

@@ -9,10 +9,13 @@ import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
 import { useCollabActions } from '@/hooks/useCollabActions'
+import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
+import { useSharedNoteTitle } from '@/hooks/useSharedNoteTitle'
 import { LazyBoundary } from '@/components/common/LazyBoundary'
 import { NoteCanvas } from './NoteCanvas'
 import { exportNote } from '@/lib/notes/noteExport'
 import { markdownToDoc, titleFromMarkdown } from '@/lib/notes/noteImport'
+import { noteHasContent } from './notesUtils'
 
 const RichNoteEditor = lazy(() => import('./editor/RichNoteEditor').then(m => ({ default: m.RichNoteEditor })))
 
@@ -24,21 +27,36 @@ const EXPORT_FORMATS = [
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
+function NoteKindToggle({ note, t, onChangeKind }) {
+  if (noteHasContent(note)) {
+    const Icon = note.kind === 'canvas' ? PenLine : FileText
+    const label = note.kind === 'canvas' ? t.notesCanvas : t.notesText
+    return (
+      <span title={label} className="mr-1 flex h-7 w-7 items-center justify-center text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+    )
+  }
+  return (
+    <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
+      <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
+        style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
+      {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
+        <button key={kind} type="button" title={label}
+          onClick={() => note.kind !== kind && onChangeKind(kind)}
+          className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
+            note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onToggleOfflineOnly, onShare }) {
   return (
     <>
-      <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
-        <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
-          style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
-        {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
-          <button key={kind} type="button" title={label}
-            onClick={() => note.kind !== kind && onChangeKind(kind)}
-            className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
-              note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-            <Icon className="h-3.5 w-3.5" />
-          </button>
-        ))}
-      </div>
+      <NoteKindToggle note={note} t={t} onChangeKind={onChangeKind} />
       <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleFavorite}>
         <Star className={cn('h-3.5 w-3.5', note.favorite && 'fill-amber-400 text-amber-400')} />
       </Button>
@@ -75,9 +93,12 @@ export function NoteEditor({
   const unarchiveNote = useStore(s => s.unarchiveNote)
   const shareNoteToTeam = useStore(s => s.shareNoteToTeam)
   const saveLocalCopyOfSharedNote = useStore(s => s.saveLocalCopyOfSharedNote)
-  const { teams, getTeamName } = useCollabActions()
+  const { teams, getTeamName, canEditSharedContent } = useCollabActions()
   const sharedMeta = note.sharedMeta?.remote ? note.sharedMeta : null
   const teamName = sharedMeta ? getTeamName(sharedMeta.teamId) : null
+  const canEditShared = sharedMeta ? canEditSharedContent(sharedMeta.teamId) : true
+  const collab = useSharedNoteSession(sharedMeta)
+  const sharedTitle = useSharedNoteTitle(collab?.titleSource ?? null, note.title)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTeamId, setShareTeamId] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -169,11 +190,13 @@ export function NoteEditor({
       </div>
       <div className="space-y-1">
         <input
-          value={note.title}
+          value={sharedMeta ? sharedTitle.title : note.title}
           placeholder={t.notesTitle}
-          readOnly={Boolean(sharedMeta)}
-          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40"
-          onChange={e => updateNote(note.id, { title: e.target.value })}
+          disabled={Boolean(sharedMeta) && (!collab || !canEditShared)}
+          className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-muted-foreground/40 disabled:opacity-60"
+          onChange={e => (sharedMeta
+            ? sharedTitle.onTitleChange(e.target.value)
+            : updateNote(note.id, { title: e.target.value }))}
         />
         <p className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
           <span>{t.notesLastEdit} {formatDistanceToNow(note.updatedAt, { addSuffix: true })}</span>
@@ -253,7 +276,7 @@ export function NoteEditor({
               errorLabel={t.chunkLoadError}
               retryLabel={t.chunkRetry}
             >
-              <RichNoteEditor note={note} />
+              <RichNoteEditor note={note} collabPlugins={collab?.plugins ?? null} editable={canEditShared} />
             </LazyBoundary>
           )}
       </div>

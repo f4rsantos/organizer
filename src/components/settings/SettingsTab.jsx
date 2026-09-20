@@ -24,6 +24,7 @@ import { NavbarSettings } from './NavbarSettings'
 import { AppsGrid } from './AppsGrid'
 import { KanbanSettings } from './KanbanSettings'
 import { FocusSettings } from './FocusSettings'
+import { NotificationBellSettings } from './notifications/NotificationBellSettings'
 import { HolidaysForm } from './HolidaysForm'
 import { CalendarSettings } from './CalendarSettings'
 import { PresetOverlay } from '@/components/presets/PresetOverlay'
@@ -358,6 +359,13 @@ export function SettingsTab({ syncStatus }) {
             <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
             <AccordionContent className="pb-4">
               <FocusSettings />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="notifications" className="rounded-xl border border-border bg-card px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3">{t.notifications}</AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-4">
+              <NotificationBellSettings />
             </AccordionContent>
           </AccordionItem>
 
