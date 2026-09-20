@@ -14,6 +14,7 @@ import { KanbanTab } from '@/components/kanban/KanbanTab'
 import { GradesTab } from '@/components/grades/GradesTab'
 import { CalendarTab } from '@/components/calendar/CalendarTab'
 import { FocusTab } from '@/components/focus/FocusTab'
+import { FloatingFocusWidget } from '@/components/focus/FloatingFocusWidget'
 import { SettingsTab } from '@/components/settings/SettingsTab'
 import { getAppTabs, getAppById } from '@/apps/registry'
 import { StorageWarningModal } from '@/components/common/StorageWarningModal'
@@ -25,6 +26,9 @@ import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
+import { NotificationsHost } from '@/components/notifications/NotificationsHost'
+import { CollabAliasPromptModal } from '@/components/collab/CollabAliasPromptModal'
+import { ProactiveSuggestionHost } from '@/components/ai/ProactiveSuggestionHost'
 import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -163,6 +167,7 @@ export default function App() {
   })
   useEffect(() => {
     writeLastTab(activeTab)
+    useStore.getState().setCurrentTab(activeTab)
   }, [activeTab])
 
   // State loads from IndexedDB after the first render, so the tab chosen by the
@@ -234,6 +239,21 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [quickActionAppEnabled, quickActionShortcut])
+
+  const aiAssistantEnabled = useStore(s => s.settings?.apps?.aiAssistant === true)
+  const aiAssistantShortcut = useStore(s => s.settings?.apps?.aiAssistantShortcut)
+
+  useEffect(() => {
+    if (!aiAssistantEnabled || !aiAssistantShortcut) return
+    const handleKeyDown = e => {
+      if (matchesShortcut(e, aiAssistantShortcut)) {
+        e.preventDefault()
+        useStore.getState().requestAiContext(activeTab)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [aiAssistantEnabled, aiAssistantShortcut, activeTab])
 
   const quickActionTripleTap = useStore(s => s.settings?.apps?.quickActionTripleTap ?? false)
 
@@ -328,6 +348,10 @@ export default function App() {
       <PresetUpdateDialog />
       {showStorageWarning && <StorageWarningModal onDismiss={() => setShowStorageWarning(false)} />}
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
+      <NotificationsHost />
+      <CollabAliasPromptModal />
+      <ProactiveSuggestionHost />
+      <FloatingFocusWidget />
     </AppShell>
   )
 }
