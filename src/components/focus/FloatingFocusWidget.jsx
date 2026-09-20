@@ -70,15 +70,14 @@ function FloatingFocusControls({ t, running, isBreak, onToggle, onReset, size })
   )
 }
 
-function FloatingFocusContent({ t, running, isBreak, label, sublabel, wheelPct, onToggle, onReset, interactive }) {
+function FloatingFocusContent({ t, running, isBreak, label, wheelPct, onToggle, onReset, interactive }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="relative shrink-0" style={{ width: WHEEL_MINI_SIZE, height: WHEEL_MINI_SIZE }}>
         <FocusWheel pct={wheelPct} isBreak={isBreak} size={WHEEL_MINI_SIZE} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium tabular-nums">{label}</span>
-        <span className="truncate text-xs text-muted-foreground">{sublabel}</span>
+        <span className="truncate text-base font-medium tabular-nums">{label}</span>
       </div>
       {interactive && (
         <FloatingFocusControls t={t} running={running} isBreak={isBreak} onToggle={onToggle} onReset={onReset} size="h-3.5 w-3.5" />
@@ -280,7 +279,6 @@ export function FloatingFocusWidget() {
   const wheelPct = isBreak ? 1 - breakSecsLeft / breakDenom : focusPct
 
   const label = isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)
-  const sublabel = isBreak ? t.focusBreak : (running ? t.focus : t.focusReady)
 
   const handleToggle = () => {
     if (isBreak) return
@@ -297,7 +295,6 @@ export function FloatingFocusWidget() {
       running={running}
       isBreak={isBreak}
       label={label}
-      sublabel={sublabel}
       wheelPct={clampedWheelPct}
       onToggle={handleToggle}
       onReset={reset}
