@@ -11,6 +11,7 @@ import { describeRunError } from '../runSummary'
 import { getSessionGreeting } from '../greetings'
 
 const TEXTAREA_MAX_HEIGHT_PX = 200
+const EMPTY_SLOTS = {}
 
 function scopeChipLabel(scope, t) {
   if (!scope || scope.type === 'global') return null
@@ -156,7 +157,7 @@ function AutoGrowTextarea({ value, onChange, onKeyDown, placeholder, disabled })
 }
 
 function useActiveSlots() {
-  const slots = useStore(s => s.settings?.apps?.ai?.slots ?? {})
+  const slots = useStore(s => s.settings?.apps?.ai?.slots ?? EMPTY_SLOTS)
   const storedSelected = useStore(s => s.settings?.apps?.ai?.selectedSlot)
   const updateSettings = useStore(s => s.updateSettings)
 

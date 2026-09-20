@@ -52,12 +52,12 @@ export function NotesTab() {
 
   const requestedNoteId = useStore(s => s.requestedNoteId)
   const setRequestedNote = useStore(s => s.setRequestedNote)
-  const [handledRequestId, setHandledRequestId] = useState(null)
-  if (requestedNoteId && handledRequestId !== requestedNoteId) {
-    setHandledRequestId(requestedNoteId)
+  useEffect(() => {
+    if (!requestedNoteId) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedId(requestedNoteId)
     setRequestedNote(null)
-  }
+  }, [requestedNoteId, setRequestedNote])
 
   const setOpenNoteId = useStore(s => s.setOpenNoteId)
   useEffect(() => {

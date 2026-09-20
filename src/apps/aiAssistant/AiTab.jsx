@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MessageSquare, LayoutGrid } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -93,16 +93,16 @@ export function AiTab() {
     setPrevViewRequestsLen(viewRequests.length)
   }
 
-  const [handledContextRequest, setHandledContextRequest] = useState(null)
-  if (aiContextRequest && handledContextRequest !== aiContextRequest) {
-    setHandledContextRequest(aiContextRequest)
+  useEffect(() => {
+    if (!aiContextRequest) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setContextGoal(contextGoalPrefill(aiContextRequest))
     setViewingTab(aiContextRequest.suggestionText ? null : (aiContextRequest.tab ?? null))
     setViewingNoteId(aiContextRequest.noteId ?? null)
     setTargetHidden(false)
     setMobileView(VIEW_CONVERSATION)
     clearAiContextRequest()
-  }
+  }, [aiContextRequest, clearAiContextRequest])
 
   const handleStart = goal => { start({ goal, scope, viewingTab }) }
   const handleCommit = runId => { commit(runId) }
