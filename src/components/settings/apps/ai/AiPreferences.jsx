@@ -38,10 +38,7 @@ export function AiPreferences({ t, value, onChange }) {
         onChange={handleChange}
         placeholder={t.aiPreferencesPlaceholder}
       />
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">{t.aiPreferencesDesc}</p>
-        <p className="text-xs text-muted-foreground shrink-0">{draft.length}/{CUSTOM_INSTRUCTIONS_MAX_LENGTH}</p>
-      </div>
+      <p className="text-xs text-muted-foreground text-right">{draft.length}/{CUSTOM_INSTRUCTIONS_MAX_LENGTH}</p>
     </div>
   )
 }

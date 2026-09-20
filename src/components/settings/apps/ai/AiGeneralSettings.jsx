@@ -33,10 +33,7 @@ export function AiGeneralSettings({ t, slots, autoMode, onAutoModeChange, defaul
   return (
     <div className="space-y-4 border-t border-border/50 pt-4">
       <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-medium">{t.aiAutoModeLabel}</p>
-          <p className="text-xs text-muted-foreground">{autoMode ? t.aiModeAutoTooltip : t.aiModeManualTooltip}</p>
-        </div>
+        <p className="text-sm font-medium">{t.aiAutoModeLabel}</p>
         <Switch checked={autoMode} onCheckedChange={onAutoModeChange} />
       </div>
 
@@ -64,7 +61,6 @@ export function AiGeneralSettings({ t, slots, autoMode, onAutoModeChange, defaul
           className={listening ? 'font-mono text-xs cursor-pointer ring-2 ring-primary bg-primary/5' : 'font-mono text-xs cursor-pointer'}
           placeholder={t.aiShortcutPlaceholder}
         />
-        <p className="text-xs text-muted-foreground">{t.aiShortcutDesc}</p>
       </div>
     </div>
   )

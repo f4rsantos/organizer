@@ -10,7 +10,6 @@ import { localhostHintKey } from './aiSlotHelpers'
 import { loadAiKey, saveAiKey, loadBaseUrl, saveBaseUrl } from '@/lib/ai/keys'
 
 const SLOT_LABEL_KEYS = { low: 'aiSlotLowLabel', medium: 'aiSlotMediumLabel', high: 'aiSlotHighLabel' }
-const SLOT_DESC_KEYS = { low: 'aiSlotLowDesc', medium: 'aiSlotMediumDesc', high: 'aiSlotHighDesc' }
 
 export function ModelSlotCard({
   t, slotName, slot, providers, isNativeBuild, onChange, onClear, onToolSupportWarning,
@@ -57,10 +56,7 @@ export function ModelSlotCard({
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-3 min-w-0">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">{t[SLOT_LABEL_KEYS[slotName]]}</p>
-          <p className="text-xs text-muted-foreground">{t[SLOT_DESC_KEYS[slotName]]}</p>
-        </div>
+        <p className="text-sm font-medium">{t[SLOT_LABEL_KEYS[slotName]]}</p>
         {slot && (
           <button type="button" onClick={onClear}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors">

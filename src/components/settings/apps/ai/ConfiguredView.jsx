@@ -24,10 +24,7 @@ export function ConfiguredView({
     <div className="flex flex-col md:flex-row gap-4 min-w-0">
       <div className="md:w-[280px] shrink-0 space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-medium">{t.aiEnable}</p>
-            <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
-          </div>
+          <p className="text-sm font-medium">{t.aiEnable}</p>
           <Switch checked={enabled} onCheckedChange={onToggle} />
         </div>
 
