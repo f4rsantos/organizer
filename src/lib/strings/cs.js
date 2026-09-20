@@ -50,7 +50,7 @@ export const cs = {
     high: 'Vysoká', medium: 'Střední', low: 'Nízká', none: 'Žádná',
     checklist: 'Kontrolní seznam', addItem: 'Přidat položku', editCard: 'Upravit kartu',
     focusStart: 'Spustit', focusPause: 'Pauza', focusResume: 'Pokračovat', focusReset: 'Resetovat', focusSkipBreak: 'Přeskočit pauzu',
-    focusReady: 'připraven', focusBreak: 'pauza',
+    focusReady: 'připraven', focusBreak: 'pauza', focusDetach: 'Odpojit plovoucí časovač', focusAlwaysOnTop: 'Zobrazit nad ostatními aplikacemi',
     focusPhrases: ['pokračuj', 'vydrž', 'daří se ti skvěle', 'krok za krokem', 'hluboká práce', 'buď přítomný'],
     obNext: 'Další', obBack: 'Zpět', obFinish: 'Dokončit', obSkip: 'Přeskočit',
     welcomeTitle: 'Vítejte v organizátoru',

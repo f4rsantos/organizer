@@ -167,7 +167,7 @@ export const fr = {
     presetLoading: 'Chargement du préréglage…', presetError: 'Échec du chargement du préréglage.', retry: 'Réessayer', skip: 'Passer',
     newColumnName: 'Nom de la nouvelle colonne',
     focusStart: 'Démarrer', focusPause: 'Pause', focusResume: 'Reprendre', focusReset: 'Réinitialiser', focusSkipBreak: 'Passer la pause',
-    focusReady: 'prêt', focusBreak: 'pause',
+    focusReady: 'prêt', focusBreak: 'pause', focusDetach: 'Détacher le minuteur flottant', focusAlwaysOnTop: 'Afficher par-dessus les autres apps',
     focusPhrases: ['continuez', 'restez concentré', 'vous vous en sortez bien', 'un pas à la fois', 'travail profond', 'restez présent'],
     focusEvery: 'toutes les (min)', focusBreakFor: 'pause (min)',
     focusScheduledMode: 'Pauses programmées',

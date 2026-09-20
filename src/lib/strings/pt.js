@@ -167,7 +167,7 @@ export const pt = {
     presetLoading: 'A carregar preset…', presetError: 'Falhou ao carregar o preset.', retry: 'Tentar novamente', skip: 'Saltar',
     newColumnName: 'Nome da nova coluna',
     focusStart: 'Iniciar', focusPause: 'Pausar', focusResume: 'Retomar', focusReset: 'Reiniciar', focusSkipBreak: 'Saltar pausa',
-    focusReady: 'pronto', focusBreak: 'pausa',
+    focusReady: 'pronto', focusBreak: 'pausa', focusDetach: 'Destacar temporizador flutuante', focusAlwaysOnTop: 'Mostrar por cima de outras apps',
     focusPhrases: ['continua', 'mantém o foco', 'estás a ir bem', 'um passo de cada vez', 'trabalho profundo', 'fica presente'],
     focusEvery: 'cada (min)', focusBreakFor: 'pausa (min)',
     focusScheduledMode: 'Pausas agendadas',

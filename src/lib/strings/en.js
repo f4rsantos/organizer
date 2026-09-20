@@ -183,7 +183,7 @@ export const en = {
     presetLoading: 'Loading preset…', presetError: 'Failed to load preset.', retry: 'Retry', skip: 'Skip',
     newColumnName: 'New column name',
     focusStart: 'Start', focusPause: 'Pause', focusResume: 'Resume', focusReset: 'Reset', focusSkipBreak: 'Skip break',
-    focusReady: 'ready', focusBreak: 'break',
+    focusReady: 'ready', focusBreak: 'break', focusDetach: 'Detach floating timer', focusAlwaysOnTop: 'Show over other apps',
     focusPhrases: ['keep going', 'stay with it', "you're doing great", 'one step at a time', 'deep work', 'stay present'],
     focusEvery: 'every (min)', focusBreakFor: 'break (min)',
     focusScheduledMode: 'Scheduled breaks',

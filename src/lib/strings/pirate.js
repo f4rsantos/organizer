@@ -167,7 +167,7 @@ export const pirate = {
   presetLoading: 'Loadin chart…', presetError: 'Chart be lost at sea.', retry: 'Try again', skip: 'Skip',
   newColumnName: 'New column name',
   focusStart: 'Set sail', focusPause: 'Drop anchor', focusResume: 'Weigh anchor', focusReset: 'Reset', focusSkipBreak: 'Skip the grog',
-  focusReady: 'ready', focusBreak: 'grog',
+  focusReady: 'ready', focusBreak: 'grog', focusDetach: 'Cast off the floatin\' timer', focusAlwaysOnTop: 'Show over the rest o\' the fleet',
   focusPhrases: ['keep sailin', 'stay the course', "ye be doin grand", 'one wave at a time', 'deep work, deep waters', 'stay on watch'],
   focusEvery: 'every (min)', focusBreakFor: 'grog (min)',
   focusScheduledMode: 'Scheduled grog',
