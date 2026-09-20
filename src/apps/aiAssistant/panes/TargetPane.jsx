@@ -5,6 +5,8 @@ import { KanbanTab } from '@/components/kanban/KanbanTab'
 import { TasksTab } from '@/components/tasks/TasksTab'
 import { NotesTab } from '@/components/notes/NotesTab'
 import { CalendarTab } from '@/components/calendar/CalendarTab'
+import { GradesTab } from '@/components/grades/GradesTab'
+import { FocusTab } from '@/components/focus/FocusTab'
 
 function targetNoteId(scope, ops) {
   const noteOp = [...ops].reverse().find(op => op.entityType === 'note')
@@ -13,11 +15,21 @@ function targetNoteId(scope, ops) {
   return null
 }
 
-export function TargetPane({ scope, run, onHide, t }) {
+const VIEWING_TAB_COMPONENTS = {
+  tasks: TasksTab,
+  kanban: KanbanTab,
+  notes: NotesTab,
+  calendar: CalendarTab,
+  grades: GradesTab,
+  focus: FocusTab,
+}
+
+export function TargetPane({ scope, run, viewingTab, onHide, t }) {
   const store = useStore.getState()
   const activeRunId = useStore(s => s.agentRuntime?.activeRunId)
   const setRequestedNote = useStore(s => s.setRequestedNote)
   const effectiveOps = run?.ops ?? run?.run?.ops ?? (activeRunId ? store.agentRuntime?.runs?.[activeRunId]?.ops : null) ?? []
+  const hasRunContent = Boolean(scope && scope.type !== 'global') || effectiveOps.length > 0
 
   const isKanban = scope?.type === 'kanban' || effectiveOps.some(op => op.entityType === 'kanbanCard' || op.patch?.columnId !== undefined || op.entity?.columnId !== undefined)
   const isTask = !isKanban && (scope?.type === 'task' || effectiveOps.some(op => op.entityType === 'task'))
@@ -29,6 +41,8 @@ export function TargetPane({ scope, run, onHide, t }) {
   useEffect(() => {
     if (noteId) setRequestedNote(noteId)
   }, [noteId, setRequestedNote])
+
+  const ViewingTabComponent = !hasRunContent ? VIEWING_TAB_COMPONENTS[viewingTab] : null
 
   return (
     <div className="h-full flex flex-col min-h-0 relative">
@@ -44,7 +58,9 @@ export function TargetPane({ scope, run, onHide, t }) {
         </button>
       )}
       <div className="flex-1 min-h-0 overflow-auto">
-        {isKanban ? (
+        {ViewingTabComponent ? (
+          <ViewingTabComponent />
+        ) : isKanban ? (
           <KanbanTab />
         ) : isTask ? (
           <TasksTab />

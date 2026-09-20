@@ -31,16 +31,6 @@ function ScopeChip({ scope, t }) {
   )
 }
 
-function ViewingTabChip({ viewingTab, t }) {
-  const label = t[viewingTab]
-  if (!label) return null
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs text-primary">
-      {label}
-    </span>
-  )
-}
-
 function FailureDetail({ error, onRetry, onDismiss, t }) {
   const store = useStore.getState()
   const { message, rejected } = describeRunError(error, t, store)
@@ -202,7 +192,7 @@ function useActiveSlots() {
   return { activeSlots, selectedSlot, setSelectedSlot }
 }
 
-function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, viewingTab, autoMode, onSetAutoMode, t, size }) {
+function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, autoMode, onSetAutoMode, t, size }) {
   const lang = useStore(s => s.lang ?? 'en')
   const { isSupported: micSupported, isListening, start, stop } = useSpeechInput({
     lang,
@@ -264,10 +254,9 @@ function GoalInput({ goal, setGoal, busy, onSubmit, onCancel, scope, viewingTab,
           className="hidden"
           onChange={handleFileChange}
         />
-        {(scope || viewingTab || attachments.length > 0) && (
+        {(scope || attachments.length > 0) && (
           <div className="flex flex-wrap items-center gap-1.5 pb-2">
             {scope && <ScopeChip scope={scope} t={t} />}
-            {viewingTab && <ViewingTabChip viewingTab={viewingTab} t={t} />}
             {attachments.map(a => (
               <span
                 key={a.name}
@@ -414,7 +403,6 @@ export function ConversationPane({
   autoMode = false,
   onSetAutoMode,
   prefillGoal = null,
-  viewingTab = null,
   t,
 }) {
   const [goal, setGoal] = useState('')
@@ -460,7 +448,6 @@ export function ConversationPane({
               onSubmit={submit}
               onCancel={onCancel}
               scope={scope}
-              viewingTab={viewingTab}
               autoMode={autoMode}
               onSetAutoMode={onSetAutoMode}
               t={t}
@@ -554,7 +541,6 @@ export function ConversationPane({
           onSubmit={submit}
           onCancel={onCancel}
           scope={scope}
-          viewingTab={viewingTab}
           autoMode={autoMode}
           onSetAutoMode={onSetAutoMode}
           t={t}

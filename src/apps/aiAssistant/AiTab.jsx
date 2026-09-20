@@ -72,7 +72,7 @@ export function AiTab() {
   const [viewingTab, setViewingTab] = useState(null)
 
   const scope = run?.run?.scope ?? null
-  const showTarget = hasTargetContent(run, status)
+  const showTarget = hasTargetContent(run, status) || Boolean(viewingTab)
   const viewRequests = run?.viewRequests ?? []
 
   const [prevViewRequestsLen, setPrevViewRequestsLen] = useState(0)
@@ -91,10 +91,7 @@ export function AiTab() {
     clearAiContextRequest()
   }
 
-  const handleStart = goal => {
-    start({ goal, scope, viewingTab })
-    setViewingTab(null)
-  }
+  const handleStart = goal => { start({ goal, scope, viewingTab }) }
   const handleCommit = runId => { commit(runId) }
   const handleDiscard = runId => { discard(runId) }
   const handleUndo = runId => {
@@ -130,7 +127,7 @@ export function AiTab() {
 
   const target = (
     <div className="h-full min-h-0 flex flex-col">
-      <TargetPane scope={scope} run={run} onHide={() => setTargetHidden(true)} t={t} />
+      <TargetPane scope={scope} run={run} viewingTab={viewingTab} onHide={() => setTargetHidden(true)} t={t} />
     </div>
   )
 
