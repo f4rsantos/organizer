@@ -73,8 +73,19 @@ export function AiTab() {
   const [viewingNoteId, setViewingNoteId] = useState(null)
 
   const scope = run?.run?.scope ?? null
-  const showTarget = hasTargetContent(run, status) || Boolean(viewingTab)
+  const runHasTarget = hasTargetContent(run, status)
+  const showTarget = runHasTarget || Boolean(viewingTab)
   const viewRequests = run?.viewRequests ?? []
+
+  const [clearedViewingForRun, setClearedViewingForRun] = useState(false)
+  if (runHasTarget && viewingTab && !clearedViewingForRun) {
+    setClearedViewingForRun(true)
+    setViewingTab(null)
+    setViewingNoteId(null)
+  }
+  if (!runHasTarget && clearedViewingForRun) {
+    setClearedViewingForRun(false)
+  }
 
   const [prevViewRequestsLen, setPrevViewRequestsLen] = useState(0)
   if (viewRequests.length !== prevViewRequestsLen) {
