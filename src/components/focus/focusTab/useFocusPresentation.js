@@ -3,17 +3,16 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useFocusClock } from '../useFocusClock'
 import { defaultFocus } from './constants'
-import { triggerFocusAlert } from '../focusAlerts'
+import { useNotify } from '@/hooks/useNotify'
 import { growthFromSecs, sizeFromPct } from '../pomodoro/utils'
 
-// Owns clock wiring, derived focus/pomodoro math, and the phase-driven effects
-// (alerts, face randomization, smoothed growth animation). FocusTab renders the result.
 export function useFocusPresentation() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const focus = useStore(s => s.settings?.focus ?? defaultFocus)
   const pomodoroEnabled = useStore(s => s.settings?.pomodoro?.enabled ?? false)
-  const focusAlertMode = useStore(s => s.settings?.focusAlertMode ?? 'none')
+  const focusAlertsEnabled = useStore(s => s.settings?.focus?.alertsEnabled ?? true)
+  const notify = useNotify()
 
   const resetSignal = useStore(s => s.resetSignal)
   const setResetSignal = useStore(s => s.setResetSignal)
@@ -70,11 +69,15 @@ export function useFocusPresentation() {
 
   useEffect(() => {
     const prevPhase = prevPhaseRef.current
-    if (running && prevPhase !== phase) {
-      triggerFocusAlert({ mode: focusAlertMode, phase, lang })
+    if (running && prevPhase !== phase && focusAlertsEnabled) {
+      notify({
+        tag: 'organiser-focus-alert',
+        title: t.focusNotifTitle,
+        body: phase === 'break' ? t.focusNotifBreakBody : t.focusNotifFocusBody,
+      }, { vibratePattern: phase === 'break' ? [22, 55, 22] : 24 })
     }
     prevPhaseRef.current = phase
-  }, [phase, running, focusAlertMode, lang])
+  }, [phase, running, focusAlertsEnabled, notify, t])
 
   useEffect(() => {
     if (phase !== 'focus') return

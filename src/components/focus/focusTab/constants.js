@@ -7,4 +7,6 @@ export const defaultFocus = {
   scheduledTimes: [],
   focusLabel: '',
   breakLabel: '',
+  alertsEnabled: true,
+  floatingWidgetEnabled: true,
 }

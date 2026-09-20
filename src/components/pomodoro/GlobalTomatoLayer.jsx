@@ -6,7 +6,7 @@ import { TomatoCircle } from '@/components/focus/pomodoro/TomatoCircle'
 import { getPeriodPomodoros, TOMATO_RADIUS } from '@/components/focus/pomodoro/utils'
 import { usePomodoroBodies } from '@/components/focus/pomodoro/usePomodoroBodies'
 
-function TomatoBodies({ containerRef, focusRunning, phase, cycleElapsed, resetSignal }) {
+function TomatoBodies({ containerRef, focusRunning, phase, cycleElapsed, resetSignal, showVisuals }) {
   const pomodoros = useStore(s => s.pomodoros ?? [])
   const addPomodoro = useStore(s => s.addPomodoro)
   const pomodoroSettings = useStore(s => s.settings?.pomodoro ?? {})
@@ -39,7 +39,7 @@ function TomatoBodies({ containerRef, focusRunning, phase, cycleElapsed, resetSi
     showPeriodStats,
   })
 
-  const renderedBodies = showAbandoned ? bodies : bodies.filter(b => !b.abandoned)
+  const renderedBodies = !showVisuals ? [] : showAbandoned ? bodies : bodies.filter(b => !b.abandoned)
 
   return (
     <div
@@ -93,7 +93,7 @@ export function GlobalTomatoLayer({ activeTab }) {
     intervalResetMode: focus.intervalResetMode ?? 'reset',
   })
 
-  const visible = enabled && (activeTab === 'focus' || showOverlay)
+  const showVisuals = activeTab === 'focus' || showOverlay
 
   return (
     <div
@@ -107,13 +107,14 @@ export function GlobalTomatoLayer({ activeTab }) {
         zIndex: 30,
       }}
     >
-      {visible && (
+      {enabled && (
         <TomatoBodies
           containerRef={containerRef}
           focusRunning={running}
           phase={phase}
           cycleElapsed={cycleElapsed}
           resetSignal={resetSignal}
+          showVisuals={showVisuals}
         />
       )}
     </div>
