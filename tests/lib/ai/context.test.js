@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildContextBlock, buildCustomInstructionsBlock, buildFollowUpOfferBlock, buildSystemPrompt, scopedEntities, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../../src/lib/ai/context'
+import { buildContextBlock, buildCustomInstructionsBlock, buildFollowUpOfferBlock, buildSystemPrompt, buildProactiveSystemPrompt, buildProactiveUserPrompt, scopedEntities, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../../src/lib/ai/context'
 
 const NOW = new Date('2026-09-12T00:00:00.000Z')
 
@@ -193,5 +193,40 @@ describe('buildCustomInstructionsBlock', () => {
   it('labels the block clearly as user preferences', () => {
     const block = buildCustomInstructionsBlock('Never touch my calendar without asking.')
     expect(block).toMatch(/USER PREFERENCES/)
+  })
+})
+
+describe('buildProactiveSystemPrompt', () => {
+  it('is a non-empty pure string with no side effects', () => {
+    const first = buildProactiveSystemPrompt()
+    const second = buildProactiveSystemPrompt()
+    expect(first).toBe(second)
+    expect(first.length).toBeGreaterThan(0)
+  })
+
+  it('names the suggest tool and allows silence as a first-class outcome', () => {
+    const prompt = buildProactiveSystemPrompt()
+    expect(prompt).toMatch(/suggest tool/)
+    expect(prompt).toMatch(/silence/i)
+  })
+})
+
+describe('buildProactiveUserPrompt', () => {
+  it('describes a known heuristic reason in plain language', () => {
+    const prompt = buildProactiveUserPrompt({ heuristic: { kind: 'task-no-due-date', title: 'Essay' }, contextBlock: 'CTX' })
+    expect(prompt).toMatch(/no due date/)
+    expect(prompt).toContain('Essay')
+    expect(prompt).toContain('CTX')
+  })
+
+  it('falls back to a generic reason for an unknown heuristic kind', () => {
+    const prompt = buildProactiveUserPrompt({ heuristic: { kind: 'unknown-kind' }, contextBlock: 'CTX' })
+    expect(prompt).toMatch(/Something changed/)
+  })
+
+  it('includes the context block under a CONTEXT heading', () => {
+    const prompt = buildProactiveUserPrompt({ heuristic: { kind: 'event-no-reminder' }, contextBlock: 'the context data' })
+    expect(prompt).toMatch(/CONTEXT/)
+    expect(prompt).toContain('the context data')
   })
 })

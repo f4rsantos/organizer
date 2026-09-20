@@ -5,6 +5,7 @@ import { BudgetMeter } from './BudgetMeter'
 import { ToolSupportWarningBanner } from './ToolSupportWarningBanner'
 import { AiGeneralSettings } from './AiGeneralSettings'
 import { AiPreferences } from './AiPreferences'
+import { ProactiveModeToggle } from './ProactiveModeToggle'
 import { SLOT_ORDER, isSlotFilled } from './aiSlotHelpers'
 
 export function ConfiguredView({
@@ -12,6 +13,7 @@ export function ConfiguredView({
   onSlotChange, onSlotClear,
   autoMode, onAutoModeChange, defaultSlot, onDefaultSlotChange, shortcut, onShortcutChange,
   customInstructions, onCustomInstructionsChange,
+  proactiveMode, onProactiveModeChange,
 }) {
   const [toolWarnings, setToolWarnings] = useState({})
   const connected = isSlotFilled(slots.medium)
@@ -48,6 +50,8 @@ export function ConfiguredView({
         />
 
         <AiPreferences t={t} value={customInstructions} onChange={onCustomInstructionsChange} />
+
+        <ProactiveModeToggle t={t} enabled={proactiveMode} onChange={onProactiveModeChange} />
       </div>
 
       <div className="hidden md:block w-px bg-border self-stretch" />

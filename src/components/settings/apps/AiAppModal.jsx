@@ -74,6 +74,10 @@ export function AiAppModal({ open, onOpenChange }) {
     persistAiSettings({ ...aiSettings, customInstructions: value })
   }
 
+  const handleProactiveModeChange = value => {
+    persistAiSettings({ ...aiSettings, proactiveMode: Boolean(value) })
+  }
+
   const shortcut = apps.aiAssistantShortcut ?? null
   const defaultSlot = aiSettings.selectedSlot ?? 'medium'
 
@@ -109,7 +113,9 @@ export function AiAppModal({ open, onOpenChange }) {
               defaultSlot={defaultSlot} onDefaultSlotChange={handleDefaultSlotChange}
               shortcut={shortcut} onShortcutChange={handleShortcutChange}
               customInstructions={aiSettings.customInstructions ?? ''}
-              onCustomInstructionsChange={handleCustomInstructionsChange} />
+              onCustomInstructionsChange={handleCustomInstructionsChange}
+              proactiveMode={aiSettings.proactiveMode === true}
+              onProactiveModeChange={handleProactiveModeChange} />
           ) : (
             <div className="space-y-6 border-t border-border/50 pt-4">
               <p className="text-xs text-muted-foreground leading-relaxed">{t.aiSetupIntro}</p>

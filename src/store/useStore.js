@@ -169,6 +169,7 @@ function buildInitialState() {
     activeTab: null,
     currentTab: null,
     aiContextRequest: null,
+    proactiveSuggestion: null,
     requestedNoteId: null,
     scheduleImports: [],
     activeSemesterId: null,
@@ -277,6 +278,14 @@ export const useStore = create((set, get) => ({
   setCurrentTab: tab => set(s => ({ ...s, currentTab: tab })),
   requestAiContext: tab => set(s => ({ ...s, activeTab: 'aiAssistant', aiContextRequest: { tab, at: Date.now() } })),
   clearAiContextRequest: () => set(s => ({ ...s, aiContextRequest: null })),
+  setProactiveSuggestion: suggestion => set(s => ({ ...s, proactiveSuggestion: suggestion })),
+  clearProactiveSuggestion: () => set(s => ({ ...s, proactiveSuggestion: null })),
+  openProactiveSuggestion: suggestion => set(s => ({
+    ...s,
+    activeTab: 'aiAssistant',
+    proactiveSuggestion: null,
+    aiContextRequest: { tab: 'aiAssistant', suggestionText: suggestion?.text ?? '', at: Date.now() },
+  })),
   setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
 
   // Find-or-create the note linked to a calendar event/occurrence. `key` is

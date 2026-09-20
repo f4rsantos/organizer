@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { runAgentLoop, BULK_OP_THRESHOLD } from '../../../src/lib/ai/runLoop'
+import { runAgentLoop, runProactiveSuggestion, BULK_OP_THRESHOLD } from '../../../src/lib/ai/runLoop'
 import * as research from '../../../src/lib/ai/research'
 
 const MEDIUM_SLOT = { provider: 'anthropic', model: 'claude-medium' }
@@ -739,5 +739,121 @@ describe('runAgentLoop one-shot tier', () => {
 
     expect(send).toHaveBeenCalledTimes(1)
     expect(result.requestCount).toBe(1)
+  })
+})
+
+describe('runProactiveSuggestion', () => {
+  const HEURISTIC = { kind: 'task-no-due-date', title: 'Essay' }
+
+  it('makes exactly one request and returns the suggestion text', async () => {
+    const send = vi.fn().mockResolvedValue(okResult({
+      toolCalls: [{ name: 'suggest', args: { suggestion: 'Want to add a due date?' } }],
+    }))
+
+    const result = await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: SLOTS,
+    })
+
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(result.ok).toBe(true)
+    expect(result.suggestion).toBe('Want to add a due date?')
+    expect(result.requests).toHaveLength(1)
+  })
+
+  it('treats an omitted suggestion argument as no suggestion, not an error', async () => {
+    const send = vi.fn().mockResolvedValue(okResult({
+      toolCalls: [{ name: 'suggest', args: {} }],
+    }))
+
+    const result = await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: SLOTS,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.suggestion).toBeNull()
+  })
+
+  it('treats a blank suggestion string as no suggestion', async () => {
+    const send = vi.fn().mockResolvedValue(okResult({
+      toolCalls: [{ name: 'suggest', args: { suggestion: '   ' } }],
+    }))
+
+    const result = await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: SLOTS,
+    })
+
+    expect(result.suggestion).toBeNull()
+  })
+
+  it('fails without making a request when no slot is configured', async () => {
+    const send = vi.fn()
+
+    const result = await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: {},
+    })
+
+    expect(send).not.toHaveBeenCalled()
+    expect(result.ok).toBe(false)
+    expect(result.error?.kind).toBe('no-slot-configured')
+  })
+
+  it('fails without making a request when the daily budget is exhausted', async () => {
+    const send = vi.fn()
+
+    const result = await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: { low: { ...MEDIUM_SLOT, dailyCap: 1 } },
+      context: { budgetState: { day: 'today', slots: { low: { requestCount: 1 } } } },
+    })
+
+    expect(send).not.toHaveBeenCalled()
+    expect(result.ok).toBe(false)
+    expect(result.error?.kind).toBe('budget-exhausted')
+  })
+
+  it('prefers the low slot over medium when both are configured', async () => {
+    const send = vi.fn().mockResolvedValue(okResult({ toolCalls: [{ name: 'suggest', args: {} }] }))
+    const LOW_SLOT = { provider: 'anthropic', model: 'claude-low' }
+
+    await runProactiveSuggestion({
+      send,
+      resolveCredentials,
+      store: store(),
+      scope: null,
+      heuristic: HEURISTIC,
+      optimizeFor: 'requests',
+      slots: { low: LOW_SLOT, medium: MEDIUM_SLOT },
+    })
+
+    expect(send.mock.calls[0][0].model).toBe('claude-low')
   })
 })

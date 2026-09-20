@@ -28,6 +28,7 @@ import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
 import { NotificationsHost } from '@/components/notifications/NotificationsHost'
 import { CollabAliasPromptModal } from '@/components/collab/CollabAliasPromptModal'
+import { ProactiveSuggestionHost } from '@/components/ai/ProactiveSuggestionHost'
 import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
@@ -349,6 +350,7 @@ export default function App() {
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
       <NotificationsHost />
       <CollabAliasPromptModal />
+      <ProactiveSuggestionHost />
       <FloatingFocusWidget />
     </AppShell>
   )

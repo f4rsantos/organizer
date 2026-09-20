@@ -1,5 +1,5 @@
-import { buildContextBlock, buildSystemPrompt, scopedEntities } from '@/lib/ai/context'
-import { buildNeutralTools } from '@/lib/ai/tools'
+import { buildContextBlock, buildSystemPrompt, buildProactiveSystemPrompt, buildProactiveUserPrompt, scopedEntities } from '@/lib/ai/context'
+import { buildNeutralTools, buildProactiveTools } from '@/lib/ai/tools'
 import { routeRun, routeRetry, clampIterationCap, DEFAULT_ITERATION_CAP } from '@/lib/ai/router'
 import { canStartRun } from '@/lib/ai/budget'
 import { validateOps } from '@/lib/ai/validate'
@@ -8,7 +8,74 @@ import { applyOpsToRun } from '@/lib/ai/apply'
 import { getProvider } from '@/lib/ai/providers/index'
 import { performResearch } from '@/lib/ai/research'
 import { docToMarkdownForAgent } from '@/lib/ai/markdown'
+import { resolveSlot } from '@/lib/ai/slots'
 import { nanoid } from '@/lib/ids'
+
+const PROACTIVE_SLOT_PREFERENCE = ['low', 'medium']
+
+function resolveProactiveSlot(slots) {
+  for (const slotName of PROACTIVE_SLOT_PREFERENCE) {
+    const { slot, resolvedFrom } = resolveSlot(slots, slotName)
+    if (slot) return { slot, slotName: resolvedFrom }
+  }
+  return { slot: null, slotName: null }
+}
+
+export async function runProactiveSuggestion({
+  send,
+  resolveCredentials,
+  store,
+  scope,
+  heuristic,
+  optimizeFor,
+  slots,
+  context = {},
+}) {
+  const { slot, slotName } = resolveProactiveSlot(slots)
+  if (!slot) {
+    return { ok: false, suggestion: null, error: { kind: 'no-slot-configured' }, requests: [] }
+  }
+
+  const budgetCheck = canStartRun({
+    state: context.budgetState,
+    slotName,
+    dailyCap: slots?.[slotName]?.dailyCap,
+    estimatedRequestsNeeded: 1,
+  })
+  if (!budgetCheck.allowed) {
+    return { ok: false, suggestion: null, error: { kind: 'budget-exhausted', reason: budgetCheck.reason }, requests: [] }
+  }
+
+  const contextBlock = buildContextBlock({ store, scope, optimizeFor })
+  const systemPrompt = buildProactiveSystemPrompt()
+  const userContent = buildProactiveUserPrompt({ heuristic, contextBlock })
+  const credentials = resolveCredentials?.(slot?.provider)
+
+  const result = await send({
+    provider: slot?.provider,
+    baseUrl: credentials?.baseUrl,
+    apiKey: credentials?.apiKey,
+    model: slot?.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    tools: buildProactiveTools(),
+    stream: false,
+  })
+
+  const requestRecord = { slot: slotName, model: slot?.model, usage: result.usage, ok: result.ok }
+
+  if (!result.ok) {
+    return { ok: false, suggestion: null, error: result.error, requests: [requestRecord] }
+  }
+
+  const suggestCall = (result.toolCalls ?? []).find(call => call?.name === 'suggest')
+  const rawSuggestion = suggestCall?.args?.suggestion
+  const suggestion = typeof rawSuggestion === 'string' && rawSuggestion.trim() ? rawSuggestion.trim() : null
+
+  return { ok: true, suggestion, error: null, requests: [requestRecord] }
+}
 
 export const BULK_OP_THRESHOLD = 5
 export const HISTORY_MAX_MESSAGES = 20

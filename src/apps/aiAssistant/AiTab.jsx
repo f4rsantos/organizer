@@ -21,8 +21,9 @@ const TAB_CONTEXT_LABEL_KEYS = {
   focus: 'aiContextTabFocus',
 }
 
-function contextGoalPrefix(tab, t) {
-  const key = TAB_CONTEXT_LABEL_KEYS[tab]
+function contextGoalPrefix(request, t) {
+  if (request?.suggestionText) return request.suggestionText
+  const key = TAB_CONTEXT_LABEL_KEYS[request?.tab]
   if (!key) return ''
   const label = t[key]
   if (!label) return ''
@@ -96,7 +97,7 @@ export function AiTab() {
   const [handledContextRequest, setHandledContextRequest] = useState(null)
   if (aiContextRequest && handledContextRequest !== aiContextRequest) {
     setHandledContextRequest(aiContextRequest)
-    setContextGoal(contextGoalPrefix(aiContextRequest.tab, t))
+    setContextGoal(contextGoalPrefix(aiContextRequest, t))
     setTargetHidden(false)
     setMobileView(VIEW_CONVERSATION)
     clearAiContextRequest()

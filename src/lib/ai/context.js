@@ -284,3 +284,35 @@ export function buildSystemPrompt({ optimizeFor, customInstructions } = {}) {
   if (customBlock) lines.push(customBlock)
   return lines.join('\n')
 }
+
+const PROACTIVE_SYSTEM_PROMPT_LINES = [
+  'You are the quiet proactive layer of a personal organizer app. You are not having a conversation and the user cannot see this turn unless you produce a suggestion.',
+  'You will be given a short description of a recent change the user made and a local heuristic\'s guess at why it might be worth a comment.',
+  'Call the suggest tool exactly once. If you have a genuinely useful, brief, specific suggestion related to that change, pass it as the "suggestion" argument, phrased as a short friendly sentence in the second person. If you do not have anything worth surfacing, call suggest with no "suggestion" argument at all — silence is the expected, common outcome, not a fallback.',
+  'Never invent unrelated suggestions, never repeat the heuristic reason verbatim, and never ask a question that requires more context than you were given.',
+]
+
+export function buildProactiveSystemPrompt() {
+  return PROACTIVE_SYSTEM_PROMPT_LINES.join('\n')
+}
+
+const PROACTIVE_HEURISTIC_REASON_LABELS = {
+  'task-no-due-date': 'A task was added with no due date',
+  'task-due-date-removed': 'A task lost its due date',
+  'kanban-card-done-with-open-checklist': 'A kanban card was moved to a done-like column while its checklist still has open items',
+  'event-no-reminder': 'A calendar event was added with no reminder',
+  'grade-component-no-weight': 'A grade component was saved with no weight',
+  'app-open-overdue-tasks': 'The user just opened the app and has overdue tasks',
+}
+
+export function buildProactiveUserPrompt({ heuristic, contextBlock }) {
+  const reason = PROACTIVE_HEURISTIC_REASON_LABELS[heuristic?.kind] ?? 'Something changed that might be worth a comment'
+  const title = heuristic?.title ? ` ("${heuristic.title}")` : ''
+  const lines = [
+    `${reason}${title}.`,
+    '',
+    'CONTEXT',
+    contextBlock ?? '',
+  ]
+  return lines.filter(Boolean).join('\n')
+}

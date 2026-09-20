@@ -145,3 +145,19 @@ export function buildNeutralTools({ optimizeFor } = {}) {
   }
   return [...BASE_TOOLS]
 }
+
+export const SUGGEST_TOOL = {
+  name: 'suggest',
+  description: 'Report whether you have a brief proactive suggestion worth surfacing to the user. Omit the "suggestion" argument entirely when you do not have one — do not pass an empty string.',
+  parameters: {
+    type: 'object',
+    properties: {
+      suggestion: { type: 'string' },
+    },
+    required: [],
+  },
+}
+
+export function buildProactiveTools() {
+  return [SUGGEST_TOOL]
+}

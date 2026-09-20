@@ -1,6 +1,7 @@
 import { readJson, writeJson } from '@/lib/safeStorage'
 
 const CONSENT_STORAGE_KEY = 'f4rsantos.github.io/organizer:ai-consent'
+const PROACTIVE_CONSENT_STORAGE_KEY = 'f4rsantos.github.io/organizer:ai-proactive-consent'
 const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '0.0.0.0']
 
 export function isLocalBaseUrl(baseUrl) {
@@ -38,4 +39,16 @@ export function grantConsent(provider, baseUrl) {
 
 export function clearAllConsent() {
   writeJson(CONSENT_STORAGE_KEY, [])
+}
+
+export function hasAcceptedProactiveConsent() {
+  return readJson(PROACTIVE_CONSENT_STORAGE_KEY, false) === true
+}
+
+export function grantProactiveConsent() {
+  writeJson(PROACTIVE_CONSENT_STORAGE_KEY, true)
+}
+
+export function clearProactiveConsent() {
+  writeJson(PROACTIVE_CONSENT_STORAGE_KEY, false)
 }
