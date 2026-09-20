@@ -18,7 +18,7 @@ function contextGoalPrefill(request) {
 
 function MobileViewSwitch({ view, onChange, t }) {
   return (
-    <div className="flex items-center gap-4 px-3 pt-3 border-b border-border md:hidden">
+    <div className="flex items-center gap-4 px-3 pt-3 md:hidden">
       <button
         type="button"
         onClick={() => onChange(VIEW_CONVERSATION)}

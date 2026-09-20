@@ -12,7 +12,7 @@ export function LangToggle() {
     <Select value={lang} onValueChange={setLang}>
       <SelectTrigger
         size="sm"
-        className="h-8 gap-1.5 rounded-full border-none px-2.5 text-xs font-semibold text-muted-foreground shadow-none hover:bg-accent"
+        className="h-8 gap-1.5 rounded-full border-none bg-transparent px-2.5 text-xs font-semibold text-muted-foreground shadow-none hover:bg-accent dark:bg-transparent dark:hover:bg-accent"
         aria-label="Language">
         <SelectValue>{current.short}</SelectValue>
       </SelectTrigger>
