@@ -167,7 +167,7 @@ export const es = {
     presetLoading: 'Cargando preajuste…', presetError: 'Error al cargar el preajuste.', retry: 'Reintentar', skip: 'Omitir',
     newColumnName: 'Nombre de la nueva columna',
     focusStart: 'Iniciar', focusPause: 'Pausar', focusResume: 'Reanudar', focusReset: 'Reiniciar', focusSkipBreak: 'Saltar descanso',
-    focusReady: 'listo', focusBreak: 'descanso',
+    focusReady: 'listo', focusBreak: 'descanso', focusDetach: 'Separar temporizador flotante', focusAlwaysOnTop: 'Mostrar sobre otras apps',
     focusPhrases: ['sigue así', 'mantente en ello', 'lo estás haciendo genial', 'paso a paso', 'trabajo profundo', 'mantente presente'],
     focusEvery: 'cada (min)', focusBreakFor: 'descanso (min)',
     focusScheduledMode: 'Descansos programados',

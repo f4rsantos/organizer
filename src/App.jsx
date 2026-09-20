@@ -14,6 +14,7 @@ import { KanbanTab } from '@/components/kanban/KanbanTab'
 import { GradesTab } from '@/components/grades/GradesTab'
 import { CalendarTab } from '@/components/calendar/CalendarTab'
 import { FocusTab } from '@/components/focus/FocusTab'
+import { FloatingFocusWidget } from '@/components/focus/FloatingFocusWidget'
 import { SettingsTab } from '@/components/settings/SettingsTab'
 import { getAppTabs, getAppById } from '@/apps/registry'
 import { StorageWarningModal } from '@/components/common/StorageWarningModal'
@@ -348,6 +349,7 @@ export default function App() {
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
       <NotificationsHost />
       <CollabAliasPromptModal />
+      <FloatingFocusWidget />
     </AppShell>
   )
 }

@@ -167,7 +167,7 @@ export const de = {
     presetLoading: 'Vorlage wird geladen…', presetError: 'Vorlage konnte nicht geladen werden.', retry: 'Erneut versuchen', skip: 'Überspringen',
     newColumnName: 'Name der neuen Spalte',
     focusStart: 'Start', focusPause: 'Pause', focusResume: 'Fortsetzen', focusReset: 'Zurücksetzen', focusSkipBreak: 'Pause überspringen',
-    focusReady: 'bereit', focusBreak: 'Pause',
+    focusReady: 'bereit', focusBreak: 'Pause', focusDetach: 'Schwebenden Timer lösen', focusAlwaysOnTop: 'Über anderen Apps anzeigen',
     focusPhrases: ['weiter so', 'bleib dran', 'du machst das großartig', 'Schritt für Schritt', 'tiefe Arbeit', 'bleib präsent'],
     focusEvery: 'alle (Min)', focusBreakFor: 'Pause (Min)',
     focusScheduledMode: 'Geplante Pausen',
