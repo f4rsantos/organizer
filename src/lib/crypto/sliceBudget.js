@@ -1,6 +1,9 @@
-import { DATA_SLICES } from './sliceCodec'
+import { DATA_SLICES, LOCAL_SLICES } from './sliceCodec'
+
+const BUDGETED_SLICES = [...DATA_SLICES, ...LOCAL_SLICES]
 
 export const SHED_ORDER = [
+  'agentJournal', 'agentRuntime',
   'pomodoros', 'taskAlertStates', 'notes', 'grades', 'kanban', 'tasks',
 ]
 
@@ -23,7 +26,7 @@ export function predictSliceChars(value) {
 export function predictContainerBytes(state, omitted = []) {
   const omit = new Set(omitted)
   let chars = CONTAINER_OVERHEAD + JSON.stringify(state?.version ?? 0).length
-  for (const slice of DATA_SLICES) {
+  for (const slice of BUDGETED_SLICES) {
     if (omit.has(slice)) continue
     chars += slice.length + predictSliceChars(state?.[slice])
   }

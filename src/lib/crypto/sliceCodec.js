@@ -12,9 +12,45 @@ export const DATA_SLICES = [
   'presetUpdatedAt', 'scheduleImports',
 ]
 
+export const LOCAL_SLICES = ['agentJournal', 'agentRuntime']
+
+function withoutEntities(run) {
+  if (!run || typeof run !== 'object') return run
+  const rest = { ...run }
+  delete rest.entities
+  return rest
+}
+
+const LOCAL_SLICE_SANITIZERS = {
+  agentRuntime: value => {
+    if (!value || typeof value !== 'object') return value
+    const rest = withoutEntities(value)
+    if (!rest.runs || typeof rest.runs !== 'object') return rest
+    const runs = {}
+    for (const [runId, run] of Object.entries(rest.runs)) {
+      runs[runId] = withoutEntities(run)
+    }
+    return { ...rest, runs }
+  },
+}
+
+function sanitizeLocalSlice(slice, value) {
+  const sanitize = LOCAL_SLICE_SANITIZERS[slice]
+  return sanitize ? sanitize(value) : value
+}
+
 export const TRANSIENT_KEYS = [
   'activeTab', 'resetSignal', 'collabRuntime', 'hydrated', 'dirtiedBeforeHydrate',
 ]
+
+export function stripLocalSlices(state) {
+  const result = {}
+  for (const [key, value] of Object.entries(state ?? {})) {
+    if (LOCAL_SLICES.includes(key)) continue
+    result[key] = value
+  }
+  return result
+}
 
 export function isContainer(value) {
   return Boolean(value && typeof value === 'object' && CONTAINER_FORMATS.includes(value.format))
@@ -50,10 +86,11 @@ export async function encodeSlices({
   const dirty = dirtySlices ? new Set(dirtySlices) : null
   const previous = previousContainer?.slices ?? {}
 
-  for (const slice of DATA_SLICES) {
+  for (const slice of [...DATA_SLICES, ...LOCAL_SLICES]) {
     if (omit.has(slice)) continue
 
-    const value = state?.[slice]
+    const rawValue = state?.[slice]
+    const value = LOCAL_SLICES.includes(slice) ? sanitizeLocalSlice(slice, rawValue) : rawValue
     if (value === undefined) {
       slices[slice] = null
       continue

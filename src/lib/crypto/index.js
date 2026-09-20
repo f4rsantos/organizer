@@ -47,8 +47,8 @@ export {
 } from './mnemonic'
 
 export {
-  CONTAINER_FORMAT, META_KEYS, DATA_SLICES, TRANSIENT_KEYS,
-  isContainer, isEncryptedContainer, stripTransient, encodeSlices, decodeSlices,
+  CONTAINER_FORMAT, META_KEYS, DATA_SLICES, LOCAL_SLICES, TRANSIENT_KEYS,
+  isContainer, isEncryptedContainer, stripTransient, stripLocalSlices, encodeSlices, decodeSlices,
 } from './sliceCodec'
 
 export {

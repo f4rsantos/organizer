@@ -132,6 +132,6 @@ export default defineConfig({
   base: BASE_PATH,
   test: {
     environment: 'node',
-    include: ['src/**/*.test.js'],
+    include: ['tests/**/*.test.js'],
   },
 })
