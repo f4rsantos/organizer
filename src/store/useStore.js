@@ -1113,6 +1113,10 @@ export const useStore = create((set, get) => ({
     // in two on every team.
     const collabUserId = next.collab?.userId ?? s.collab?.userId ?? null
     cacheCollabUserId(collabUserId)
+    const aliasPromptedTeamIds = Array.from(new Set([
+      ...(s.collab?.aliasPromptedTeamIds ?? []),
+      ...(next.collab?.aliasPromptedTeamIds ?? []),
+    ]))
     return persist({
       ...next,
       settings,
@@ -1124,6 +1128,7 @@ export const useStore = create((set, get) => ({
           ...mergedMemberships,
           ...localMemberships.filter(m => !remoteTeamIds.has(m.teamId)),
         ],
+        aliasPromptedTeamIds,
       },
       collabRuntime: s.collabRuntime ?? { teams: {} },
       activeTab: s.activeTab,
