@@ -1,6 +1,10 @@
 export const EMPTY = []
 export const ROOT = '__root__'
 
+export function noteHasContent(note) {
+  return Boolean(note?.body?.trim()) || (note?.strokes?.length ?? 0) > 0
+}
+
 export function noteOrder(a, b) {
   return (b.favorite - a.favorite) || ((a.order ?? 0) - (b.order ?? 0)) || (b.updatedAt - a.updatedAt)
 }
@@ -37,6 +41,11 @@ export function formatFolderNoteCount(count, t) {
   if (count === 0) return t.notesEmptyFolder || '0 notes'
   const unit = count === 1 ? (t.noteWordsSingle || 'note') : (t.notes || 'notes')
   return `${count} ${unit}`
+}
+
+export function selectMosaicNotes(sortedFiltered, searching, currentFolder) {
+  if (searching) return sortedFiltered
+  return sortedFiltered.filter(n => (n.folderId ?? null) === currentFolder)
 }
 
 export function computeReorderTarget(itemIds, activeId, overId, action) {

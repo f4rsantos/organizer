@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 
 const AWAY_GRACE_SECS = 60
+let reconciledStartedAt = null
 
 function nowSecs() { return Math.floor(Date.now() / 1000) }
 
@@ -70,6 +71,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
       : null
 
   const rawElapsedSinceStart = useMemo(() => {
+    void tick
     if (!running || startedAt == null) return 0
     return Math.max(0, nowSecs() - startedAt)
   }, [running, startedAt, tick])
@@ -93,11 +95,13 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     : 0
 
   const secsToNextBreak = useMemo(() => {
+    void tick
     if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
     return secsUntilNextBreak(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])
 
   const scheduledPct = useMemo(() => {
+    void tick
     if (!useScheduled || scheduledTimes.length === 0 || phase !== 'focus') return null
     return scheduledWindowProgress(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])
@@ -112,14 +116,14 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     setFocusSync(data)
   }, [setFocusSync])
 
-  const didReconcileRef = useRef(false)
-
   const nextTotalBaseAfterBreak = useCallback((savedTotalElapsedBase) => {
     return intervalResetMode === 'continue' ? savedTotalElapsedBase : 0
   }, [intervalResetMode])
 
   const reconcileAwayGap = useCallback(() => {
     if (!running || startedAt == null) return
+    if (reconciledStartedAt === startedAt) return
+    reconciledStartedAt = startedAt
     const gap = Math.max(0, nowSecs() - startedAt)
 
     if (phase === 'focus') {
@@ -151,8 +155,6 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   }, [running, startedAt, phase, useInterval, intervalSecs, cycleElapsedBase, breakDuration, breakSecsLeftBase, totalElapsedBase, nextTotalBaseAfterBreak, commit])
 
   useEffect(() => {
-    if (didReconcileRef.current) return
-    didReconcileRef.current = true
     reconcileAwayGap()
   }, [reconcileAwayGap])
 

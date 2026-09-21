@@ -11,9 +11,11 @@ export function useWeatherForecast() {
   const coords = useStore(s => s.settings?.weatherCoords ?? null)
   const updateSettings = useStore(s => s.updateSettings)
   const [days, setDays] = useState(cache?.key === city ? cache.days : null)
+  const inactive = !enabled || !city
+  if (inactive && days !== null) setDays(null)
 
   useEffect(() => {
-    if (!enabled || !city) { setDays(null); return }
+    if (!enabled || !city) return
     let cancelled = false
 
     const run = async () => {
@@ -38,12 +40,14 @@ export function useWeatherForecast() {
         const forecast = await fetchDailyForecast(point.lat, point.lon)
         cache = { key: city, expires: Date.now() + CACHE_TTL_MS, days: forecast }
         if (!cancelled) setDays(forecast)
-      } catch {}
+      } catch {
+        void 0
+      }
     }
 
     run()
     return () => { cancelled = true }
-  }, [enabled, city, coords])
+  }, [enabled, city, coords, updateSettings])
 
   return days
 }

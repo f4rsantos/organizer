@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { buildFolderTrail, formatFolderNoteCount, sortMosaicItems } from './notesUtils'
 
-function BreadcrumbCrumb({ id, label, isLast, onNavigate, dragging, t }) {
+function BreadcrumbCrumb({ id, label, isLast, onNavigate, dragging }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `__crumb__${id ?? 'root'}`,
     data: { type: 'breadcrumb_drop', folderId: id },
@@ -43,7 +43,7 @@ function BreadcrumbCrumb({ id, label, isLast, onNavigate, dragging, t }) {
   )
 }
 
-function MoveOutDropZone({ parentId, parentName, t }) {
+function MoveOutDropZone({ parentId, parentName }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `__move_out__${parentId ?? 'root'}`,
     data: { type: 'breadcrumb_drop', folderId: parentId },
@@ -68,7 +68,7 @@ function MoveOutDropZone({ parentId, parentName, t }) {
   )
 }
 
-function Breadcrumb({ trail, onNavigate, dragging, currentFolderId, t }) {
+function Breadcrumb({ trail, onNavigate, dragging, t }) {
   if (!trail.length) return null
 
   const parentFolder = trail.length > 1 ? trail[trail.length - 2] : null
@@ -90,7 +90,7 @@ function Breadcrumb({ trail, onNavigate, dragging, currentFolderId, t }) {
 
         <span className="text-muted-foreground/30">|</span>
 
-        <BreadcrumbCrumb id={null} label={t.notes || 'All Notes'} isLast={false} onNavigate={onNavigate} dragging={dragging} t={t} />
+        <BreadcrumbCrumb id={null} label={t.notes || 'All Notes'} isLast={false} onNavigate={onNavigate} dragging={dragging} />
 
         {trail.map((folder, i) => (
           <span key={folder.id} className="flex items-center gap-1">
@@ -101,14 +101,13 @@ function Breadcrumb({ trail, onNavigate, dragging, currentFolderId, t }) {
               isLast={i === trail.length - 1}
               onNavigate={onNavigate}
               dragging={dragging}
-              t={t}
             />
           </span>
         ))}
       </div>
 
       {dragging && (
-        <MoveOutDropZone parentId={parentId} parentName={parentName} t={t} />
+        <MoveOutDropZone parentId={parentId} parentName={parentName} />
       )}
     </div>
   )
@@ -293,16 +292,16 @@ export function NoteGrid({
   const folderName = id => folders.find(f => f.id === id)?.name
 
   const trail = flat ? [] : buildFolderTrail(folders, currentFolderId)
-  const childFolders = flat
-    ? []
-    : folders.filter(f => (f.parentId ?? null) === currentFolderId)
 
-  const gridItems = useMemo(() => sortMosaicItems(childFolders, notes), [childFolders, notes])
+  const gridItems = useMemo(() => {
+    const childFolders = flat ? [] : folders.filter(f => (f.parentId ?? null) === currentFolderId)
+    return sortMosaicItems(childFolders, notes)
+  }, [flat, folders, currentFolderId, notes])
   const isEmpty = !gridItems.length
 
   return (
     <div>
-      {!flat && <Breadcrumb trail={trail} onNavigate={onOpenFolder} dragging={Boolean(active)} currentFolderId={currentFolderId} t={t} />}
+      {!flat && <Breadcrumb trail={trail} onNavigate={onOpenFolder} dragging={Boolean(active)} t={t} />}
       <SortableContext items={gridItems.map(item => item.id)} strategy={rectSortingStrategy}>
         <div className="pt-3.5 grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
           {gridItems.map(item => (

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
-import { stripTransient } from '@/lib/crypto'
+import { stripTransient, stripLocalSlices } from '@/lib/crypto'
 import { createSyncQueue, requestPush, markPulled, markPushed } from '@/lib/syncQueue'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
@@ -10,7 +10,7 @@ const PUSH_DEBOUNCE_MS = 1000
 const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
-  const state = stripTransient(useStore.getState())
+  const state = stripLocalSlices(stripTransient(useStore.getState()))
   const notes = (state.notes ?? []).filter(n => !n.offlineOnly)
   return JSON.parse(JSON.stringify({ ...state, notes }))
 }

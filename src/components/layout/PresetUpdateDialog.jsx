@@ -23,16 +23,16 @@ export function PresetUpdateDialog() {
   const [updating, setUpdating] = useState(false)
 
   const semester = semesters.find(s => s.id === activeSemesterId)
+  const storedUpdatedAt = semester?.presetKey ? (presetUpdatedAt[semester.presetKey] ?? null) : null
 
   useEffect(() => {
     if (!semester?.presetKey) return
     let cancelled = false
-    const stored = presetUpdatedAt[semester.presetKey] ?? null
-    checkPresetUpdateAvailable(semester.presetKey, stored).then(result => {
+    checkPresetUpdateAvailable(semester.presetKey, storedUpdatedAt).then(result => {
       if (!cancelled) setAvailable(result)
     })
     return () => { cancelled = true }
-  }, [semester?.presetKey, activeSemesterId])
+  }, [semester?.presetKey, activeSemesterId, storedUpdatedAt])
 
   const handleUpdate = async () => {
     if (!semester?.presetKey || !activeSemesterId) return

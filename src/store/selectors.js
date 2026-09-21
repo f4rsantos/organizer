@@ -1,5 +1,6 @@
 import { computeCurrentWeek, computeWeekCount } from '@/lib/semesterUtils'
 import { weightedAverage, neededGrade, ectsWeightedAverage } from '@/lib/gradeUtils'
+import { isInFlightStatus } from '@/lib/ai/agentOverlay'
 
 export function selectActiveSemester(state) {
   return state.semesters.find(s => s.id === state.activeSemesterId) ?? null
@@ -37,4 +38,17 @@ export function selectSemesterGPA(semId, state) {
     return { ...cls, finalGrade }
   })
   return ectsWeightedAverage(classData)
+}
+
+export function selectActiveAgentRunPill(state) {
+  const runId = state.agentRuntime?.activeRunId
+  const run = runId ? state.agentRuntime?.runs?.[runId] : null
+  if (!run) return null
+  const opCount = run.ops?.length ?? 0
+  if (isInFlightStatus(run.status)) return { runId, phase: 'working', opCount }
+  if (run.status === 'awaitingConfirm') return { runId, phase: 'awaitingConfirm', opCount }
+  if (run.status === 'failed') return { runId, phase: 'failed', opCount }
+  if (run.status === 'interrupted') return { runId, phase: 'interrupted', opCount }
+  if (run.status === 'committed') return { runId, phase: 'done', opCount }
+  return null
 }

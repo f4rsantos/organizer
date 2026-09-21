@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BellRing, Clock3, X } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
+import { useNotify } from '@/hooks/useNotify'
 import {
   buildScheduledTaskReminderTag,
   clearScheduledTaskReminders,
   reconcileScheduledTaskReminders,
   supportsOfflineTaskReminderScheduling,
-  triggerTaskDueNotification,
 } from '@/components/focus/focusAlerts'
 import {
   dueDateToKey,
@@ -36,7 +36,8 @@ function canShowAlert(state, nowMinutes) {
 
 export function TaskAlertsPanel({ tasks, classNameById }) {
   const teamUserId = useTeamUserId()
-  const taskAlertMode = useStore(s => s.settings?.taskAlertMode ?? 'none')
+  const taskAlertsEnabled = useStore(s => s.settings?.taskAlertsEnabled ?? false)
+  const taskAlertsInApp = useStore(s => s.settings?.taskAlertsInApp ?? true)
   const taskAlertNextDayTime = useStore(s => s.settings?.taskAlertNextDayTime ?? '18:00')
   const taskAlertStates = useStore(s => s.taskAlertStates ?? {})
   const reminderOffsets = useStore(s => s.settings?.taskReminderOffsets) ?? DEFAULT_OFFSETS
@@ -45,6 +46,7 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
   const setTaskAlertReminder = useStore(s => s.setTaskAlertReminder)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
+  const notify = useNotify()
   const notifiedRef = useRef(new Set())
   const [timeByTask, setTimeByTask] = useState({})
   const [reminderTask, setReminderTask] = useState(null)
@@ -57,9 +59,9 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
 
   // Shared tasks come from different teams, so doneBy has to be read with the
   // identity for that task's team rather than one id for the whole panel.
-  const isTaskDone = task => (task?.sharedMeta?.remote
+  const isTaskDone = useCallback(task => (task?.sharedMeta?.remote
     ? !!task.doneForAll || !!task?.doneBy?.[teamUserId(entityTeamId(task))]
-    : !!task.done)
+    : !!task.done), [teamUserId])
 
   const dueToday = useMemo(() => {
     return (tasks ?? [])
@@ -73,14 +75,13 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
       .filter(({ task }) => canShowAlert(taskAlertStates[`${task.id}:${todayKey}`], nowMinutes))
   }, [tasks, classNameById, taskAlertStates, todayKey, nowMinutes, isTaskDone])
 
-  const showInApp = taskAlertMode === 'in-app' || taskAlertMode === 'both'
-  const showNotification = taskAlertMode === 'notification' || taskAlertMode === 'both'
+  const showInApp = taskAlertsEnabled && taskAlertsInApp
   const supportsOfflineSchedule = supportsOfflineTaskReminderScheduling()
 
   const nowMs = today.getTime()
 
   const leadReminders = useMemo(() => {
-    if (taskAlertMode === 'none') return []
+    if (!taskAlertsEnabled) return []
     return dueOffsetReminders({
       tasks,
       offsets: reminderOffsets,
@@ -98,40 +99,32 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
         }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, reminderOffsets, reminderOffsetTime, taskAlertStates, taskAlertMode, todayKey, nowMs, isTaskDone, teamUserId])
+  }, [tasks, reminderOffsets, reminderOffsetTime, taskAlertStates, taskAlertsEnabled, todayKey, nowMs, isTaskDone, teamUserId])
 
   useEffect(() => {
-    if (!showNotification || supportsOfflineSchedule) return
+    if (!taskAlertsEnabled || supportsOfflineSchedule) return
 
     dueToday.forEach(({ task, className }) => {
       const key = `${todayKey}:${task.id}`
       if (notifiedRef.current.has(key)) return
 
       notifiedRef.current.add(key)
-      triggerTaskDueNotification({
-        lang,
-        title: task.title,
-        body: className,
-      })
+      notify({ tag: `organiser-task-due-${task.id}`, title: t.tasksNotifTitle, body: `${task.title} - ${className}` })
     })
-  }, [dueToday, showNotification, supportsOfflineSchedule, todayKey, lang])
+  }, [dueToday, taskAlertsEnabled, supportsOfflineSchedule, todayKey, notify, t])
 
   useEffect(() => {
-    if (!showNotification) return
+    if (!taskAlertsEnabled) return
 
     leadReminders.forEach(moment => {
       if (notifiedRef.current.has(moment.stateKey)) return
       notifiedRef.current.add(moment.stateKey)
-      triggerTaskDueNotification({
-        lang,
-        title: moment.taskName,
-        body: t.taskReminderIn(moment.offset),
-      })
+      notify({ tag: moment.tag, title: t.tasksNotifTitle, body: `${moment.taskName} - ${t.taskReminderIn(moment.offset)}` })
     })
-  }, [leadReminders, showNotification, lang, t])
+  }, [leadReminders, taskAlertsEnabled, notify, t])
 
   useEffect(() => {
-    if (!showNotification || !supportsOfflineSchedule) {
+    if (!taskAlertsEnabled || !supportsOfflineSchedule) {
       clearScheduledTaskReminders()
       return
     }
@@ -210,7 +203,7 @@ export function TaskAlertsPanel({ tasks, classNameById }) {
     taskAlertStates,
     reminderOffsets,
     reminderOffsetTime,
-    showNotification,
+    taskAlertsEnabled,
     supportsOfflineSchedule,
     todayKey,
     tomorrowKey,

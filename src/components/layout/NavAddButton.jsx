@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Sparkles } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Plus, CheckSquare, Kanban, CalendarDays, StickyNote, Zap } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { QuickActionBar } from '@/components/tasks/QuickActionBar'
@@ -15,7 +15,7 @@ const ACTION_META = {
   kanban: { icon: Kanban, key: 'addCard' },
   event: { icon: CalendarDays, key: 'addEvent' },
   note: { icon: StickyNote, key: 'notesNew' },
-  quickaction: { icon: Sparkles, key: 'quickAction' },
+  quickaction: { icon: Zap, key: 'quickAction' },
 }
 
 export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
@@ -40,10 +40,9 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   const rangeFor = noneMode ? weekDateRange : null
   const dateToWeekFn = noneMode ? dateToWeek : null
 
-  const runAction = action => {
+  const runAction = useCallback(action => {
     if (action === 'note') {
-      const enabled = notesEnabled
-      if (enabled) {
+      if (notesEnabled) {
         const id = crypto.randomUUID?.() ?? String(Date.now())
         addNote({ id, kind: 'text' })
         setTab?.('notes')
@@ -60,7 +59,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       return
     }
     setDialog(action)
-  }
+  }, [notesEnabled, addNote, setTab, addKanbanCard, boardId, quickActionAppEnabled])
 
   const onClick = () => {
     if (configured === 'picker') setPickerOpen(true)
@@ -125,7 +124,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [quickActionAppEnabled, navbarShortcut, configured])
+  }, [quickActionAppEnabled, navbarShortcut, configured, runAction])
 
   if (!navbarVisible) return null
 

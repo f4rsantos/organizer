@@ -52,18 +52,21 @@ export const Table = TiptapTable.extend({
   },
 
   addKeyboardShortcuts() {
+    const parentShortcuts = this.parent?.() ?? {}
+    const parentBackspace = parentShortcuts.Backspace
     return {
-      ...this.parent?.(),
-      Enter: () => {
+      ...parentShortcuts,
+      Backspace: (...args) => {
         const { selection } = this.editor.state
-        if (!(selection instanceof CellSelection)) return false
-        if (selection.isRowSelection() && !selection.isColSelection()) {
-          return this.editor.commands.deleteRow()
+        if (selection instanceof CellSelection) {
+          if (selection.isRowSelection() && !selection.isColSelection()) {
+            return this.editor.commands.deleteRow()
+          }
+          if (selection.isColSelection() && !selection.isRowSelection()) {
+            return this.editor.commands.deleteColumn()
+          }
         }
-        if (selection.isColSelection() && !selection.isRowSelection()) {
-          return this.editor.commands.deleteColumn()
-        }
-        return false
+        return parentBackspace ? parentBackspace(...args) : false
       },
     }
   },

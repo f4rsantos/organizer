@@ -6,14 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { requestBrowserNotificationPermission } from '@/components/focus/focusAlerts'
+import { NotificationDeliverySettings } from '@/components/settings/notifications/NotificationDeliverySettings'
 
 export function TaskSettings() {
   const settings = useStore(s => s.settings)
   const updateSettings = useStore(s => s.updateSettings)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const taskAlertMode = settings.taskAlertMode ?? 'none'
+  const taskAlertsEnabled = settings.taskAlertsEnabled ?? false
+  const taskAlertsInApp = settings.taskAlertsInApp ?? true
   const taskAlertNextDayTime = settings.taskAlertNextDayTime ?? '18:00'
   const taskDefaultToCalendar = settings.taskDefaultToCalendar ?? false
   const taskTimes = settings.taskTimes ?? false
@@ -38,20 +39,6 @@ export function TaskSettings() {
     { value: 'single', label: t.spanSingle },
     { value: 'perWeek', label: t.spanPerWeek },
   ]
-
-  const taskAlertOptions = [
-    { value: 'none', label: t.taskAlertNone },
-    { value: 'in-app', label: t.taskAlertInApp },
-    { value: 'notification', label: t.taskAlertNotification },
-    { value: 'both', label: t.taskAlertBoth },
-  ]
-
-  const handleTaskAlertModeChange = value => {
-    updateSettings({ taskAlertMode: value })
-    if (value === 'notification' || value === 'both') {
-      requestBrowserNotificationPermission()
-    }
-  }
 
   const handleTaskAlertNextDayTime = value => {
     updateSettings({ taskAlertNextDayTime: value || '18:00' })
@@ -113,19 +100,32 @@ export function TaskSettings() {
       <div className="space-y-1.5">
         <Label>{t.taskAlertModeLabel}</Label>
         <p className="text-xs text-muted-foreground">{t.taskAlertModeDesc}</p>
-        <Select value={taskAlertMode} onValueChange={handleTaskAlertModeChange} items={taskAlertOptions}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {taskAlertOptions.map(option => (
-              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <button type="button" onClick={() => updateSettings({ taskAlertsEnabled: !taskAlertsEnabled })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {taskAlertsEnabled
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {taskAlertsEnabled ? t.settingEnabled : t.settingDisabled}
+        </button>
       </div>
 
-      {(taskAlertMode === 'notification' || taskAlertMode === 'both') && (
+      {taskAlertsEnabled && (
+        <div className="space-y-1.5">
+          <Label>{t.taskAlertInAppLabel}</Label>
+          <p className="text-xs text-muted-foreground">{t.taskAlertInAppDesc}</p>
+          <button type="button" onClick={() => updateSettings({ taskAlertsInApp: !taskAlertsInApp })}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {taskAlertsInApp
+              ? <CircleCheck className="h-4 w-4 text-primary" />
+              : <Circle className="h-4 w-4" />}
+            {taskAlertsInApp ? t.settingEnabled : t.settingDisabled}
+          </button>
+        </div>
+      )}
+
+      {taskAlertsEnabled && <NotificationDeliverySettings />}
+
+      {taskAlertsEnabled && (
         <div className="space-y-1.5">
           <Label>{t.taskAlertNextDayTimeLabel}</Label>
           <p className="text-xs text-muted-foreground">{t.taskAlertNextDayTimeDesc}</p>
@@ -138,7 +138,7 @@ export function TaskSettings() {
         </div>
       )}
 
-      {taskAlertMode !== 'none' && (
+      {taskAlertsEnabled && (
         <>
           <div className="space-y-1.5">
             <Label>{t.taskReminderOffsetsLabel}</Label>

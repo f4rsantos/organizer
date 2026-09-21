@@ -1,48 +1,45 @@
+import { Circle, CircleCheck } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { requestBrowserNotificationPermission } from '@/components/focus/focusAlerts'
+import { NotificationDeliverySettings } from '@/components/settings/notifications/NotificationDeliverySettings'
 
 export function FocusSettings() {
-  const settings = useStore(s => s.settings)
-  const updateSettings = useStore(s => s.updateSettings)
   const focus = useStore(s => s.settings?.focus ?? {})
   const updateFocusSettings = useStore(s => s.updateFocusSettings)
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
 
-  const focusAlertMode = settings.focusAlertMode ?? (settings.vibrateOnPageFocus ? 'vibration' : 'none')
-
-  const focusAlertOptions = [
-    { value: 'none', label: t.focusAlertNone },
-    { value: 'vibration', label: t.focusAlertVibration },
-    { value: 'notification', label: t.focusAlertNotification },
-    { value: 'both', label: t.focusAlertBoth },
-  ]
-
-  const handleFocusAlertModeChange = value => {
-    updateSettings({ focusAlertMode: value })
-    if (value === 'notification' || value === 'both') {
-      requestBrowserNotificationPermission()
-    }
-  }
+  const alertsEnabled = focus.alertsEnabled ?? true
+  const floatingWidgetEnabled = focus.floatingWidgetEnabled ?? true
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label>{t.focusAlertModeLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.focusAlertModeDesc}</p>
-        <Select value={focusAlertMode} onValueChange={handleFocusAlertModeChange} items={focusAlertOptions}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {focusAlertOptions.map(option => (
-              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>{t.focusAlertsEnabledLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.focusAlertsEnabledDesc}</p>
+        <button type="button" onClick={() => updateFocusSettings({ alertsEnabled: !alertsEnabled })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {alertsEnabled
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {alertsEnabled ? t.settingEnabled : t.settingDisabled}
+        </button>
+      </div>
+
+      {alertsEnabled && <NotificationDeliverySettings />}
+
+      <div className="space-y-1.5">
+        <Label>{t.focusFloatingWidgetLabel}</Label>
+        <p className="text-xs text-muted-foreground">{t.focusFloatingWidgetDesc}</p>
+        <button type="button" onClick={() => updateFocusSettings({ floatingWidgetEnabled: !floatingWidgetEnabled })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {floatingWidgetEnabled
+            ? <CircleCheck className="h-4 w-4 text-primary" />
+            : <Circle className="h-4 w-4" />}
+          {floatingWidgetEnabled ? t.settingEnabled : t.settingDisabled}
+        </button>
       </div>
 
       <div className="space-y-1.5">

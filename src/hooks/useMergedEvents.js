@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
-import { isSharedLocalHidden } from '@/lib/collab/mergeUtils'
+import { isSharedLocalHidden, applyAgentOverlay } from '@/lib/collab/mergeUtils'
 
 function mapRemoteEvent(event, teamId) {
   return {
@@ -20,6 +20,7 @@ export function useMergedEvents() {
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const memberships = useStore(s => s.collab?.memberships ?? [])
   const runtimeTeams = useStore(s => s.collabRuntime?.teams ?? {})
+  const activeRun = useStore(s => s.agentRuntime?.runs?.[s.agentRuntime?.activeRunId] ?? null)
 
   return useMemo(() => {
     const activeTeamIds = new Set((collabEnabled ? memberships : []).map(m => m.teamId))
@@ -30,6 +31,6 @@ export function useMergedEvents() {
       return (team?.state?.events ?? []).map(event => mapRemoteEvent(event, membership.teamId))
     })
 
-    return [...local, ...remote]
-  }, [localEvents, collabEnabled, memberships, runtimeTeams])
+    return applyAgentOverlay([...local, ...remote], activeRun, 'event')
+  }, [localEvents, collabEnabled, memberships, runtimeTeams, activeRun])
 }

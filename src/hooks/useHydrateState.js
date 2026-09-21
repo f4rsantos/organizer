@@ -19,7 +19,9 @@ export function useHydrateState() {
       let localState = null
       try {
         localState = await loadStateAsync()
-      } catch {}
+      } catch {
+        void 0
+      }
 
       if (cancelled) return
 
@@ -45,7 +47,9 @@ export function useHydrateState() {
           })
           const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), FIREBASE_LOAD_TIMEOUT_MS))
           await Promise.race([request.catch(() => null), timeoutPromise])
-        } catch {}
+        } catch {
+          void 0
+        }
       }
 
       if (!cancelled) setReady(true)

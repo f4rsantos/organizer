@@ -17,7 +17,7 @@ export default defineConfig([
     plugins: { react },
     languageOptions: {
       ecmaVersion: 'latest',
-      globals: globals.browser,
+      globals: { ...globals.browser, __NATIVE_BUILD__: 'readonly' },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },

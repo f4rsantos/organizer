@@ -8,6 +8,17 @@ import { sortByOrder } from '@/lib/utils'
 import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 import { cacheCollabUserId } from '@/lib/collab/identity'
+import {
+  emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
+  dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
+} from '@/lib/notifications/queue'
+import {
+  createAgentRun, appendOpsToRun, withRunStatus,
+} from '@/lib/ai/agentOverlay'
+import {
+  buildJournalEntry, pushJournalEntry, isRunUndoable, isLifoUndoTarget, markEntryUndoable,
+  removeJournalEntry, emptyJournal,
+} from '@/lib/ai/journal'
 
 const DEFAULT_COLUMNS = [
   { id: 'col_todo', title: 'To Do', order: 0 },
@@ -156,7 +167,11 @@ function buildInitialState() {
     lang: 'pt',
     onboardingDone: false,
     activeTab: null,
+    currentTab: null,
+    aiContextRequest: null,
+    proactiveSuggestion: null,
     requestedNoteId: null,
+    openNoteId: null,
     scheduleImports: [],
     activeSemesterId: null,
     semesters: [],
@@ -188,8 +203,9 @@ function buildInitialState() {
       notesMathSolveEquations: true,
       notesMathSelectionGraph: true,
       notesMathStepByStep: true,
-      focusAlertMode: 'none',
-      taskAlertMode: 'none',
+      notifications: { enabled: true, intrusiveness: 'toast', vibrate: false, sound: false, browserPush: false, bellVisibility: 'hideEmpty' },
+      taskAlertsEnabled: false,
+      taskAlertsInApp: true,
       taskReminderOffsets: [0],
       taskReminderTime: '09:00',
       taskDefaultToCalendar: false,
@@ -200,6 +216,7 @@ function buildInitialState() {
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],
         focusLabel: '', breakLabel: '',
         intervalResetMode: 'reset',
+        alertsEnabled: true,
       },
       pomodoro: {
         enabled: false,
@@ -219,6 +236,7 @@ function buildInitialState() {
     collab: {
       userId: null,
       memberships: [],
+      aliasPromptedTeamIds: [],
     },
     collabRuntime: {
       teams: {},
@@ -236,10 +254,13 @@ function buildInitialState() {
     pomodoros: [],
     resetSignal: null,
     taskAlertStates: {},
+    notificationQueue: emptyNotificationQueue(),
     courseAvg: { previousAvg: null, numSemesters: 0 },
     holidays: [],
     dismissedNextSemester: {},
     presetUpdatedAt: {},
+    agentRuntime: { runs: {}, activeRunId: null },
+    agentJournal: { entries: [] },
   }
 }
 
@@ -255,6 +276,22 @@ export const useStore = create((set, get) => ({
   setLang: lang => set(s => persist({ ...s, lang })),
 
   setActiveTab: tab => set(s => ({ ...s, activeTab: tab })),
+  setCurrentTab: tab => set(s => ({ ...s, currentTab: tab })),
+  setOpenNoteId: id => set(s => ({ ...s, openNoteId: id })),
+  requestAiContext: tab => set(s => ({
+    ...s,
+    activeTab: 'aiAssistant',
+    aiContextRequest: { tab, noteId: tab === 'notes' ? s.openNoteId : null, at: Date.now() },
+  })),
+  clearAiContextRequest: () => set(s => ({ ...s, aiContextRequest: null })),
+  setProactiveSuggestion: suggestion => set(s => ({ ...s, proactiveSuggestion: suggestion })),
+  clearProactiveSuggestion: () => set(s => ({ ...s, proactiveSuggestion: null })),
+  openProactiveSuggestion: suggestion => set(s => ({
+    ...s,
+    activeTab: 'aiAssistant',
+    proactiveSuggestion: null,
+    aiContextRequest: { tab: 'aiAssistant', suggestionText: suggestion?.text ?? '', at: Date.now() },
+  })),
   setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
 
   // Find-or-create the note linked to a calendar event/occurrence. `key` is
@@ -467,6 +504,30 @@ export const useStore = create((set, get) => ({
     delete prev[key]
     return persist({ ...s, taskAlertStates: prev })
   }),
+  queueNotification: (entry, intrusiveness) => set(s => ({
+    ...s,
+    notificationQueue: enqueueNotification(s.notificationQueue, entry, intrusiveness),
+  })),
+  dismissNotificationToast: id => set(s => ({
+    ...s,
+    notificationQueue: dismissToastEntry(s.notificationQueue, id),
+  })),
+  readNotificationToast: id => set(s => ({
+    ...s,
+    notificationQueue: readToastEntry(s.notificationQueue, id),
+  })),
+  dismissActiveNotificationAlert: () => set(s => ({
+    ...s,
+    notificationQueue: dismissActiveAlertEntry(s.notificationQueue),
+  })),
+  clearUnreadNotification: id => set(s => ({
+    ...s,
+    notificationQueue: clearUnreadEntry(s.notificationQueue, id),
+  })),
+  clearAllUnreadNotifications: () => set(s => ({
+    ...s,
+    notificationQueue: clearAllUnread(s.notificationQueue),
+  })),
   deleteTask: id => set(s => persist({
     ...s,
     tasks: s.tasks.reduce((acc, t) => {
@@ -820,6 +881,15 @@ export const useStore = create((set, get) => ({
     const memberships = (collab.memberships ?? []).map(m => m.teamId === teamId ? { ...m, ...data } : m)
     return persist({ ...s, collab: { ...collab, memberships } })
   }),
+  markCollabAliasPrompted: teamId => set(s => {
+    const collab = s.collab ?? { userId: null, memberships: [], aliasPromptedTeamIds: [] }
+    const prompted = collab.aliasPromptedTeamIds ?? []
+    if (prompted.includes(teamId)) return s
+    return persist({
+      ...s,
+      collab: { ...collab, aliasPromptedTeamIds: [...prompted, teamId] },
+    })
+  }),
   removeCollabMembership: teamId => set(s => {
     const collab = s.collab ?? { userId: null, memberships: [] }
     const memberships = (collab.memberships ?? []).filter(m => m.teamId !== teamId)
@@ -1072,7 +1142,309 @@ export const useStore = create((set, get) => ({
     return persist({ ...s, grades: { ...s.grades, [semId]: { ...semGrades, _semesterFinalGrade: grade } } })
   }),
   setCourseAvg: courseAvg => set(s => persist({ ...s, courseAvg })),
+
+  startAgentRun: ({ scope, slot, model }) => {
+    const runId = nanoid()
+    set(s => persist({
+      ...s,
+      agentRuntime: {
+        runs: { ...(s.agentRuntime?.runs ?? {}), [runId]: createAgentRun({ runId, scope, slot, model }) },
+        activeRunId: runId,
+      },
+    }))
+    return runId
+  },
+  appendAgentOps: (runId, ops) => set(s => {
+    const run = s.agentRuntime?.runs?.[runId]
+    if (!run) return s
+    return persist({
+      ...s,
+      agentRuntime: {
+        ...s.agentRuntime,
+        runs: { ...s.agentRuntime.runs, [runId]: appendOpsToRun(run, ops) },
+      },
+    })
+  }),
+  setAgentRunStatus: (runId, status) => set(s => {
+    const run = s.agentRuntime?.runs?.[runId]
+    if (!run) return s
+    return persist({
+      ...s,
+      agentRuntime: {
+        ...s.agentRuntime,
+        runs: { ...s.agentRuntime.runs, [runId]: withRunStatus(run, status) },
+      },
+    })
+  }),
+  commitAgentRun: runId => {
+    const run = get().agentRuntime?.runs?.[runId]
+    if (!run) return
+    for (const op of run.ops) {
+      applyAgentOpThroughStoreActions(get, op)
+    }
+    set(s => {
+      const runs = { ...(s.agentRuntime?.runs ?? {}) }
+      delete runs[runId]
+      const entry = buildJournalEntry({
+        run,
+        requestCount: run.requestCount ?? 0,
+        changeSummary: summarizeAgentRunOps(run.ops),
+      })
+      return persist({
+        ...s,
+        agentRuntime: {
+          runs,
+          activeRunId: s.agentRuntime?.activeRunId === runId ? null : (s.agentRuntime?.activeRunId ?? null),
+        },
+        agentJournal: pushJournalEntry(s.agentJournal, entry),
+      })
+    })
+  },
+  discardAgentRun: runId => set(s => {
+    const runs = { ...(s.agentRuntime?.runs ?? {}) }
+    delete runs[runId]
+    return persist({
+      ...s,
+      agentRuntime: {
+        runs,
+        activeRunId: s.agentRuntime?.activeRunId === runId ? null : (s.agentRuntime?.activeRunId ?? null),
+      },
+    })
+  }),
+  undoAgentRun: runId => {
+    const state = get()
+    const journal = state.agentJournal
+    if (!isLifoUndoTarget(journal, runId)) return
+    const entry = journal.entries.find(e => e.runId === runId)
+    if (!entry) return
+    if (!isRunUndoable({ inverse: entry.inverse }, state)) {
+      set(s => persist({ ...s, agentJournal: markEntryUndoable(s.agentJournal, runId, false) }))
+      return
+    }
+    for (const op of entry.inverse) {
+      applyAgentOpThroughStoreActions(get, op)
+    }
+    set(s => persist({ ...s, agentJournal: removeJournalEntry(s.agentJournal, runId) }))
+  },
+  clearAgentJournal: () => set(s => persist({ ...s, agentJournal: emptyJournal() })),
 }))
+
+const AGENT_OP_ACTIONS_BY_TYPE = {
+  task: { create: 'addTask', update: 'updateTask', delete: 'deleteTask' },
+  event: { create: 'addEvent', update: 'updateEvent', delete: 'deleteEvent' },
+  note: { create: 'addNote', update: 'updateNote', delete: 'deleteNote' },
+  habit: { create: 'addHabit', update: 'updateHabit', delete: 'deleteHabit' },
+  class: { create: 'addClass', update: 'updateClass', delete: 'deleteClass' },
+}
+
+function focusSecsNow() {
+  return Math.floor(Date.now() / 1000)
+}
+
+const FOCUS_CONTROL_HANDLERS = {
+  start: actions => actions.setFocusSync({
+    status: 'started',
+    phase: 'focus',
+    startedAt: focusSecsNow(),
+    totalElapsedBase: 0,
+    cycleElapsedBase: 0,
+    breakSecsLeftBase: 0,
+    activeBreakSource: null,
+  }),
+  pause: actions => {
+    const sync = actions.focusSync ?? {}
+    if (sync.status !== 'started' || sync.startedAt == null) return
+    const elapsed = Math.max(0, focusSecsNow() - sync.startedAt)
+    if (sync.phase === 'break') {
+      actions.setFocusSync({
+        status: 'paused',
+        startedAt: null,
+        breakSecsLeftBase: Math.max(0, (sync.breakSecsLeftBase ?? 0) - elapsed),
+      })
+      return
+    }
+    actions.setFocusSync({
+      status: 'paused',
+      startedAt: null,
+      totalElapsedBase: (sync.totalElapsedBase ?? 0) + elapsed,
+      cycleElapsedBase: (sync.cycleElapsedBase ?? 0) + elapsed,
+    })
+  },
+  resume: actions => {
+    if (actions.focusSync?.status === 'started') return
+    actions.setFocusSync({ status: 'started', startedAt: focusSecsNow() })
+  },
+  reset: actions => actions.setFocusSync({
+    status: 'paused',
+    phase: 'focus',
+    startedAt: null,
+    totalElapsedBase: 0,
+    cycleElapsedBase: 0,
+    breakSecsLeftBase: 0,
+    activeBreakSource: null,
+  }),
+  skipBreak: actions => {
+    const sync = actions.focusSync ?? {}
+    if (sync.phase !== 'break') return
+    const resetMode = actions.settings?.focus?.intervalResetMode ?? 'reset'
+    actions.setFocusSync({
+      phase: 'focus',
+      startedAt: sync.status === 'started' ? focusSecsNow() : null,
+      cycleElapsedBase: 0,
+      totalElapsedBase: resetMode === 'continue' ? (sync.totalElapsedBase ?? 0) : 0,
+      breakSecsLeftBase: 0,
+      activeBreakSource: null,
+    })
+  },
+}
+
+function classSemesterId(get, classId) {
+  return get().classes.find(c => c.id === classId)?.semesterId ?? null
+}
+
+function findGradeComponent(get, componentId) {
+  const grades = get().grades ?? {}
+  for (const [semId, semGrades] of Object.entries(grades)) {
+    for (const [classId, classGrades] of Object.entries(semGrades ?? {})) {
+      const component = (classGrades?.components ?? []).find(c => c.id === componentId)
+      if (component) return { semId, classId, component, classGrades }
+    }
+  }
+  return null
+}
+
+function applyGradeComponentOp(get, op) {
+  const actions = get()
+  const targetId = op.type === 'create' ? op.id : op.targetId
+
+  if (op.type === 'create') {
+    const { classId, targetGrade, ...fields } = op.entity ?? {}
+    if (!classId) return
+    const semId = classSemesterId(get, classId)
+    const semGrades = actions.grades?.[semId] ?? {}
+    const classGrades = semGrades[classId] ?? { components: [], targetGrade: 9.5 }
+    actions.setGradeComponents(semId, classId, [...classGrades.components, { id: targetId, ...fields }])
+    if (targetGrade !== undefined) actions.setTargetGrade(semId, classId, targetGrade)
+    return
+  }
+
+  const found = findGradeComponent(get, targetId)
+  if (!found) return
+  const { semId, classId, classGrades } = found
+
+  if (op.type === 'update') {
+    const { targetGrade, ...fields } = op.patch ?? {}
+    if (Object.keys(fields).length) {
+      actions.setGradeComponents(semId, classId, classGrades.components.map(c => (
+        c.id === targetId ? { ...c, ...fields } : c
+      )))
+    }
+    if (targetGrade !== undefined) actions.setTargetGrade(semId, classId, targetGrade)
+    return
+  }
+
+  if (op.type === 'delete') {
+    actions.setGradeComponents(semId, classId, classGrades.components.filter(c => c.id !== targetId))
+  }
+}
+
+function applyFocusControlOp(get, op) {
+  const actions = get()
+  const action = op.entity?.action
+  if (!FOCUS_CONTROL_HANDLERS[action]) return
+  FOCUS_CONTROL_HANDLERS[action](actions)
+}
+
+function applyNotificationControlOp(get, op) {
+  const actions = get()
+  const { action, id, title, body, delayMinutes } = op.entity ?? {}
+  if (action === 'dismissToast') { actions.dismissNotificationToast(id); return }
+  if (action === 'dismissAlert') { actions.dismissActiveNotificationAlert(); return }
+  if (action === 'clearUnread') { actions.clearUnreadNotification(id); return }
+  if (action === 'clearAllUnread') { actions.clearAllUnreadNotifications(); return }
+  if (action === 'createReminder') {
+    const delayMs = Number.isFinite(delayMinutes) ? delayMinutes * 60 * 1000 : 0
+    actions.queueNotification({
+      id: nanoid(),
+      tag: null,
+      source: 'ai',
+      title: title ?? '',
+      body: body ?? '',
+      createdAt: Date.now() + delayMs,
+    }, actions.settings?.notifications?.intrusiveness ?? 'toast')
+  }
+}
+
+function applyUpdateSafeSettingsOp(get, op) {
+  const actions = get()
+  const fields = op.entity ?? {}
+  if (!Object.keys(fields).length) return
+  actions.updateSettings(fields)
+}
+
+function applyAgentOpThroughStoreActions(get, op) {
+  const actions = get()
+  const entityType = op.entityType
+  const targetId = op.type === 'create' ? op.id : op.targetId
+
+  if (entityType === 'gradeComponent') { applyGradeComponentOp(get, op); return }
+  if (entityType === 'focusControl') { applyFocusControlOp(get, op); return }
+  if (entityType === 'notificationControl') { applyNotificationControlOp(get, op); return }
+  if (entityType === 'updateSafeSettings') { applyUpdateSafeSettingsOp(get, op); return }
+
+  if (entityType === 'folder') {
+    if (op.type === 'create') { actions.addNoteFolder(op.entity?.name, op.entity?.parentId ?? null); return }
+    if (op.type === 'delete') { actions.deleteNoteFolder(targetId); return }
+    if (op.type === 'update') {
+      if ('name' in (op.patch ?? {})) actions.renameNoteFolder(targetId, op.patch.name)
+      if ('parentId' in (op.patch ?? {})) actions.moveNoteFolder(targetId, op.patch.parentId)
+      return
+    }
+    return
+  }
+
+  if (entityType === 'kanbanCard') {
+    const semId = op.type === 'create'
+      ? (op.entity?.semesterId ?? FREE_BOARD_ID)
+      : (op.patch?.semesterId ?? FREE_BOARD_ID)
+    if (op.type === 'create') {
+      const { columnId, order, checklist, ...rest } = op.entity ?? {}
+      actions.addTask({
+        id: targetId,
+        semesterId: semId === FREE_BOARD_ID ? null : semId,
+        ...rest,
+        views: { list: false, kanban: true, calendar: false },
+        kanban: { columnId: columnId ?? null, order: order ?? 0, checklist: checklist ?? [] },
+      })
+      return
+    }
+    if (op.type === 'update') { actions.updateKanbanCard(semId, targetId, op.patch ?? {}); return }
+    if (op.type === 'delete') { actions.deleteKanbanCard(semId, targetId); return }
+    return
+  }
+
+  const map = AGENT_OP_ACTIONS_BY_TYPE[entityType]
+  if (!map) return
+  if (op.type === 'create') { actions[map.create]({ id: targetId, ...op.entity }); return }
+  if (op.type === 'update') { actions[map.update](targetId, op.patch ?? {}); return }
+  if (op.type === 'delete') { actions[map.delete](targetId); return }
+}
+
+function summarizeAgentRunOps(ops) {
+  const summary = {}
+  const seen = {}
+  for (const op of ops ?? []) {
+    const key = `${op.entityType}:${op.type}`
+    const id = op.targetId ?? op.id
+    if (id) {
+      if (!seen[key]) seen[key] = new Set()
+      if (seen[key].has(id)) continue
+      seen[key].add(id)
+    }
+    summary[key] = (summary[key] ?? 0) + 1
+  }
+  return summary
+}
 
 function persist(state) {
   if (!state.hydrated) return { ...state, dirtiedBeforeHydrate: true }
