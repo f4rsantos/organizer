@@ -29,6 +29,10 @@ function supportsDocumentPip() {
   return typeof window !== 'undefined' && 'documentPictureInPicture' in window
 }
 
+function supportsDetach() {
+  return typeof window !== 'undefined' && typeof window.open === 'function'
+}
+
 function defaultPosition() {
   if (typeof window === 'undefined') return { x: DEFAULT_MARGIN, y: DEFAULT_MARGIN }
   return clampWidgetPosition({
@@ -130,7 +134,7 @@ function PipWindow({ pipWindow, onClose, children }) {
   return createPortal(children, pipWindow.document.body)
 }
 
-async function openPipWindow() {
+async function openDocumentPipWindow() {
   const pipWin = await window.documentPictureInPicture.requestWindow({
     width: PIP_WIDTH,
     height: PIP_HEIGHT,
@@ -140,6 +144,26 @@ async function openPipWindow() {
   style.textContent = 'body { margin: 0; }'
   pipWin.document.head.appendChild(style)
   return pipWin
+}
+
+function openPopupWindow() {
+  const popup = window.open(
+    '',
+    'organizer-focus-detach',
+    `width=${PIP_WIDTH},height=${PIP_HEIGHT},popup=yes`,
+  )
+  if (!popup) return null
+  popup.document.title = 'Focus'
+  copyDocumentStyles(popup.document)
+  const style = popup.document.createElement('style')
+  style.textContent = 'body { margin: 0; }'
+  popup.document.head.appendChild(style)
+  return popup
+}
+
+async function openDetachWindow() {
+  if (supportsDocumentPip()) return openDocumentPipWindow()
+  return openPopupWindow()
 }
 
 export function FloatingFocusWidget() {
@@ -172,7 +196,7 @@ export function FloatingFocusWidget() {
   const handleToggleRef = useRef(null)
   const resetRef = useRef(null)
 
-  const pipSupported = useMemo(() => supportsDocumentPip(), [])
+  const detachSupported = useMemo(() => supportsDetach(), [])
   const overlaySupported = useMemo(() => focusOverlayAvailable(), [])
 
   const pipWindowRef = useRef(pipWindow)
@@ -337,7 +361,7 @@ export function FloatingFocusWidget() {
 
   const handleDetach = async () => {
     try {
-      const pipWin = await openPipWindow()
+      const pipWin = await openDetachWindow()
       setPipWindow(pipWin)
     } catch {
       setPipWindow(null)
@@ -372,7 +396,7 @@ export function FloatingFocusWidget() {
                 <MonitorUp className="h-3 w-3" />
               </button>
             )}
-            {pipSupported && (
+            {detachSupported && (
               <button
                 type="button"
                 aria-label={t.focusDetach}
