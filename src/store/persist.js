@@ -285,7 +285,6 @@ function compactForStorage(state) {
 
 let lastPersisted = null
 let writeChain = Promise.resolve()
-let queued = null
 
 function dirtySlicesOf(state) {
   if (!lastPersisted) return PERSISTED_SLICES
@@ -334,13 +333,7 @@ async function writeContainer(state) {
 }
 
 function enqueueWrite(state) {
-  queued = state
-  writeChain = writeChain.then(async () => {
-    const pending = queued
-    if (!pending) return
-    queued = null
-    await writeContainer(pending)
-  }).catch(() => {})
+  writeChain = writeChain.then(() => writeContainer(state)).catch(() => {})
   return writeChain
 }
 
@@ -370,7 +363,6 @@ export function forceSaveState(state) {
 export function resetPersistCacheForTests() {
   lastPersisted = null
   writeChain = Promise.resolve()
-  queued = null
   compactedPomodoros = { source: null, value: null }
   loadWarnings = []
   writesBlocked = null
