@@ -2,6 +2,7 @@ import { differenceInCalendarWeeks, isValid, parseISO } from 'date-fns'
 import { nanoid } from '../lib/ids'
 import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 import { normalizeNotificationSettings } from '../lib/notifications/settings'
+import { withAggregateId } from '../components/focus/pomodoro/utils'
 
 export const CURRENT_VERSION = 8
 export const FREE_BOARD_ID = '__free__'
@@ -563,7 +564,7 @@ export function normalizeState(state) {
 
   state.focusSync = normalizeFocusSync(state.focusSync)
 
-  if (!Array.isArray(state.pomodoros)) state.pomodoros = []
+  state.pomodoros = (Array.isArray(state.pomodoros) ? state.pomodoros : []).map(withAggregateId)
   if (!state.taskAlertStates || typeof state.taskAlertStates !== 'object') state.taskAlertStates = {}
   if (!state.courseAvg || typeof state.courseAvg !== 'object') {
     state.courseAvg = { previousAvg: null, numSemesters: 0 }

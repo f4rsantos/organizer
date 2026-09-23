@@ -1,4 +1,4 @@
-import { getPomodoroTimestamp, isPomodoroAggregate, pomodoroFocusSecsRaw } from '../components/focus/pomodoro/utils'
+import { POMODORO_AGGREGATE_ID, getPomodoroTimestamp, isPomodoroAggregate, pomodoroFocusSecsRaw } from '../components/focus/pomodoro/utils'
 import { migrateState, normalizeState } from './migrations'
 import {
   isEnvelope, decryptForSlot, aadForLocalSlice, aadForPersonalSlice, aadForExport, WHOLE_STATE,
@@ -75,6 +75,7 @@ function compactPomodorosForStorage(state) {
   const start = getPeriodStart(period)
   const active = []
   const aggregate = {
+    id: POMODORO_AGGREGATE_ID,
     kind: 'aggregate',
     completedCount: 0,
     abandonedCount: 0,

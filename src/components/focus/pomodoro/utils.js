@@ -10,8 +10,15 @@ export const LEGACY_FULL_PCT_UNITS = 2.5
 export const MAX_TOMATO_SCALE = 5
 export const WEEK_STARTS_ON = 0
 
+export const POMODORO_AGGREGATE_ID = 'pomodoro-aggregate'
+
 export function isPomodoroAggregate(pomodoro) {
   return pomodoro?.kind === 'aggregate'
+}
+
+export function withAggregateId(pomodoro) {
+  if (!isPomodoroAggregate(pomodoro) || pomodoro.id === POMODORO_AGGREGATE_ID) return pomodoro
+  return { ...pomodoro, id: POMODORO_AGGREGATE_ID }
 }
 
 export function sizeFromPct(pct) {
