@@ -8,6 +8,9 @@ import { sortByOrder } from '@/lib/utils'
 import { foldSemesterIntoAvg } from '@/lib/gradeUtils'
 import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/semesterTransition'
 import { cacheCollabUserId } from '@/lib/collab/identity'
+import { mergeSyncedState } from '@/lib/sync/threeWayMerge'
+import { createSyncBase, syncBaseFor } from '@/lib/sync/syncBase'
+import { createFocusTomato } from '@/lib/focus/focusCycle'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
@@ -65,6 +68,14 @@ function unionApps(localApps, remoteApps) {
   const merged = { ...(localApps ?? {}) }
   for (const [id, on] of Object.entries(remoteApps ?? {})) {
     merged[id] = merged[id] === true || on === true
+  }
+  return merged
+}
+
+function latestPresetUpdates(localUpdates, remoteUpdates) {
+  const merged = { ...(remoteUpdates ?? {}) }
+  for (const [key, updatedAt] of Object.entries(localUpdates ?? {})) {
+    merged[key] = Math.max(merged[key] ?? 0, updatedAt ?? 0)
   }
   return merged
 }
@@ -261,6 +272,7 @@ function buildInitialState() {
     presetUpdatedAt: {},
     agentRuntime: { runs: {}, activeRunId: null },
     agentJournal: { entries: [] },
+    syncBase: null,
   }
 }
 
@@ -1053,6 +1065,13 @@ export const useStore = create((set, get) => ({
     },
   })),
   addPomodoro: (pomodoro) => set(s => persist({ ...s, pomodoros: [...(s.pomodoros ?? []), pomodoro] })),
+  recordFocusTomato: ({ id, focusSecs }) => set(s => {
+    const pomodoroSettings = s.settings?.pomodoro ?? {}
+    if (pomodoroSettings.enabled !== true || !id) return s
+    if ((s.pomodoros ?? []).some(p => String(p.id) === id)) return s
+    const tomato = createFocusTomato({ id, focusSecs, trackStats: pomodoroSettings.trackStats === true, createdAt: Date.now() })
+    return persist({ ...s, pomodoros: [...(s.pomodoros ?? []), tomato] })
+  }),
   clearPomodoros: () => set(s => persist({ ...s, pomodoros: [] })),
   erasePomodoroStats: () => set(s => persist({
     ...s,
@@ -1067,6 +1086,7 @@ export const useStore = create((set, get) => ({
   setPresetUpdatedAt: (key, updatedAt) => set(s => persist({
     ...s, presetUpdatedAt: { ...(s.presetUpdatedAt ?? {}), [key]: updatedAt }
   })),
+  setSyncBase: syncBase => set(s => persist({ ...s, syncBase })),
 
   hydrateState: state => set(s => {
     const merged = mergeStateOnHydrate(state, s)
@@ -1081,10 +1101,12 @@ export const useStore = create((set, get) => ({
   }),
 
   // --- Import / Export ---
-  importData: (data, { preferLocalSettings = true } = {}) => set(s => {
+  importData: (data, { preferLocalSettings = true, syncScope = null } = {}) => set(s => {
     const { state, status } = migrateState(data)
     if (status === 'invalid' || status === 'newer') return s
-    const next = normalizeState({ ...state })
+    const remote = normalizeState({ ...state })
+    const base = syncBaseFor(s.syncBase, syncScope)
+    const next = base ? normalizeState({ ...remote, ...mergeSyncedState(base, s, remote) }) : remote
     const localMemberships = s.collab?.memberships ?? []
     const remoteMemberships = next.collab?.memberships ?? []
     const remoteTeamIds = new Set(remoteMemberships.map(m => m.teamId))
@@ -1121,6 +1143,7 @@ export const useStore = create((set, get) => ({
       ...next,
       settings,
       notes,
+      presetUpdatedAt: latestPresetUpdates(s.presetUpdatedAt, next.presetUpdatedAt),
       collab: {
         ...next.collab,
         userId: collabUserId,
@@ -1134,6 +1157,8 @@ export const useStore = create((set, get) => ({
       activeTab: s.activeTab,
       requestedNoteId: s.requestedNoteId,
       scheduleImports: s.scheduleImports,
+      syncBase: syncScope ? createSyncBase(syncScope, remote) : s.syncBase,
+      ...(syncScope ? { agentRuntime: s.agentRuntime, agentJournal: s.agentJournal } : {}),
       // `hydrated` is transient, so it is absent from the imported state.
       // Without carrying it over, persist() treats the import as pre-hydration
       // and never writes it to disk.

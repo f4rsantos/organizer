@@ -30,14 +30,15 @@ export function useHydrateState() {
 
       const config = loadFirebaseConfig()
       if (config) {
+        let appRendered = false
         try {
           const applyPulled = pulled => {
-            if (cancelled || !pulled) return
+            if (cancelled || appRendered || !pulled) return
             setInitialSyncRev(pulled.rev ?? 0)
             if (!pulled.state?.version) return
             const { state: remoteState, status } = migrateState(pulled.state)
             if (status !== 'invalid' && status !== 'newer') {
-              useStore.getState().importData(remoteState)
+              useStore.getState().importData(remoteState, { syncScope: config.projectId })
             }
           }
 
@@ -50,6 +51,7 @@ export function useHydrateState() {
         } catch {
           void 0
         }
+        appRendered = true
       }
 
       if (!cancelled) setReady(true)

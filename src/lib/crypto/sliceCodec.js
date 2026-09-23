@@ -12,7 +12,7 @@ export const DATA_SLICES = [
   'presetUpdatedAt', 'scheduleImports',
 ]
 
-export const LOCAL_SLICES = ['agentJournal', 'agentRuntime']
+export const LOCAL_SLICES = ['agentJournal', 'agentRuntime', 'syncBase']
 
 function withoutEntities(run) {
   if (!run || typeof run !== 'object') return run

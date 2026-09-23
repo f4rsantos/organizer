@@ -3,7 +3,7 @@ import { DATA_SLICES, LOCAL_SLICES } from './sliceCodec'
 const BUDGETED_SLICES = [...DATA_SLICES, ...LOCAL_SLICES]
 
 export const SHED_ORDER = [
-  'agentJournal', 'agentRuntime',
+  'agentJournal', 'agentRuntime', 'syncBase',
   'pomodoros', 'taskAlertStates', 'notes', 'grades', 'kanban', 'tasks',
 ]
 

@@ -4,6 +4,7 @@ import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } fr
 import { migrateState } from '@/store/migrations'
 import { stripTransient, stripLocalSlices } from '@/lib/crypto'
 import { createSyncQueue, requestPush, markPulled, markPushed } from '@/lib/syncQueue'
+import { createSyncBase, hasUnsyncedChanges, syncBaseFor, syncedContentChanged, toSyncedView } from '@/lib/sync/syncBase'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 const PUSH_DEBOUNCE_MS = 1000
@@ -11,8 +12,7 @@ const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
   const state = stripLocalSlices(stripTransient(useStore.getState()))
-  const notes = (state.notes ?? []).filter(n => !n.offlineOnly)
-  return JSON.parse(JSON.stringify({ ...state, notes }))
+  return JSON.parse(JSON.stringify(toSyncedView(state)))
 }
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])
@@ -61,8 +61,9 @@ export function useFirebaseSync() {
       setStatus('syncing')
       const pulled = await pullFromFirebase(config)
       const remote = pulled?.state
+      const canMerge = Boolean(syncBaseFor(useStore.getState().syncBase, config.projectId))
 
-      if (refs.current.lastLocalUpdateAt > pullStartTime) {
+      if (!canMerge && refs.current.lastLocalUpdateAt > pullStartTime) {
         setStatus('ok')
         return
       }
@@ -70,17 +71,24 @@ export function useFirebaseSync() {
       refs.current.baseRev = pulled?.rev ?? 0
 
       let remoteNewer = false
+      let imported = false
       if (remote?.version) {
         const { state, status: migration } = migrateState(remote)
         remoteNewer = migration === 'newer'
         if (!remoteNewer && migration !== 'invalid') {
           refs.current.isImporting = true
           try {
-            importData(state)
+            importData(state, { syncScope: config.projectId })
+            imported = true
           } finally {
             refs.current.isImporting = false
           }
         }
+      }
+
+      const merged = useStore.getState()
+      if (imported && hasUnsyncedChanges(merged.syncBase, config.projectId, merged)) {
+        refs.current.queue.pendingPush = true
       }
 
       const shouldFlush = markPulled(refs.current.queue, { remoteNewer })
@@ -106,10 +114,12 @@ export function useFirebaseSync() {
     if (intent !== 'send') return
     try {
       setStatus('syncing')
-      const rev = await pushToFirebase(config, getSerializableState(), {
+      const pushed = getSerializableState()
+      const rev = await pushToFirebase(config, pushed, {
         baseRev: refs.current.baseRev,
       })
       if (rev !== null) refs.current.baseRev = rev
+      useStore.getState().setSyncBase(createSyncBase(config.projectId, pushed))
       markPushed(refs.current.queue)
       setStatus('ok')
     } catch (err) {
@@ -147,8 +157,9 @@ export function useFirebaseSync() {
 
   useEffect(() => {
     const tracked = refs.current
-    const unsubscribe = useStore.subscribe(() => {
+    const unsubscribe = useStore.subscribe((state, previous) => {
       if (tracked.isImporting) return
+      if (!syncedContentChanged(state, previous)) return
       tracked.lastLocalUpdateAt = Date.now()
       clearTimeout(tracked.pushTimeout)
       tracked.pushTimeout = setTimeout(push, PUSH_DEBOUNCE_MS)

@@ -1,3 +1,5 @@
+const SENSOR_SMOOTHING = 0.2
+
 export function hasDeviceOrientationSupport() {
   return typeof window !== 'undefined' && typeof window.DeviceOrientationEvent !== 'undefined'
 }
@@ -45,14 +47,26 @@ export function gravityFromDeviceOrientation(event, screenAngle = currentScreenA
   return { x: gx, y: Math.max(gy, -1) }
 }
 
+export function smoothGravity(previous, reading, smoothing = SENSOR_SMOOTHING) {
+  return {
+    x: previous.x + (reading.x - previous.x) * smoothing,
+    y: previous.y + (reading.y - previous.y) * smoothing,
+  }
+}
+
 export function createGravitySensor() {
   const gravity = { x: 0, y: 1 }
   let enabled = false
   let handler = null
+  let hasReading = false
 
   function handleOrientation(event) {
-    const next = gravityFromDeviceOrientation(event)
-    if (next) { gravity.x = next.x; gravity.y = next.y }
+    const reading = gravityFromDeviceOrientation(event)
+    if (!reading) return
+    const next = hasReading ? smoothGravity(gravity, reading) : reading
+    hasReading = true
+    gravity.x = next.x
+    gravity.y = next.y
   }
 
   function enable() {

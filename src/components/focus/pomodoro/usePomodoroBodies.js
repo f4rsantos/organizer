@@ -10,9 +10,10 @@ import {
   TOMATO_RADIUS,
 } from './utils'
 import { createGravitySensor, requiresDeviceOrientationPermission } from './gravity'
-import { stepBodies } from './physicsEngine'
+import { stepBodies, wakeBodies } from './physicsEngine'
 
 const MAX_WOBBLE_SECONDS = 5
+const FRESH_TOMATO_MS = 15000
 
 function randomBodyX(radius, width) {
   const safeWidth = Math.max(140, width || 400)
@@ -52,7 +53,24 @@ function createBodyFromStore(pomodoro, idx, width, height) {
   }
 }
 
-function buildBodiesFromPomodoros(prevBodies, pomodoros, bounds) {
+function isFreshTomato(pomodoro, now) {
+  const createdAt = getPomodoroTimestamp(pomodoro)
+  return createdAt > 0 && now - createdAt < FRESH_TOMATO_MS
+}
+
+function dropBodyFromStore(pomodoro, id, width) {
+  return createSpawnBody({
+    id,
+    pct: getStoredSizePct(pomodoro),
+    abandoned: !!pomodoro.abandoned,
+    colorPct: pomodoro.colorPct ?? 1,
+    width,
+    face: pomodoro.face,
+    rotation: pomodoro.rotation,
+  })
+}
+
+function buildBodiesFromPomodoros(prevBodies, pomodoros, bounds, { dropFresh }) {
   const width = Math.max(220, bounds.width || 400)
   const height = Math.max(320, bounds.height || 600)
   const byId = new Map(prevBodies.map(b => [String(b.id), b]))
@@ -63,25 +81,29 @@ function buildBodiesFromPomodoros(prevBodies, pomodoros, bounds) {
 
   if (!sorted.length) return []
 
+  const now = Date.now()
   return sorted.map((pomodoro, idx) => {
     const id = String(pomodoro.id ?? `${pomodoro.createdAt}-${idx}`)
-    return byId.get(id) ?? createBodyFromStore(pomodoro, idx, width, height)
+    const existing = byId.get(id)
+    if (existing) return existing
+    if (dropFresh && isFreshTomato(pomodoro, now)) return dropBodyFromStore(pomodoro, id, width)
+    return createBodyFromStore(pomodoro, idx, width, height)
   })
 }
 
-function createSpawnBody({ id, pct, abandoned, colorPct, width }) {
+function createSpawnBody({ id, pct, abandoned, colorPct, width, face, rotation }) {
   const size = sizeFromPct(pct)
   const radius = size / 2
   return {
     id,
-    face: Math.floor(Math.random() * FACE_COUNT),
+    face: typeof face === 'number' ? face : Math.floor(Math.random() * FACE_COUNT),
     x: randomBodyX(radius, width),
     y: -size,
     vx: (Math.random() - 0.5) * 80,
     vy: 0,
     size,
     radius,
-    rotation: Math.random() * 40 - 20,
+    rotation: typeof rotation === 'number' ? rotation : Math.random() * 40 - 20,
     omega: (Math.random() - 0.5) * 12,
     wobbleLeft: MAX_WOBBLE_SECONDS,
     abandoned,
@@ -136,8 +158,6 @@ export function usePomodoroBodies({
   pomodoros,
   addPomodoro,
   trackStats,
-  phase,
-  cycleElapsed,
   focusRunning,
   resetSignal,
   periodIds,
@@ -148,8 +168,7 @@ export function usePomodoroBodies({
 
   const rafRef = useRef(null)
   const lastTimeRef = useRef(null)
-  const prevPhaseRef = useRef(phase)
-  const latestFocusSecsRef = useRef(0)
+  const hasSyncedBodiesRef = useRef(false)
   const draggingRef = useRef(null)
   const obstaclesRef = useRef([])
   const lastObstacleRefreshRef = useRef(0)
@@ -181,18 +200,17 @@ export function usePomodoroBodies({
     return () => document.removeEventListener('pointerdown', grantOnFirstGesture)
   }, [requestOrientationAccess])
 
-  useEffect(() => {
-    if (phase === 'focus') latestFocusSecsRef.current = cycleElapsed
-  }, [phase, cycleElapsed])
-
   const syncBodiesFromStore = useCallback(() => {
     const bounds = getBounds()
+    const dropFresh = hasSyncedBodiesRef.current
+    hasSyncedBodiesRef.current = true
     setBodies(prev => {
-      const next = buildBodiesFromPomodoros(prev, pomodoros, bounds)
-      if (showPeriodStats && periodIds && periodIds.size > 0) {
-        return next.filter(b => periodIds.has(String(b.id)))
-      }
-      return next
+      const built = buildBodiesFromPomodoros(prev, pomodoros, bounds, { dropFresh })
+      const next = showPeriodStats && periodIds && periodIds.size > 0
+        ? built.filter(b => periodIds.has(String(b.id)))
+        : built
+      const lostSupport = prev.some(b => !next.some(n => n.id === b.id))
+      return lostSupport ? wakeBodies(next) : next
     })
   }, [getBounds, pomodoros, periodIds, showPeriodStats])
 
@@ -230,17 +248,6 @@ export function usePomodoroBodies({
     setBodies(prev => [...prev, body])
     addPomodoro(record)
   }, [addPomodoro, buildSpawnData])
-
-  useEffect(() => {
-    const prev = prevPhaseRef.current
-
-    if (prev === 'focus' && phase === 'break') {
-      const completedPct = growthFromSecs(latestFocusSecsRef.current)
-      spawnTomato({ abandoned: false, pct: completedPct, focusSecs: latestFocusSecsRef.current, colorPct: 1 })
-    }
-
-    prevPhaseRef.current = phase
-  }, [phase, spawnTomato])
 
   useEffect(() => {
     if (!resetSignal?.ts) return
