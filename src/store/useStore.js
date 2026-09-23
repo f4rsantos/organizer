@@ -10,6 +10,7 @@ import { buildClassIdMap, remapCarriedTasks, remapCarriedEvents } from '@/lib/se
 import { cacheCollabUserId } from '@/lib/collab/identity'
 import { mergeSyncedState } from '@/lib/sync/threeWayMerge'
 import { createSyncBase, syncBaseFor } from '@/lib/sync/syncBase'
+import { createFocusTomato } from '@/lib/focus/focusCycle'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
@@ -1064,6 +1065,13 @@ export const useStore = create((set, get) => ({
     },
   })),
   addPomodoro: (pomodoro) => set(s => persist({ ...s, pomodoros: [...(s.pomodoros ?? []), pomodoro] })),
+  recordFocusTomato: ({ id, focusSecs }) => set(s => {
+    const pomodoroSettings = s.settings?.pomodoro ?? {}
+    if (pomodoroSettings.enabled !== true || !id) return s
+    if ((s.pomodoros ?? []).some(p => String(p.id) === id)) return s
+    const tomato = createFocusTomato({ id, focusSecs, trackStats: pomodoroSettings.trackStats === true, createdAt: Date.now() })
+    return persist({ ...s, pomodoros: [...(s.pomodoros ?? []), tomato] })
+  }),
   clearPomodoros: () => set(s => persist({ ...s, pomodoros: [] })),
   erasePomodoroStats: () => set(s => persist({
     ...s,
