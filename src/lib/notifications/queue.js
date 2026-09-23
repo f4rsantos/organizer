@@ -38,7 +38,13 @@ export function dismissToast(queue, id) {
 
 export function readToast(queue, id) {
   const q = queue ?? emptyNotificationQueue()
-  return { ...q, toasts: q.toasts.filter(t => t.id !== id) }
+  const toast = q.toasts.find(t => t.id === id)
+  if (!toast) return q
+  return {
+    ...q,
+    toasts: q.toasts.filter(t => t.id !== id),
+    unread: withoutTag(q.unread, toast.tag),
+  }
 }
 
 export function dismissActiveAlert(queue) {

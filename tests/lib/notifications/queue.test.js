@@ -76,6 +76,31 @@ describe('readToast', () => {
     expect(q.unread).toEqual([])
   })
 
+  it('clears stale unread entries sharing the read toast tag', () => {
+    let q = enqueueNotification(emptyNotificationQueue(), { id: 'a', tag: 'focus', title: 'Break' }, 'toast')
+    q = dismissToast(q, 'a')
+    q = enqueueNotification(q, { id: 'b', tag: 'focus', title: 'Focus' }, 'toast')
+    q = readToast(q, 'b')
+    expect(q.toasts).toEqual([])
+    expect(q.unread).toEqual([])
+  })
+
+  it('keeps unread entries with a different tag', () => {
+    let q = enqueueNotification(emptyNotificationQueue(), { id: 'a', tag: 'task', title: 'Due' }, 'toast')
+    q = dismissToast(q, 'a')
+    q = enqueueNotification(q, { id: 'b', tag: 'focus', title: 'Break' }, 'toast')
+    q = readToast(q, 'b')
+    expect(q.unread.map(entry => entry.id)).toEqual(['a'])
+  })
+
+  it('keeps untagged unread entries when reading an untagged toast', () => {
+    let q = enqueueNotification(emptyNotificationQueue(), { id: 'a', title: 'One' }, 'toast')
+    q = dismissToast(q, 'a')
+    q = enqueueNotification(q, { id: 'b', title: 'Two' }, 'toast')
+    q = readToast(q, 'b')
+    expect(q.unread.map(entry => entry.id)).toEqual(['a'])
+  })
+
   it('is a no-op for an unknown id', () => {
     const q = emptyNotificationQueue()
     expect(readToast(q, 'missing')).toEqual(q)
