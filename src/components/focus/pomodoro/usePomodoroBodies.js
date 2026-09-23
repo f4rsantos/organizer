@@ -10,7 +10,7 @@ import {
   TOMATO_RADIUS,
 } from './utils'
 import { createGravitySensor, requiresDeviceOrientationPermission } from './gravity'
-import { stepBodies } from './physicsEngine'
+import { stepBodies, wakeBodies } from './physicsEngine'
 
 const MAX_WOBBLE_SECONDS = 5
 const FRESH_TOMATO_MS = 15000
@@ -205,11 +205,12 @@ export function usePomodoroBodies({
     const dropFresh = hasSyncedBodiesRef.current
     hasSyncedBodiesRef.current = true
     setBodies(prev => {
-      const next = buildBodiesFromPomodoros(prev, pomodoros, bounds, { dropFresh })
-      if (showPeriodStats && periodIds && periodIds.size > 0) {
-        return next.filter(b => periodIds.has(String(b.id)))
-      }
-      return next
+      const built = buildBodiesFromPomodoros(prev, pomodoros, bounds, { dropFresh })
+      const next = showPeriodStats && periodIds && periodIds.size > 0
+        ? built.filter(b => periodIds.has(String(b.id)))
+        : built
+      const lostSupport = prev.some(b => !next.some(n => n.id === b.id))
+      return lostSupport ? wakeBodies(next) : next
     })
   }, [getBounds, pomodoros, periodIds, showPeriodStats])
 

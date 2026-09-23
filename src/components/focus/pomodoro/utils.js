@@ -3,7 +3,6 @@ export const TOMATO_RADIUS = 28
 export const GRAVITY = 800
 export const DAMPING = 0.55
 export const FRICTION = 0.82
-export const MIN_VX = 0.5
 
 export const POMODORO_UNITS_MAX = 120
 export const LEGACY_FULL_PCT_UNITS = 2.5
