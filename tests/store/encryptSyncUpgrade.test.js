@@ -45,6 +45,10 @@ describe('enabling encryption while firebase sync is on', () => {
     }))
     vi.doMock('firebase/auth', () => ({
       getAuth: () => ({ currentUser: { uid: 'u' } }),
+      initializeAuth: () => ({ currentUser: { uid: 'u' } }),
+      indexedDBLocalPersistence: {},
+      browserLocalPersistence: {},
+      browserSessionPersistence: {},
       signInAnonymously: async () => ({}),
     }))
     vi.doMock('firebase/firestore', () => ({

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
 import { getFirestore, doc, setDoc, getDoc, runTransaction } from 'firebase/firestore'
-import { getAuth, signInAnonymously } from 'firebase/auth'
+import { signInAnonymously } from 'firebase/auth'
+import { getAnonymousAuth } from './firebaseAuth'
 import {
   loadKeyString, encryptForSlot, decryptForSlot, isEnvelope, assertKeyExpected,
   aadForPersonalSlice, WHOLE_STATE, getCachedDek, hasAnySlot,
@@ -105,7 +106,7 @@ async function trySignInAnonymously(app) {
     return false
   }
 
-  const auth = getAuth(app)
+  const auth = getAnonymousAuth(app)
   if (auth.currentUser) {
     ANON_AUTH_STATUS.set(app.name, 'ok')
     clearAnonAuthFailure(app)

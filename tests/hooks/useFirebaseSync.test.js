@@ -56,6 +56,10 @@ describe('useFirebaseSync module exports', () => {
     }))
     vi.doMock('firebase/auth', () => ({
       getAuth: () => ({ currentUser: { uid: 'u' } }),
+      initializeAuth: () => ({ currentUser: { uid: 'u' } }),
+      indexedDBLocalPersistence: {},
+      browserLocalPersistence: {},
+      browserSessionPersistence: {},
       signInAnonymously: async () => ({}),
     }))
     vi.doMock('firebase/firestore', () => ({
@@ -88,6 +92,10 @@ describe('useHydrateState with remote data', () => {
     }))
     vi.doMock('firebase/auth', () => ({
       getAuth: () => ({ currentUser: { uid: 'u' } }),
+      initializeAuth: () => ({ currentUser: { uid: 'u' } }),
+      indexedDBLocalPersistence: {},
+      browserLocalPersistence: {},
+      browserSessionPersistence: {},
       signInAnonymously: async () => ({}),
     }))
     vi.doMock('firebase/firestore', () => ({

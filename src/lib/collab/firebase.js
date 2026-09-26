@@ -11,7 +11,8 @@ import {
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore'
-import { getAuth, signInAnonymously } from 'firebase/auth'
+import { signInAnonymously } from 'firebase/auth'
+import { getAnonymousAuth } from '@/lib/firebaseAuth'
 import { nanoid } from '@/lib/ids'
 import { createInviteToken, createTokenSalt, hashToken, matchesTokenHash, createKeyProof, matchesKeyProof } from './token'
 import { createTeamState, isMember, personForAuthUid } from './schema'
@@ -30,7 +31,7 @@ function getOrCreateApp(config) {
   if (appCache.has(name)) return appCache.get(name)
   const existing = getApps().find(app => app.name === name)
   const app = existing ?? initializeApp({ apiKey: config.apiKey, projectId: config.projectId }, name)
-  const auth = getAuth(app)
+  const auth = getAnonymousAuth(app)
   const db = getFirestore(app)
   const bundle = { app, auth, db }
   appCache.set(name, bundle)

@@ -40,6 +40,10 @@ describe('locked second device must not clobber the encrypted remote', () => {
     }))
     vi.doMock('firebase/auth', () => ({
       getAuth: () => ({ currentUser: { uid: 'u' } }),
+      initializeAuth: () => ({ currentUser: { uid: 'u' } }),
+      indexedDBLocalPersistence: {},
+      browserLocalPersistence: {},
+      browserSessionPersistence: {},
       signInAnonymously: async () => ({}),
     }))
     vi.doMock('firebase/firestore', () => ({
