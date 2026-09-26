@@ -520,7 +520,7 @@ export const en = {
     quickActionPreviewEvent: 'calendar event', quickActionPreviewCard: column => `kanban card in ${column}`,
     quickActionEmpty: "Couldn't understand that. Try rephrasing.",
     quickActionCreate: 'Create', quickActionBack: 'Back',
-    notesDeleteConfirmTitle: 'Delete this note?', notesDeleteConfirmDesc: 'This note will be permanently deleted.',
+    notesDeleteConfirmTitle: 'Delete this note?', notesDeleteConfirmDesc: 'This note will be permanently deleted.', notesDeleteSharedConfirmDesc: 'This note will be deleted for everyone on the team.',
     notesEmptyTitle: 'No notes yet', notesEmptyDesc: 'Create your first note to get started.',
     notesFilterEmpty: 'No notes match your search.',
     notesFolderEmpty: 'This folder is empty.',

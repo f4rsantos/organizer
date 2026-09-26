@@ -74,3 +74,10 @@ export function applyAgentOverlay(entities, run, entityType) {
 
   return [...transformed, ...created]
 }
+
+export function removeSharedNote(teamState, sharedNoteId) {
+  return {
+    ...teamState,
+    notes: (teamState?.notes ?? []).filter(note => note?.id !== sharedNoteId),
+  }
+}

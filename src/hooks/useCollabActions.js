@@ -6,6 +6,7 @@ import { updateTeamState, updateMemberAlias as firebaseUpdateMemberAlias } from 
 import { classifyCollabError } from '@/lib/collab/errors'
 import { sortByOrder } from '@/lib/utils'
 import { resolveTeamUserId } from '@/hooks/useTeamIdentity'
+import { removeSharedNote } from '@/lib/collab/mergeUtils'
 
 function resolveTargetColumn(localBoard, desiredColumnId = null) {
   const columns = sortByOrder(localBoard?.columns ?? [])
@@ -210,6 +211,13 @@ export function useCollabActions() {
     })
 
     await writeShared(teamId, membership, applyDelete, applyDelete)
+  }
+
+  const deleteSharedNote = async ({ teamId, sharedNoteId }) => {
+    const ctx = guard(teamId)
+    if (!ctx) return false
+    const applyDelete = state => removeSharedNote(state, sharedNoteId)
+    return writeShared(teamId, ctx.membership, applyDelete, applyDelete)
   }
 
   const toggleSharedTask = async ({ teamId, sharedTaskId }) => {
@@ -440,6 +448,7 @@ export function useCollabActions() {
     shareEventToTeam,
     updateSharedEvent,
     deleteSharedEvent,
+    deleteSharedNote,
     updateSharedTask,
     toggleSharedTask,
     deleteSharedTask,

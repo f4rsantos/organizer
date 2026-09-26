@@ -227,7 +227,7 @@ function FolderTile({ folder, count, onOpen, onRename, onDelete, dragHover, t })
   )
 }
 
-function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, draggable, t }) {
+function NoteTile({ note, selected, onSelect, onDelete, deletable, folderLabel, teamLabel, draggable, t }) {
   const KindIcon = note.kind === 'canvas' ? Pencil : FileText
   const isSharedRemote = Boolean(note.sharedMeta?.remote)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -267,7 +267,7 @@ function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, 
         {folderLabel && <span className="truncate rounded bg-secondary px-1 py-0.5">{folderLabel}</span>}
       </span>
       </button>
-      {!isSharedRemote && (
+      {deletable && (
       <button
         type="button"
         title={t.notesDeleteNote}
@@ -286,7 +286,7 @@ function NoteTile({ note, selected, onSelect, onDelete, folderLabel, teamLabel, 
 export function NoteGrid({
   notes, folders, selectedId, onSelect, onDeleteNote, t,
   currentFolderId = null, onOpenFolder, flat = false, noteCountFor, onRenameFolder, onDeleteFolder,
-  dragHover = null, teamNameFor, emptyLabel,
+  dragHover = null, teamNameFor, emptyLabel, canDeleteNote,
 }) {
   const { active } = useDndContext()
   const folderName = id => folders.find(f => f.id === id)?.name
@@ -323,6 +323,7 @@ export function NoteGrid({
                 selected={selectedId === item.id}
                 onSelect={onSelect}
                 onDelete={onDeleteNote}
+                deletable={canDeleteNote?.(item) ?? true}
                 folderLabel={flat ? folderName(item.folderId) : null}
                 teamLabel={item.sharedMeta?.teamId ? teamNameFor?.(item.sharedMeta.teamId) : null}
                 draggable={!flat}

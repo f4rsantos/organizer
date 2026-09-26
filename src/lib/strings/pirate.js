@@ -568,7 +568,7 @@ export const pirate = {
     quickActionCreate: "Create",
     quickActionBack: "Back",
     notesDeleteConfirmTitle: "Delete this note?",
-    notesDeleteConfirmDesc: "This note will be permanently deleted.",
+    notesDeleteConfirmDesc: "This note will be permanently deleted.", notesDeleteSharedConfirmDesc: "This scroll be sent to Davy Jones' locker fer the whole crew.",
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",

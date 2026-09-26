@@ -568,7 +568,7 @@ export const es = {
     quickActionCreate: "Create",
     quickActionBack: "Back",
     notesDeleteConfirmTitle: "Delete this note?",
-    notesDeleteConfirmDesc: "This note will be permanently deleted.",
+    notesDeleteConfirmDesc: "This note will be permanently deleted.", notesDeleteSharedConfirmDesc: 'Esta nota se eliminará para todos los miembros del equipo.',
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",

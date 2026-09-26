@@ -649,7 +649,7 @@ export const cs = {
     quickActionCreate: "Create",
     quickActionBack: "Back",
     notesDeleteConfirmTitle: "Delete this note?",
-    notesDeleteConfirmDesc: "This note will be permanently deleted.",
+    notesDeleteConfirmDesc: "This note will be permanently deleted.", notesDeleteSharedConfirmDesc: 'Tato poznámka bude smazána pro všechny členy týmu.',
     notesEmptyTitle: "No notes yet",
     notesEmptyDesc: "Create your first note to get started.",
     notesFilterEmpty: "No notes match your search.",

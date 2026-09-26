@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isSharedLocalHidden, applyAgentOverlay, buildAgentEntityId, parseAgentEntityId } from '../../../src/lib/collab/mergeUtils.js'
+import { isSharedLocalHidden, applyAgentOverlay, buildAgentEntityId, parseAgentEntityId, removeSharedNote } from '../../../src/lib/collab/mergeUtils.js'
 
 describe('isSharedLocalHidden', () => {
   it('returns false when the entity has no sharedRef', () => {
@@ -180,5 +180,36 @@ describe('applyAgentOverlay', () => {
       sharedMeta: { teamId: 'team1', remote: true },
       agentMeta: { op: 'update', baseId: 'shared:team1:r1' },
     })
+  })
+})
+
+describe('removeSharedNote', () => {
+  it('drops only the matching note and keeps the rest of the team state', () => {
+    const state = {
+      tasks: [{ id: 't1' }],
+      notes: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }],
+    }
+    expect(removeSharedNote(state, 'a')).toEqual({
+      tasks: [{ id: 't1' }],
+      notes: [{ id: 'b', title: 'B' }],
+    })
+  })
+
+  it('does not mutate the input state', () => {
+    const notes = [{ id: 'a' }]
+    const state = { notes }
+    removeSharedNote(state, 'a')
+    expect(state.notes).toBe(notes)
+    expect(notes).toHaveLength(1)
+  })
+
+  it('is a no-op for an unknown id', () => {
+    expect(removeSharedNote({ notes: [{ id: 'a' }] }, 'zzz').notes).toEqual([{ id: 'a' }])
+  })
+
+  it('tolerates missing notes and null entries', () => {
+    expect(removeSharedNote({}, 'a')).toEqual({ notes: [] })
+    expect(removeSharedNote(null, 'a')).toEqual({ notes: [] })
+    expect(removeSharedNote({ notes: [null, { id: 'b' }] }, 'b').notes).toEqual([null])
   })
 })

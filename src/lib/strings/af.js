@@ -57,7 +57,7 @@ export const af = {
     collabFirebaseOnlyForCreating: "Aktiveer collab om take met ander mense deur spanne te deel. Firebase is nodig om spanne te skep.",
     collabErrorAuthDisabled: "Anonieme aanmelding is af in die gasheer se Firebase-projek. Die gasheer moet dit aanskakel onder Authentication › Sign-in method.",
     notesEnable: 'Aktiveer Notas', notesNew: 'Nuwe nota', notesTitle: 'Titel', notesSearch: 'Soek notas',
-    notesMoveTo: 'Skuif na', notesMoveOut: 'Skuif uit vouer',
+    notesMoveTo: 'Skuif na', notesMoveOut: 'Skuif uit vouer', notesDeleteSharedConfirmDesc: 'Hierdie nota sal vir almal in die span uitgevee word.',
     addPartTitle: 'Voeg deel by', gradeParts: n => `${n} dele`, pctDone: pct => `${pct}% klaar`, notesRenameFolder: 'Hernoem vouer',
     semester: 'Semester', classes: 'Klasse', group: 'Groep', gradeComponents: 'Puntkomponente',
     kanbanColumns: 'Kanban-kolomme', general: 'Algemeen', data: 'Data & sinkroniseering',

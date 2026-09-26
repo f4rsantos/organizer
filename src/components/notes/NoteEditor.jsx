@@ -93,7 +93,7 @@ export function NoteEditor({
   const unarchiveNote = useStore(s => s.unarchiveNote)
   const shareNoteToTeam = useStore(s => s.shareNoteToTeam)
   const saveLocalCopyOfSharedNote = useStore(s => s.saveLocalCopyOfSharedNote)
-  const { teams, getTeamName, canEditSharedContent } = useCollabActions()
+  const { teams, getTeamName, canEditSharedContent, deleteSharedNote } = useCollabActions()
   const sharedMeta = note.sharedMeta?.remote ? note.sharedMeta : null
   const teamName = sharedMeta ? getTeamName(sharedMeta.teamId) : null
   const canEditShared = sharedMeta ? canEditSharedContent(sharedMeta.teamId) : true
@@ -143,9 +143,14 @@ export function NoteEditor({
     if (shared) onDeleted?.()
   }
 
-  const handleDelete = () => {
-    deleteNote(note.id)
-    onDeleted?.()
+  const handleDelete = async () => {
+    if (!sharedMeta) {
+      deleteNote(note.id)
+      onDeleted?.()
+      return
+    }
+    const deleted = await deleteSharedNote({ teamId: sharedMeta.teamId, sharedNoteId: sharedMeta.sharedNoteId })
+    if (deleted) onDeleted?.()
   }
 
   const handleImport = async event => {
@@ -257,8 +262,8 @@ export function NoteEditor({
             </>
           )}
         </div>
-        {!sharedMeta && (
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive transition-colors" onClick={() => setConfirmDelete(true)}>
+        {canEditShared && (
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive transition-colors" title={t.notesDeleteNote} onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -298,7 +303,7 @@ export function NoteEditor({
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={t.notesDeleteConfirmTitle}
-        description={t.notesDeleteConfirmDesc}
+        description={sharedMeta ? t.notesDeleteSharedConfirmDesc : t.notesDeleteConfirmDesc}
         onConfirm={handleDelete}
       />
     </div>

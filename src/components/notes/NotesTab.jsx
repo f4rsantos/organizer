@@ -9,6 +9,7 @@ import { useCollabActions } from '@/hooks/useCollabActions'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/common/EmptyState'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { NoteEditor } from './NoteEditor'
 import { NoteGrid } from './NoteGrid'
 import { DragOverlayItem } from './DragOverlayItem'
@@ -27,7 +28,7 @@ export function NotesTab() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const notes = useMergedNotes()
-  const { getTeamName } = useCollabActions()
+  const { getTeamName, canEditSharedContent, deleteSharedNote } = useCollabActions()
   const folders = useStore(s => s.noteFolders ?? EMPTY)
   const addNote = useStore(s => s.addNote)
   const addNoteFolder = useStore(s => s.addNoteFolder)
@@ -40,6 +41,7 @@ export function NotesTab() {
   const deleteNote = useStore(s => s.deleteNote)
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(null)
+  const [pendingSharedDelete, setPendingSharedDelete] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
   const [mosaicFolderId, setMosaicFolderId] = useState(null)
   const [activeDrag, setActiveDrag] = useState(null)
@@ -90,10 +92,22 @@ export function NotesTab() {
 
   const isRemoteNote = id => notes.find(n => n.id === id)?.sharedMeta?.remote === true
 
+  const canDeleteNote = note => !note.sharedMeta?.remote || canEditSharedContent(note.sharedMeta.teamId)
+
   const handleDeleteNote = id => {
-    if (isRemoteNote(id)) return
+    const note = notes.find(n => n.id === id)
+    if (note?.sharedMeta?.remote) {
+      setPendingSharedDelete(note.sharedMeta)
+      return
+    }
     if (selectedId === id) setSelectedId(null)
     deleteNote(id)
+  }
+
+  const confirmSharedDelete = async () => {
+    const { teamId, sharedNoteId } = pendingSharedDelete
+    const deleted = await deleteSharedNote({ teamId, sharedNoteId })
+    if (deleted && selectedId === `shared:${teamId}:${sharedNoteId}`) setSelectedId(null)
   }
 
   const deleteMosaicFolder = id => {
@@ -382,7 +396,7 @@ export function NotesTab() {
           {showArchived ? (
             <div>
               {filtered.length > 0 ? (
-                <NoteGrid notes={filtered.slice().sort(noteOrder)} folders={EMPTY} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} t={t} flat={true} teamNameFor={getTeamName} />
+                <NoteGrid notes={filtered.slice().sort(noteOrder)} folders={EMPTY} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} canDeleteNote={canDeleteNote} t={t} flat={true} teamNameFor={getTeamName} />
               ) : (
                 <div className="py-8">
                   <EmptyState icon={Archive} title={t.notesArchivedEmpty} />
@@ -392,7 +406,7 @@ export function NotesTab() {
           ) : (
             <>
               <DndContext sensors={sensors} collisionDetection={mosaicCollision} onDragStart={onDragStart} onDragMove={onDragMove} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} t={t}
+                <NoteGrid notes={mosaicNotes} folders={folders} selectedId={selectedId} onSelect={handleSelectNote} onDeleteNote={handleDeleteNote} canDeleteNote={canDeleteNote} t={t}
                   currentFolderId={mosaicFolderId} onOpenFolder={setMosaicFolderId}
                   flat={searching} noteCountFor={noteCountFor} onRenameFolder={renameNoteFolder}
                   onDeleteFolder={deleteMosaicFolder} dragHover={dragHover} teamNameFor={getTeamName}
@@ -447,6 +461,14 @@ export function NotesTab() {
           <Plus className="h-5 w-5" />
         </Button>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingSharedDelete)}
+        onOpenChange={open => { if (!open) setPendingSharedDelete(null) }}
+        title={t.notesDeleteConfirmTitle}
+        description={t.notesDeleteSharedConfirmDesc}
+        onConfirm={confirmSharedDelete}
+      />
     </div>
   )
 }
