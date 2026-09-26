@@ -8,6 +8,7 @@ import {
   loadCollabRulesTag, pullFromFirebase, inspectRemoteState, pushEnabledContainer, pushWraps,
   fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
+import { parseFirebaseConfig } from '@/lib/firebaseConfig'
 import { forceSaveState } from '@/store/persist'
 import { stripTransient, getHint, putDek } from '@/lib/crypto'
 import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
@@ -268,19 +269,6 @@ function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
   )
 }
 
-function parseFirebaseConfig(raw) {
-  const trimmed = raw.trim()
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    // Not strict JSON: fall through and try to salvage a JS object literal.
-  }
-  const match = trimmed.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error('no object found')
-  const jsonified = match[0].replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
-  return JSON.parse(jsonified)
-}
-
 export function FirebaseGuideModal({ onClose, syncStatus }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
@@ -308,9 +296,8 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
 
   const handleSave = async () => {
     setError(null)
-    let parsed
-    try { parsed = parseFirebaseConfig(raw) } catch { setError(t.firebaseConfigInvalid); return }
-    if (!parsed.apiKey || !parsed.projectId) { setError(t.firebaseConfigInvalid); return }
+    const parsed = parseFirebaseConfig(raw)
+    if (!parsed) { setError(t.firebaseConfigInvalid); return }
     setTesting(true)
     try {
       const remote = await validateFirebaseConfig(parsed)
