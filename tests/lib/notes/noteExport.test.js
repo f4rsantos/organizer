@@ -129,6 +129,24 @@ describe('html export', () => {
   it('escapes quotes in the title', () => {
     expect(docToHtml(doc([]), '"><img src=x>')).not.toContain('<img src=x>')
   })
+
+  it('cannot inject markup through a tampered heading level', () => {
+    const node = { type: 'heading', attrs: { level: '1><img src=x onerror=alert(1)>' }, content: [t('Hi')] }
+    const html = docToHtml(doc([node]), 'x')
+    expect(html).not.toContain('onerror')
+    expect(html).toContain('<h1>Hi</h1>')
+  })
+
+  it('clamps out-of-range heading levels', () => {
+    const node = { type: 'heading', attrs: { level: 99 }, content: [t('Hi')] }
+    expect(docToHtml(doc([node]), 'x')).toContain('<h6>Hi</h6>')
+    expect(docToMarkdown(doc([{ ...node, attrs: { level: 1e9 } }]))).toBe('###### Hi')
+  })
+
+  it('escapes code block text exactly once', () => {
+    const node = { type: 'codeBlock', content: [t('a < b', [{ type: 'bold' }])] }
+    expect(docToHtml(doc([node]), 'x')).toContain('<pre><code>a &lt; b</code></pre>')
+  })
 })
 
 describe('markdown import', () => {

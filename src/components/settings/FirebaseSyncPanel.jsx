@@ -9,6 +9,7 @@ import {
   fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
 import { parseFirebaseConfig } from '@/lib/firebaseConfig'
+import { classifyFirebaseError, FIREBASE_ERROR } from '@/lib/firebaseErrors'
 import { forceSaveState } from '@/store/persist'
 import { stripTransient, getHint, putDek } from '@/lib/crypto'
 import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
@@ -21,7 +22,23 @@ import { PlaintextSyncWarning } from '@/components/crypto/PlaintextSyncWarning'
 import { SecretPrompt } from '@/components/crypto/SecretPrompt'
 import { RulesBox } from '@/components/settings/RulesBox'
 
-const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStep3', 'firebaseStep4']
+const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStepAuth', 'firebaseStep3', 'firebaseStep4']
+const RULES_STEP = 'firebaseStep2'
+const LAST_STEP_INDEX = STEPS.length - 1
+
+const CONNECT_ERROR_KEYS = {
+  [FIREBASE_ERROR.ANON_DISABLED]: 'firebaseErrAnonDisabled',
+  [FIREBASE_ERROR.API_KEY]: 'firebaseErrApiKey',
+  [FIREBASE_ERROR.RULES]: 'firebaseErrRules',
+  [FIREBASE_ERROR.NO_DATABASE]: 'firebaseErrNoDatabase',
+  [FIREBASE_ERROR.NETWORK]: 'firebaseErrNetwork',
+}
+
+function describeConnectError(error, t) {
+  const key = CONNECT_ERROR_KEYS[classifyFirebaseError(error)]
+  if (key) return t[key]
+  return error?.code ? `${t.firebaseTestFailed} (${error.code})` : t.firebaseTestFailed
+}
 
 function SetupStep({ titleKey, t, active, done, onClick, children }) {
   return (
@@ -314,8 +331,8 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
 
       saveFirebaseConfig(parsed)
       setConfig(parsed)
-    } catch {
-      setError(t.firebaseTestFailed)
+    } catch (err) {
+      setError(describeConnectError(err, t))
     } finally {
       setTesting(false)
     }
@@ -351,14 +368,14 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
                     <SetupStep key={key} titleKey={key} t={t}
                       active={i === step} done={i < step}
                       onClick={() => i < step && setStep(i)}>
-                      {i === 1 && <RulesBox label={t.firebaseRulesTemplateLink} />}
+                      {key === RULES_STEP && <RulesBox label={t.firebaseRulesTemplateLink} />}
                     </SetupStep>
                   ))}
                 </div>
 
-                {step < 3
+                {step < LAST_STEP_INDEX
                   ? <Button className="w-full" onClick={() => setStep(s => s + 1)}>
-                      {lang === 'pt' ? 'Próximo' : 'Next'}
+                      {t.firebaseNext}
                     </Button>
                   : (
                     <div className="space-y-2">

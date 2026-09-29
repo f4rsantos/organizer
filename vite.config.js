@@ -24,20 +24,31 @@ function stripAnalytics() {
   }
 }
 
-const STRIP_META_CSP_ON_NATIVE = true
+const NATIVE_CSP = [
+  "default-src 'self'",
+  "connect-src 'self' data: blob: https: wss: capacitor://localhost",
+  "script-src 'self' 'wasm-unsafe-eval' blob:",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+].join('; ')
 
-function nativeCspStrip() {
+const META_CSP = /(<meta http-equiv="Content-Security-Policy" content=")[\s\S]*?("\s*\/>)/
+
+function nativeCsp() {
   return {
-    name: 'native-csp-strip',
+    name: 'native-csp',
     apply: 'build',
     transformIndexHtml: {
       order: 'post',
       handler(html) {
-        if (!IS_NATIVE || !STRIP_META_CSP_ON_NATIVE) return html
-        return html.replace(
-          /\s*<meta http-equiv="Content-Security-Policy" content="[\s\S]*?"\s*\/>/,
-          '',
-        )
+        if (!IS_NATIVE) return html
+        if (!META_CSP.test(html)) throw new Error('native-csp: index.html has no CSP meta tag to replace')
+        return html.replace(META_CSP, `$1${NATIVE_CSP}$2`)
       },
     },
   }
@@ -78,7 +89,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     stripAnalytics(),
-    nativeCspStrip(),
+    nativeCsp(),
     tesseractAssets(),
     VitePWA({
       disable: IS_NATIVE,

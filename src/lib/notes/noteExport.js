@@ -42,6 +42,24 @@ function safeHref(href) {
   }
 }
 
+const MIN_HEADING_LEVEL = 1
+const MAX_HEADING_LEVEL = 6
+
+function headingLevel(node) {
+  const level = Math.trunc(Number(node.attrs?.level))
+  if (!Number.isFinite(level)) return MIN_HEADING_LEVEL
+  return Math.min(MAX_HEADING_LEVEL, Math.max(MIN_HEADING_LEVEL, level))
+}
+
+function plainInlineText(nodes = []) {
+  return nodes.map(node => {
+    if (node.type === 'text') return node.text ?? ''
+    if (node.type === 'taskMention') return node.attrs?.label ?? ''
+    if (node.type === 'hardBreak') return '\n'
+    return ''
+  }).join('')
+}
+
 const SAFE_COLOR = /^#[0-9a-f]{3,8}$|^rgba?\([\d\s.,%]+\)$/i
 const SAFE_FONT_SIZE = /^[\d.]+(px|rem|em|%)$/
 
@@ -85,7 +103,7 @@ function blockToMarkdown(node, depth = 0) {
     case 'paragraph':
       return inlineToMarkdown(node.content)
     case 'heading':
-      return `${'#'.repeat(node.attrs?.level ?? 1)} ${inlineToMarkdown(node.content)}`
+      return `${'#'.repeat(headingLevel(node))} ${inlineToMarkdown(node.content)}`
     case 'blockquote':
       return (node.content ?? []).map(child => `> ${blockToMarkdown(child, depth)}`).join('\n')
     case 'codeBlock':
@@ -172,12 +190,14 @@ function blockToHtml(node) {
   switch (node.type) {
     case 'paragraph':
       return `<p>${inlineToHtml(node.content) || '&nbsp;'}</p>`
-    case 'heading':
-      return `<h${node.attrs?.level ?? 1}>${inlineToHtml(node.content)}</h${node.attrs?.level ?? 1}>`
+    case 'heading': {
+      const level = headingLevel(node)
+      return `<h${level}>${inlineToHtml(node.content)}</h${level}>`
+    }
     case 'blockquote':
       return `<blockquote>${(node.content ?? []).map(blockToHtml).join('')}</blockquote>`
     case 'codeBlock':
-      return `<pre><code>${escapeHtml(inlineToHtml(node.content))}</code></pre>`
+      return `<pre><code>${escapeHtml(plainInlineText(node.content))}</code></pre>`
     case 'horizontalRule':
       return '<hr />'
     case 'bulletList':
@@ -222,10 +242,11 @@ export function exportNote(note, format) {
   return null
 }
 
-// Uses the browser's own print-to-PDF: no dependency, and the output matches
-// whatever the user's system PDF engine produces.
+const PRINT_FRAME_SANDBOX = 'allow-same-origin allow-modals'
+
 export function printAsPdf(html) {
   const frame = document.createElement('iframe')
+  frame.setAttribute('sandbox', PRINT_FRAME_SANDBOX)
   frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'
   document.body.appendChild(frame)
 

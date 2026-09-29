@@ -38,9 +38,24 @@ export function markCollabGuideSeen() {
   writeDevicePref(COLLAB_GUIDE_SEEN_PREF, true)
 }
 
-function getApp(config) {
-  const existingDefault = getApps().find(app => app.name === '[DEFAULT]')
-  if (existingDefault) return existingDefault
+const DEFAULT_APP_NAME = '[DEFAULT]'
+
+function isSameProject(app, config) {
+  return String(app?.options?.projectId ?? '') === String(config?.projectId ?? '')
+    && String(app?.options?.apiKey ?? '') === String(config?.apiKey ?? '')
+}
+
+function findDefaultApp() {
+  return getApps().find(app => app.name === DEFAULT_APP_NAME)
+}
+
+async function getApp(config) {
+  const existingDefault = findDefaultApp()
+  if (existingDefault && isSameProject(existingDefault, config)) return existingDefault
+  if (existingDefault) {
+    ANON_AUTH_STATUS.delete(DEFAULT_APP_NAME)
+    await deleteApp(existingDefault)
+  }
   return initializeApp(config)
 }
 
@@ -97,6 +112,13 @@ function clearAnonAuthFailure(app) {
   writeAnonFailCache(cache)
 }
 
+async function signInAnonymouslyOrThrow(app) {
+  const auth = getAnonymousAuth(app)
+  if (!auth.currentUser) await signInAnonymously(auth)
+  ANON_AUTH_STATUS.set(app.name, 'ok')
+  clearAnonAuthFailure(app)
+}
+
 async function trySignInAnonymously(app) {
   const status = ANON_AUTH_STATUS.get(app.name)
   if (status === 'failed') return false
@@ -119,9 +141,7 @@ async function trySignInAnonymously(app) {
 
   const pending = (async () => {
     try {
-      await signInAnonymously(auth)
-      ANON_AUTH_STATUS.set(app.name, 'ok')
-      clearAnonAuthFailure(app)
+      await signInAnonymouslyOrThrow(app)
       return true
     } catch {
       ANON_AUTH_STATUS.set(app.name, 'failed')
@@ -156,21 +176,20 @@ async function runSyncOperation(app, operation) {
     const signedIn = await trySignInAnonymously(app)
     if (!signedIn) throw error
 
-    // Rules are auth-required on this project even if this device was never tagged before.
     markCollabRulesEnabled()
     return operation()
   }
 }
 
 async function readStateDoc(config) {
-  const app = getApp(config)
+  const app = await getApp(config)
   const db = getFirestore(app)
   const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
   return snap.exists() ? snap.data() : null
 }
 
 async function writeStateDoc(config, payload) {
-  const app = getApp(config)
+  const app = await getApp(config)
   const db = getFirestore(app)
   await runSyncOperation(app, () => setDoc(stateDoc(db), payload))
 }
@@ -184,7 +203,7 @@ function readRev(data) {
 // if the remote moved past it another device wrote in between, so the caller
 // must re-pull instead of overwriting work it never read.
 async function writeStateDocGuarded(config, buildPayload, baseRev) {
-  const app = getApp(config)
+  const app = await getApp(config)
   const db = getFirestore(app)
   return runSyncOperation(app, () => runTransaction(db, async tx => {
     const ref = stateDoc(db)
@@ -317,22 +336,30 @@ export async function pullFromFirebase(config) {
   return { state: await decryptForSlot(data, keyString, PERSONAL_AAD), rev }
 }
 
-export async function validateFirebaseConfig(config) {
-  const existingDefault = getApps().find(app => app.name === '[DEFAULT]')
-  const sameProject = existingDefault
-    && String(existingDefault.options?.projectId ?? '') === String(config?.projectId ?? '')
-    && String(existingDefault.options?.apiKey ?? '') === String(config?.apiKey ?? '')
+async function readForValidation(app) {
+  const db = getFirestore(app)
+  const read = () => getDoc(stateDoc(db))
+  try {
+    return await read()
+  } catch (error) {
+    if (!isLikelyAuthRulesError(error)) throw error
+    await signInAnonymouslyOrThrow(app)
+    ANON_AUTH_STATUS.delete(DEFAULT_APP_NAME)
+    markCollabRulesEnabled()
+    return read()
+  }
+}
 
-  if (sameProject) {
-    const db = getFirestore(existingDefault)
-    const snap = await runSyncOperation(existingDefault, () => getDoc(stateDoc(db)))
+export async function validateFirebaseConfig(config) {
+  const existingDefault = findDefaultApp()
+  if (existingDefault && isSameProject(existingDefault, config)) {
+    const snap = await readForValidation(existingDefault)
     return describeStateDoc(snap.exists() ? snap.data() : null)
   }
 
   const app = initializeApp(config, `validate_${Date.now()}`)
   try {
-    const db = getFirestore(app)
-    const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
+    const snap = await readForValidation(app)
     return describeStateDoc(snap.exists() ? snap.data() : null)
   } finally {
     await deleteApp(app)
