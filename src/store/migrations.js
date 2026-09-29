@@ -4,7 +4,7 @@ import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 import { normalizeNotificationSettings } from '../lib/notifications/settings'
 import { withAggregateId } from '../components/focus/pomodoro/utils'
 
-export const CURRENT_VERSION = 8
+export const CURRENT_VERSION = 9
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
@@ -19,6 +19,7 @@ const MIGRATIONS = [
   { toVersion: 6, migrate: migrateV6QuickAction },
   { toVersion: 7, migrate: migrateV7GoalsToHabits },
   { toVersion: 8, migrate: migrateV8UnifyNotifications },
+  { toVersion: 9, migrate: migrateV9PrivateSyncDoc },
 ]
 
 export function migrateState(raw) {
@@ -189,6 +190,10 @@ function migrateV7GoalsToHabits(state) {
   next.settings = settings
 
   return next
+}
+
+function migrateV9PrivateSyncDoc(state) {
+  return state
 }
 
 function migrateV8UnifyNotifications(state) {

@@ -70,7 +70,7 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals() })
 
-const config = { apiKey: 'k', projectId: 'p' }
+const config = { apiKey: 'k', projectId: 'p', appId: '1:1:web:a' }
 
 describe('connecting a firebase project', () => {
   it('surfaces the anonymous sign-in error instead of a generic failure', async () => {
@@ -103,8 +103,8 @@ describe('connecting a firebase project', () => {
     mockFirebase(env)
     const { pullFromFirebase } = await import('../../src/lib/firebase.js')
 
-    await pullFromFirebase({ apiKey: 'k1', projectId: 'old' })
-    await pullFromFirebase({ apiKey: 'k2', projectId: 'new' })
+    await pullFromFirebase({ apiKey: 'k1', projectId: 'old', appId: '1:1:web:a' })
+    await pullFromFirebase({ apiKey: 'k2', projectId: 'new', appId: '1:2:web:b' })
 
     expect(env.reads.at(-1)).toBe('new')
     expect(env.apps.map(a => a.options.projectId)).toEqual(['new'])

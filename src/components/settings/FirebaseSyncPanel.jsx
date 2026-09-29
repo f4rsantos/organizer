@@ -9,7 +9,7 @@ import {
   fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
 import { parseFirebaseConfig } from '@/lib/firebaseConfig'
-import { classifyFirebaseError, FIREBASE_ERROR } from '@/lib/firebaseErrors'
+import { describeFirebaseError } from '@/lib/firebaseErrors'
 import { forceSaveState } from '@/store/persist'
 import { stripTransient, getHint, putDek } from '@/lib/crypto'
 import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
@@ -25,20 +25,6 @@ import { RulesBox } from '@/components/settings/RulesBox'
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStepAuth', 'firebaseStep3', 'firebaseStep4']
 const RULES_STEP = 'firebaseStep2'
 const LAST_STEP_INDEX = STEPS.length - 1
-
-const CONNECT_ERROR_KEYS = {
-  [FIREBASE_ERROR.ANON_DISABLED]: 'firebaseErrAnonDisabled',
-  [FIREBASE_ERROR.API_KEY]: 'firebaseErrApiKey',
-  [FIREBASE_ERROR.RULES]: 'firebaseErrRules',
-  [FIREBASE_ERROR.NO_DATABASE]: 'firebaseErrNoDatabase',
-  [FIREBASE_ERROR.NETWORK]: 'firebaseErrNetwork',
-}
-
-function describeConnectError(error, t) {
-  const key = CONNECT_ERROR_KEYS[classifyFirebaseError(error)]
-  if (key) return t[key]
-  return error?.code ? `${t.firebaseTestFailed} (${error.code})` : t.firebaseTestFailed
-}
 
 function SetupStep({ titleKey, t, active, done, onClick, children }) {
   return (
@@ -332,7 +318,7 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
       saveFirebaseConfig(parsed)
       setConfig(parsed)
     } catch (err) {
-      setError(describeConnectError(err, t))
+      setError(describeFirebaseError(err, t))
     } finally {
       setTesting(false)
     }

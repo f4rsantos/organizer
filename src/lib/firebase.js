@@ -12,7 +12,11 @@ import { readDevicePref, writeDevicePref } from './devicePrefs'
 
 export { loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig } from './firebaseConfig'
 
-const DOC_PATH = { collection: 'organizer', id: 'state' }
+const SYNC_COLLECTION = 'organizer'
+const LEGACY_SYNC_DOC_ID = 'state'
+export const SYNC_RULES_OUTDATED = 'sync-rules-outdated'
+export const SYNC_APP_ID_MISSING = 'sync-app-id-missing'
+const RESOLVED_SYNC_DOCS = new Set()
 export const REV_CONFLICT = 'sync-rev-conflict'
 const PERSONAL_AAD = aadForPersonalSlice(WHOLE_STATE)
 const COLLAB_RULES_PREF = 'collabRules'
@@ -59,8 +63,53 @@ async function getApp(config) {
   return initializeApp(config)
 }
 
-function stateDoc(db) {
-  return doc(db, DOC_PATH.collection, DOC_PATH.id)
+function syncError(code) {
+  return Object.assign(new Error(code), { code })
+}
+
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export async function personalSyncDocId(config) {
+  const appId = String(config?.appId ?? '').trim()
+  if (!appId) throw syncError(SYNC_APP_ID_MISSING)
+  const material = new TextEncoder().encode(`organizer-sync:${config.projectId}:${appId}`)
+  return toHex(await crypto.subtle.digest('SHA-256', material))
+}
+
+async function moveLegacyStateDoc(db, ref) {
+  const legacyRef = doc(db, SYNC_COLLECTION, LEGACY_SYNC_DOC_ID)
+  await runTransaction(db, async tx => {
+    const current = await tx.get(ref)
+    const legacy = await tx.get(legacyRef)
+    if (!legacy.exists()) return
+    if (!current.exists()) tx.set(ref, legacy.data())
+    tx.delete(legacyRef)
+  })
+}
+
+async function resolveStateDoc(app, config) {
+  const db = getFirestore(app)
+  const docId = await personalSyncDocId(config)
+  const ref = doc(db, SYNC_COLLECTION, docId)
+  const cacheKey = `${app.name}:${docId}`
+  if (RESOLVED_SYNC_DOCS.has(cacheKey)) return ref
+  try {
+    await runSyncOperation(app, () => moveLegacyStateDoc(db, ref))
+  } catch (error) {
+    if (isLikelyAuthRulesError(error)) throw syncError(SYNC_RULES_OUTDATED)
+    throw error
+  }
+  RESOLVED_SYNC_DOCS.add(cacheKey)
+  return ref
+}
+
+export async function migratePersonalSyncDoc(config) {
+  const app = await getApp(config)
+  await signInAnonymouslyOrThrow(app)
+  markCollabRulesEnabled()
+  await resolveStateDoc(app, config)
 }
 
 function shouldUseCollabRulesMode() {
@@ -183,15 +232,15 @@ async function runSyncOperation(app, operation) {
 
 async function readStateDoc(config) {
   const app = await getApp(config)
-  const db = getFirestore(app)
-  const snap = await runSyncOperation(app, () => getDoc(stateDoc(db)))
+  const ref = await resolveStateDoc(app, config)
+  const snap = await runSyncOperation(app, () => getDoc(ref))
   return snap.exists() ? snap.data() : null
 }
 
 async function writeStateDoc(config, payload) {
   const app = await getApp(config)
-  const db = getFirestore(app)
-  await runSyncOperation(app, () => setDoc(stateDoc(db), payload))
+  const ref = await resolveStateDoc(app, config)
+  await runSyncOperation(app, () => setDoc(ref, payload))
 }
 
 function readRev(data) {
@@ -199,14 +248,11 @@ function readRev(data) {
   return Number.isFinite(rev) ? rev : 0
 }
 
-// Compare-and-swap on `rev`. `baseRev` is the revision this device last saw;
-// if the remote moved past it another device wrote in between, so the caller
-// must re-pull instead of overwriting work it never read.
 async function writeStateDocGuarded(config, buildPayload, baseRev) {
   const app = await getApp(config)
   const db = getFirestore(app)
+  const ref = await resolveStateDoc(app, config)
   return runSyncOperation(app, () => runTransaction(db, async tx => {
-    const ref = stateDoc(db)
     const snap = await tx.get(ref)
     const existing = snap.exists() ? snap.data() : null
     const remoteRev = readRev(existing)
@@ -336,30 +382,24 @@ export async function pullFromFirebase(config) {
   return { state: await decryptForSlot(data, keyString, PERSONAL_AAD), rev }
 }
 
-async function readForValidation(app) {
-  const db = getFirestore(app)
-  const read = () => getDoc(stateDoc(db))
-  try {
-    return await read()
-  } catch (error) {
-    if (!isLikelyAuthRulesError(error)) throw error
-    await signInAnonymouslyOrThrow(app)
-    ANON_AUTH_STATUS.delete(DEFAULT_APP_NAME)
-    markCollabRulesEnabled()
-    return read()
-  }
+async function readForValidation(app, config) {
+  await signInAnonymouslyOrThrow(app)
+  ANON_AUTH_STATUS.delete(DEFAULT_APP_NAME)
+  markCollabRulesEnabled()
+  const ref = await resolveStateDoc(app, config)
+  return getDoc(ref)
 }
 
 export async function validateFirebaseConfig(config) {
   const existingDefault = findDefaultApp()
   if (existingDefault && isSameProject(existingDefault, config)) {
-    const snap = await readForValidation(existingDefault)
+    const snap = await readForValidation(existingDefault, config)
     return describeStateDoc(snap.exists() ? snap.data() : null)
   }
 
   const app = initializeApp(config, `validate_${Date.now()}`)
   try {
-    const snap = await readForValidation(app)
+    const snap = await readForValidation(app, config)
     return describeStateDoc(snap.exists() ? snap.data() : null)
   } finally {
     await deleteApp(app)

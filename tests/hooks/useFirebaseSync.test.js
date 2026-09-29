@@ -74,7 +74,7 @@ describe('useFirebaseSync module exports', () => {
     }))
 
     const { saveFirebaseConfig } = await import('@/lib/firebase')
-    saveFirebaseConfig({ apiKey: 'k', projectId: 'p' })
+    saveFirebaseConfig({ apiKey: 'k', projectId: 'p', appId: '1:1:web:a' })
 
     const { useFirebaseSync } = await import('../../src/hooks/useFirebaseSync')
     expect(useFirebaseSync).toBeDefined()
@@ -107,7 +107,7 @@ describe('useHydrateState with remote data', () => {
     }))
 
     const { saveFirebaseConfig } = await import('@/lib/firebase')
-    saveFirebaseConfig({ apiKey: 'k', projectId: 'p' })
+    saveFirebaseConfig({ apiKey: 'k', projectId: 'p', appId: '1:1:web:a' })
 
     const { useHydrateState } = await import('../../src/hooks/useHydrateState')
     expect(useHydrateState).toBeDefined()

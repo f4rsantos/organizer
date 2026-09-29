@@ -56,6 +56,11 @@ describe('enabling encryption while firebase sync is on', () => {
       doc: () => ({}),
       getDoc: async () => ({ exists: () => false, data: () => null }),
       setDoc: async (_ref, payload) => { written.push(payload) },
+      runTransaction: async (_db, run) => run({
+        get: async () => ({ exists: () => false, data: () => null }),
+        set: () => {},
+        delete: () => {},
+      }),
     }))
 
     const { enableLocalEncryption } = await import('../../src/lib/crypto/localEnable.js')
@@ -66,7 +71,7 @@ describe('enabling encryption while firebase sync is on', () => {
       resave: async () => {},
       syncTarget: {
         state: plainState(),
-        pushContainer: payload => pushEnabledContainer({ apiKey: 'k', projectId: 'p' }, payload),
+        pushContainer: payload => pushEnabledContainer({ apiKey: 'k', projectId: 'p', appId: '1:1:web:a' }, payload),
       },
     })
 

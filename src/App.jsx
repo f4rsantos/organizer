@@ -28,6 +28,7 @@ import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
 import { NotificationsHost } from '@/components/notifications/NotificationsHost'
 import { CollabAliasPromptModal } from '@/components/collab/CollabAliasPromptModal'
+import { SyncRulesUpdateHost } from '@/components/settings/SyncRulesUpdateHost'
 import { ProactiveSuggestionHost } from '@/components/ai/ProactiveSuggestionHost'
 import { cn } from '@/lib/utils'
 import { getAppStorageBytes, getLoadWarnings } from '@/store/persist'
@@ -217,7 +218,7 @@ export default function App() {
     return () => mq?.removeEventListener?.('change', sync)
   }, [])
   const safeTop = IS_NATIVE || standalone
-  const { status: syncStatus, pullIfStale } = useFirebaseSync()
+  const { status: syncStatus, pullIfStale, pullNow } = useFirebaseSync()
 
   const quickActionAppEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
   const quickActionShortcutRaw = useStore(s => s.settings?.apps?.quickActionShortcut)
@@ -350,6 +351,7 @@ export default function App() {
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
       <NotificationsHost />
       <CollabAliasPromptModal />
+      <SyncRulesUpdateHost syncStatus={syncStatus} onResolved={pullNow} />
       <ProactiveSuggestionHost />
       <FloatingFocusWidget />
     </AppShell>

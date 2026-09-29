@@ -61,7 +61,7 @@ describe('locked second device must not clobber the encrypted remote', () => {
 
     let error = null
     try {
-      await pushToFirebase({ apiKey: 'k', projectId: 'p' }, {
+      await pushToFirebase({ apiKey: 'k', projectId: 'p', appId: '1:1:web:a' }, {
         version: 6, tasks: [{ id: 't', title: 'stale local plan' }],
       })
     } catch (err) { error = err }

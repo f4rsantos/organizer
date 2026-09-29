@@ -22,8 +22,8 @@ function baseRawState(overrides = {}) {
 }
 
 describe('migrateV8UnifyNotifications', () => {
-  it('bumps CURRENT_VERSION to 8', () => {
-    expect(CURRENT_VERSION).toBe(8)
+  it('keeps CURRENT_VERSION at or past 8', () => {
+    expect(CURRENT_VERSION).toBeGreaterThanOrEqual(8)
   })
 
   it('converts focusAlertMode=both into vibrate+sound+browserPush enabled', () => {
@@ -78,8 +78,8 @@ describe('migrateV8UnifyNotifications', () => {
       version: 8,
       settings: { notifications: { enabled: false, intrusiveness: 'alert', vibrate: true, sound: true, browserPush: true, bellVisibility: 'always' } },
     })
-    const { state, status } = migrateState(raw)
-    expect(status).toBe('ok')
+    const { state } = migrateState(raw)
+    expect(state.version).toBe(CURRENT_VERSION)
     expect(state.settings.notifications.intrusiveness).toBe('alert')
     expect(state.settings.notifications.bellVisibility).toBe('always')
   })

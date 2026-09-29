@@ -51,11 +51,12 @@ function mockFirestore(remote, written) {
     runTransaction: async (_db, run) => run({
       get: async () => ({ exists: () => remote.value !== null, data: () => remote.value }),
       set: (_ref, payload) => { written.push(payload); remote.value = payload },
+      delete: () => {},
     }),
   }))
 }
 
-const config = { apiKey: 'k', projectId: 'p' }
+const config = { apiKey: 'k', projectId: 'p', appId: '1:1:web:a' }
 
 describe('push guards against overwriting a newer remote', () => {
   it('refuses to write when the remote moved past the revision this device read', async () => {

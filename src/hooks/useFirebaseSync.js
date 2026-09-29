@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT } from '@/lib/firebase'
+import {
+  loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT, SYNC_RULES_OUTDATED, SYNC_APP_ID_MISSING,
+} from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
 import { stripTransient, stripLocalSlices } from '@/lib/crypto'
 import { createSyncQueue, requestPush, markPulled, markPushed } from '@/lib/syncQueue'
@@ -16,6 +18,15 @@ function getSerializableState() {
 }
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])
+const BLOCKED_STATUS_BY_CODE = {
+  [SYNC_RULES_OUTDATED]: 'rules-outdated',
+  [SYNC_APP_ID_MISSING]: 'config-outdated',
+}
+
+function errorStatus(err) {
+  if (KEY_ERRORS.has(err?.message)) return 'key-required'
+  return BLOCKED_STATUS_BY_CODE[err?.code] ?? 'error'
+}
 
 let initialSyncRev = null
 let initialSyncDone = false
@@ -99,7 +110,7 @@ export function useFirebaseSync() {
       setStatus('ok')
       if (shouldFlush) refs.current.flushPending?.()
     } catch (err) {
-      setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
+      setStatus(errorStatus(err))
     } finally {
       refs.current.isPulling = false
       refs.current.lastPullAt = Date.now()
@@ -135,7 +146,7 @@ export function useFirebaseSync() {
         return
       }
       refs.current.queue.pendingPush = true
-      setStatus(KEY_ERRORS.has(err?.message) ? 'key-required' : 'error')
+      setStatus(errorStatus(err))
     }
   }, [hydrated, pull])
 

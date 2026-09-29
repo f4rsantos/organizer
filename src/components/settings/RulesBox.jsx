@@ -9,7 +9,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /organizer/state {
-      allow read, write: if request.auth != null;
+      allow get, delete: if request.auth != null;
+    }
+
+    match /organizer/{syncId} {
+      allow get, write: if request.auth != null && syncId.size() == 64;
+      allow list: if false;
     }
 
     match /teams/{teamId} {
@@ -66,7 +71,7 @@ export function RulesBox({ label, snippet = RULES_SNIPPET }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // clipboard blocked: the snippet is selectable in the box
+      setCopied(false)
     }
   }
 
