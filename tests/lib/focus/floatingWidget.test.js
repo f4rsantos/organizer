@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampWidgetPosition, isFocusSessionActive } from '@/lib/focus/floatingWidget'
+import { clampWidgetPosition, focusWheelProgress, isFocusSessionActive } from '@/lib/focus/floatingWidget'
 
 describe('clampWidgetPosition', () => {
   it('keeps a fully in-bounds position unchanged', () => {
@@ -49,5 +49,45 @@ describe('isFocusSessionActive', () => {
 
   it('is false for null focusSync', () => {
     expect(isFocusSessionActive(null)).toBe(false)
+  })
+})
+
+describe('focusWheelProgress', () => {
+  const intervalFocus = { useInterval: true, intervalMins: 25, intervalBreakMins: 5, scheduledBreakMins: 10 }
+  const scheduledFocus = { useInterval: false, intervalMins: 25, intervalBreakMins: 5, scheduledBreakMins: 10 }
+
+  it('uses cycle elapsed over the interval length in interval mode', () => {
+    expect(focusWheelProgress({ focus: intervalFocus, phase: 'focus', cycleElapsed: 750, breakSecsLeft: 0, scheduledPct: 0.9 }))
+      .toBe(0.5)
+  })
+
+  it('uses the scheduled percentage when not in interval mode', () => {
+    expect(focusWheelProgress({ focus: scheduledFocus, phase: 'focus', cycleElapsed: 750, breakSecsLeft: 0, scheduledPct: 0.3 }))
+      .toBe(0.3)
+  })
+
+  it('fills up as the interval break counts down', () => {
+    expect(focusWheelProgress({ focus: intervalFocus, phase: 'break', cycleElapsed: 0, breakSecsLeft: 60, scheduledPct: 0 }))
+      .toBeCloseTo(0.8)
+  })
+
+  it('uses the scheduled break length outside interval mode', () => {
+    expect(focusWheelProgress({ focus: scheduledFocus, phase: 'break', cycleElapsed: 0, breakSecsLeft: 300, scheduledPct: 0 }))
+      .toBe(0.5)
+  })
+
+  it('clamps overshoot to a full wheel', () => {
+    expect(focusWheelProgress({ focus: intervalFocus, phase: 'focus', cycleElapsed: 99999, breakSecsLeft: 0, scheduledPct: 0 }))
+      .toBe(1)
+  })
+
+  it('returns zero for non-finite scheduled progress', () => {
+    expect(focusWheelProgress({ focus: scheduledFocus, phase: 'focus', cycleElapsed: 0, breakSecsLeft: 0, scheduledPct: NaN }))
+      .toBe(0)
+  })
+
+  it('returns zero when the interval length is zero', () => {
+    expect(focusWheelProgress({ focus: { useInterval: true, intervalMins: 0 }, phase: 'focus', cycleElapsed: 10, breakSecsLeft: 0, scheduledPct: 0 }))
+      .toBe(0)
   })
 })

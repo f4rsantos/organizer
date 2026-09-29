@@ -21,3 +21,23 @@ export function isFocusSessionActive(focusSync) {
   if (phase === 'break') return breakSecsLeftBase > 0
   return cycleElapsedBase > 0 || totalElapsedBase > 0 || startedAt != null
 }
+
+function clampUnit(value) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(1, Math.max(0, value))
+}
+
+export function focusWheelProgress({ focus, phase, cycleElapsed, breakSecsLeft, scheduledPct }) {
+  if (phase === 'break') {
+    const breakMins = focus?.useInterval ? focus?.intervalBreakMins : focus?.scheduledBreakMins
+    const breakSecs = (breakMins ?? 0) * 60
+    if (breakSecs <= 0) return 0
+    return clampUnit(1 - breakSecsLeft / breakSecs)
+  }
+  if (focus?.useInterval) {
+    const intervalSecs = (focus?.intervalMins ?? 0) * 60
+    if (intervalSecs <= 0) return 0
+    return clampUnit(cycleElapsed / intervalSecs)
+  }
+  return clampUnit(scheduledPct)
+}

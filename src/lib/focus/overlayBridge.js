@@ -33,22 +33,22 @@ export async function requestOverlayPermission() {
   }
 }
 
-export async function showFocusOverlay({ label, running, isBreak }) {
+export async function showFocusOverlay({ label, running, isBreak, progress }) {
   const api = plugin()
   if (!api) return false
   try {
-    await api.show({ label, running, isBreak })
+    await api.show({ label, running, isBreak, progress })
     return true
   } catch {
     return false
   }
 }
 
-export async function updateFocusOverlay({ label, running, isBreak }) {
+export async function updateFocusOverlay({ label, running, isBreak, progress }) {
   const api = plugin()
   if (!api) return false
   try {
-    await api.update({ label, running, isBreak })
+    await api.update({ label, running, isBreak, progress })
     return true
   } catch {
     return false

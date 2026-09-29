@@ -79,22 +79,14 @@ class FocusOverlayPlugin : Plugin() {
             call.reject("overlay permission not granted")
             return
         }
-        val intent = Intent(context, FocusOverlayService::class.java).apply {
-            putExtra(FocusOverlayService.EXTRA_LABEL, call.getString("label", "--:--"))
-            putExtra(FocusOverlayService.EXTRA_RUNNING, call.getBoolean("running", false))
-            putExtra(FocusOverlayService.EXTRA_BREAK, call.getBoolean("isBreak", false))
-        }
+        val intent = stateIntent(call)
         context.startForegroundService(intent)
         call.resolve()
     }
 
     @PluginMethod
     fun update(call: PluginCall) {
-        val intent = Intent(context, FocusOverlayService::class.java).apply {
-            putExtra(FocusOverlayService.EXTRA_LABEL, call.getString("label", "--:--"))
-            putExtra(FocusOverlayService.EXTRA_RUNNING, call.getBoolean("running", false))
-            putExtra(FocusOverlayService.EXTRA_BREAK, call.getBoolean("isBreak", false))
-        }
+        val intent = stateIntent(call)
         runCatching { context.startForegroundService(intent) }
         call.resolve()
     }
@@ -103,6 +95,15 @@ class FocusOverlayPlugin : Plugin() {
     fun hide(call: PluginCall) {
         context.stopService(Intent(context, FocusOverlayService::class.java))
         call.resolve()
+    }
+
+    private fun stateIntent(call: PluginCall): Intent {
+        return Intent(context, FocusOverlayService::class.java).apply {
+            putExtra(FocusOverlayService.EXTRA_LABEL, call.getString("label", "--:--"))
+            putExtra(FocusOverlayService.EXTRA_RUNNING, call.getBoolean("running", false))
+            putExtra(FocusOverlayService.EXTRA_BREAK, call.getBoolean("isBreak", false))
+            putExtra(FocusOverlayService.EXTRA_PROGRESS, call.getFloat("progress", 0f) ?: 0f)
+        }
     }
 
     private fun canDrawOverlays(): Boolean {

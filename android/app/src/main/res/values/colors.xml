@@ -16,4 +16,7 @@
     <color name="widget_on_accent">#FFFFFF</color>
     <color name="widget_ring_track">#22000000</color>
     <color name="widget_ring_done">#16A34A</color>
+    <color name="overlay_focus_start">#4C6FE7</color>
+    <color name="overlay_focus_end">#8579E0</color>
+    <color name="overlay_break">#F59E0B</color>
 </resources>

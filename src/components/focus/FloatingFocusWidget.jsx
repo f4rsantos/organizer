@@ -7,7 +7,7 @@ import { useFocusClock } from './useFocusClock'
 import { defaultFocus } from './focusTab/constants'
 import { fmtTimer } from './focusTab/formatters'
 import { FocusWheel } from './focusTab/FocusWheel'
-import { clampWidgetPosition, isFocusSessionActive } from '@/lib/focus/floatingWidget'
+import { clampWidgetPosition, focusWheelProgress, isFocusSessionActive } from '@/lib/focus/floatingWidget'
 import {
   focusOverlayAvailable,
   requestOverlayPermission,
@@ -195,6 +195,7 @@ export function FloatingFocusWidget() {
   const widgetRef = useRef(null)
   const handleToggleRef = useRef(null)
   const resetRef = useRef(null)
+  const skipBreakRef = useRef(null)
 
   const detachSupported = useMemo(() => supportsDetach(), [])
   const overlaySupported = useMemo(() => focusOverlayAvailable(), [])
@@ -226,11 +227,19 @@ export function FloatingFocusWidget() {
     return addOverlayControlListener(action => {
       if (action === 'toggle') handleToggleRef.current?.()
       if (action === 'reset') resetRef.current?.()
+      if (action === 'skip') skipBreakRef.current?.()
     })
   }, [overlaySupported, active, overlayActive])
 
   const overlayIsBreak = clock.phase === 'break'
   const overlayLabel = overlayIsBreak ? fmtTimer(clock.breakSecsLeft) : fmtTimer(clock.totalElapsed)
+  const wheelPct = focusWheelProgress({
+    focus,
+    phase: clock.phase,
+    cycleElapsed: clock.cycleElapsed,
+    breakSecsLeft: clock.breakSecsLeft,
+    scheduledPct: clock.scheduledPct,
+  })
 
   useEffect(() => {
     handleToggleRef.current = () => {
@@ -240,6 +249,7 @@ export function FloatingFocusWidget() {
       else clock.resume()
     }
     resetRef.current = clock.reset
+    skipBreakRef.current = clock.skipBreak
   })
 
   const overlayWasShownRef = useRef(false)
@@ -249,14 +259,14 @@ export function FloatingFocusWidget() {
       overlayWasShownRef.current = false
       return
     }
-    const payload = { label: overlayLabel, running: clock.running, isBreak: overlayIsBreak }
+    const payload = { label: overlayLabel, running: clock.running, isBreak: overlayIsBreak, progress: wheelPct }
     if (!overlayWasShownRef.current) {
       overlayWasShownRef.current = true
       showFocusOverlay(payload)
     } else {
       updateFocusOverlay(payload)
     }
-  }, [overlaySupported, active, overlayActive, overlayLabel, clock.running, overlayIsBreak])
+  }, [overlaySupported, active, overlayActive, overlayLabel, clock.running, overlayIsBreak, wheelPct])
 
   useEffect(() => {
     const onResize = () => {
@@ -306,15 +316,8 @@ export function FloatingFocusWidget() {
 
   if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false || dismissed) return null
 
-  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, start, pause, resume, reset, skipBreak } = clock
+  const { running, phase, totalElapsed, breakSecsLeft, start, pause, resume, reset, skipBreak } = clock
   const isBreak = phase === 'break'
-
-  const focusPct = focus.useInterval
-    ? cycleElapsed / (focus.intervalMins * 60)
-    : Number.isFinite(scheduledPct) ? scheduledPct : 0
-
-  const breakDenom = focus.useInterval ? focus.intervalBreakMins * 60 : focus.scheduledBreakMins * 60
-  const wheelPct = isBreak ? 1 - breakSecsLeft / breakDenom : focusPct
 
   const label = isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)
 
@@ -325,15 +328,13 @@ export function FloatingFocusWidget() {
     else resume()
   }
 
-  const clampedWheelPct = Math.min(1, Math.max(0, wheelPct))
-
   const content = (
     <FloatingFocusContent
       t={t}
       running={running}
       isBreak={isBreak}
       label={label}
-      wheelPct={clampedWheelPct}
+      wheelPct={wheelPct}
       onToggle={handleToggle}
       onReset={reset}
       onSkipBreak={skipBreak}
@@ -347,7 +348,7 @@ export function FloatingFocusWidget() {
       running={running}
       isBreak={isBreak}
       label={label}
-      wheelPct={clampedWheelPct}
+      wheelPct={wheelPct}
       onToggle={handleToggle}
       onReset={reset}
       onSkipBreak={skipBreak}
