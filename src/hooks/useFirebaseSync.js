@@ -36,15 +36,6 @@ export function setInitialSyncRev(rev) {
   initialSyncDone = true
 }
 
-export function getInitialSyncRev() {
-  return initialSyncRev
-}
-
-export function resetInitialSyncRevForTests() {
-  initialSyncRev = null
-  initialSyncDone = false
-}
-
 export function useFirebaseSync() {
   const importData = useStore(s => s.importData)
   const hydrated = useStore(s => s.hydrated === true)

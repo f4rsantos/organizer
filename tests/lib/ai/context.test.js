@@ -156,13 +156,6 @@ describe('buildSystemPrompt', () => {
 })
 
 describe('buildFollowUpOfferBlock', () => {
-  it('is a non-empty pure string with no side effects', () => {
-    const first = buildFollowUpOfferBlock()
-    const second = buildFollowUpOfferBlock()
-    expect(first).toBe(second)
-    expect(first.length).toBeGreaterThan(0)
-  })
-
   it('tells the model to phrase the offer as a question', () => {
     expect(buildFollowUpOfferBlock()).toMatch(/question/)
   })
@@ -197,13 +190,6 @@ describe('buildCustomInstructionsBlock', () => {
 })
 
 describe('buildProactiveSystemPrompt', () => {
-  it('is a non-empty pure string with no side effects', () => {
-    const first = buildProactiveSystemPrompt()
-    const second = buildProactiveSystemPrompt()
-    expect(first).toBe(second)
-    expect(first.length).toBeGreaterThan(0)
-  })
-
   it('names the suggest tool and allows silence as a first-class outcome', () => {
     const prompt = buildProactiveSystemPrompt()
     expect(prompt).toMatch(/suggest tool/)

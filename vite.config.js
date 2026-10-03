@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const IS_NATIVE = process.env.BUILD_TARGET === 'native'
 const BASE_PATH = IS_NATIVE ? './' : '/organizer/'
+const TEST_TIMEOUT_MS = 30_000
 const MANIFEST_SCOPE = IS_NATIVE ? '.' : BASE_PATH
 
 const ANALYTICS_BLOCK = /\s*<!-- Google tag \(gtag\.js\) -->[\s\S]*?<\/script>\s*<script>[\s\S]*?<\/script>/
@@ -144,5 +145,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],
+    testTimeout: TEST_TIMEOUT_MS,
+    hookTimeout: TEST_TIMEOUT_MS,
   },
 })

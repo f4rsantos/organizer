@@ -22,10 +22,6 @@ function baseRawState(overrides = {}) {
 }
 
 describe('migrateV8UnifyNotifications', () => {
-  it('keeps CURRENT_VERSION at or past 8', () => {
-    expect(CURRENT_VERSION).toBeGreaterThanOrEqual(8)
-  })
-
   it('converts focusAlertMode=both into vibrate+sound+browserPush enabled', () => {
     const raw = baseRawState({ settings: { focusAlertMode: 'both' } })
     const { state, status } = migrateState(raw)

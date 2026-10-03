@@ -361,6 +361,14 @@ export function forceSaveState(state) {
   }
 }
 
+export async function whenPersisted() {
+  let settled = null
+  while (settled !== writeChain) {
+    settled = writeChain
+    await settled
+  }
+}
+
 export function resetPersistCacheForTests() {
   lastPersisted = null
   writeChain = Promise.resolve()

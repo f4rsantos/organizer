@@ -38,6 +38,16 @@ function toCanvas(img) {
   return { canvas, scale }
 }
 
+export function wordsFromOcrData(data) {
+  return (data?.words ?? [])
+    .filter(w => (w.text ?? '').trim() && w.bbox)
+    .map(w => ({
+      text: w.text,
+      x0: w.bbox.x0, x1: w.bbox.x1,
+      y0: w.bbox.y0, y1: w.bbox.y1,
+    }))
+}
+
 export async function ocrScheduleImage(file, { onProgress } = {}) {
   const Tesseract = await loadTesseract()
   const { img, url } = await readImage(file)
@@ -57,13 +67,7 @@ export async function ocrScheduleImage(file, { onProgress } = {}) {
     })
 
     const { data } = await worker.recognize(canvas)
-    const words = (data?.words ?? [])
-      .filter(w => (w.text ?? '').trim() && w.bbox)
-      .map(w => ({
-        text: w.text,
-        x0: w.bbox.x0, x1: w.bbox.x1,
-        y0: w.bbox.y0, y1: w.bbox.y1,
-      }))
+    const words = wordsFromOcrData(data)
 
     const ctx = canvas.getContext('2d')
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)

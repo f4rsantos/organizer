@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 
@@ -40,13 +40,6 @@ const existingUser = () => ({
   semesters: [{ id: 's1', name: 'S1' }],
 })
 
-async function flush() {
-  for (let i = 0; i < 50; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    if (await readStoredRaw()) return
-  }
-}
-
 describe('an existing user is never sent back to onboarding', () => {
   it('keeps onboardingDone when loading a legacy blob', async () => {
     storage.setItem(STORAGE_KEY, JSON.stringify(existingUser()))
@@ -57,7 +50,7 @@ describe('an existing user is never sent back to onboarding', () => {
   it('keeps onboardingDone through a container round trip', async () => {
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(existingUser())
-    await flush()
+    await flushPersist()
     expect((await loadStateAsync()).onboardingDone).toBe(true)
   })
 
@@ -73,7 +66,7 @@ describe('an existing user is never sent back to onboarding', () => {
   it('hydrates the store with onboardingDone from a container', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(existingUser())
-    await flush()
+    await flushPersist()
 
     vi.resetModules()
     const { loadStateAsync } = await import('../../src/store/persist.js')
@@ -86,7 +79,7 @@ describe('an existing user is never sent back to onboarding', () => {
   it('keeps the semesters that gate the settings screen', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(existingUser())
-    await flush()
+    await flushPersist()
 
     vi.resetModules()
     const { loadStateAsync } = await import('../../src/store/persist.js')
@@ -99,7 +92,7 @@ describe('an existing user is never sent back to onboarding', () => {
   it('does not show onboarding before hydration finishes', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(existingUser())
-    await flush()
+    await flushPersist()
 
     vi.resetModules()
     const { useStore } = await import('../../src/store/useStore.js')

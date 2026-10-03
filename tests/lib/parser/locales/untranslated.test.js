@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { locales } from '../../../../src/lib/parser/locales/index.js'
 import { en as enStrings } from '../../../../src/lib/strings/en.js'
-import { STRINGS } from '../../../../src/lib/strings/index.js'
 
 const PLACEHOLDER = 'banana'
 
@@ -26,21 +25,6 @@ function collectPlaceholders(source, label) {
 }
 
 describe('untranslated keyword placeholders', () => {
-  it('reports every group still awaiting a human translator', () => {
-    const pending = [
-      ...collectPlaceholders(locales, 'parser'),
-      ...collectPlaceholders(STRINGS, 'strings'),
-    ]
-
-    if (pending.length > 0) {
-      console.warn(
-        `${pending.length} keyword group(s) awaiting translation:\n  ${pending.join('\n  ')}`
-      )
-    }
-
-    expect(Array.isArray(pending)).toBe(true)
-  })
-
   it('never ships a placeholder in the English packs', () => {
     expect(collectPlaceholders({ en: locales.en }, 'parser')).toEqual([])
     expect(collectPlaceholders({ en: enStrings }, 'strings')).toEqual([])

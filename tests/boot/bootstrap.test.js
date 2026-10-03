@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const ENABLED_FLAG_KEY = 'f4rsantos.github.io/organizer:encryption-enabled'
@@ -41,13 +41,6 @@ const plainState = () => ({
   tasks: [{ id: 't1' }], notes: [], settings: {},
 })
 
-async function flush() {
-  for (let i = 0; i < 50; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    if (await readStoredRaw()) return
-  }
-}
-
 describe('boot never locks a user out of plaintext data', () => {
   it('does not ask to unlock a fresh install', async () => {
     const { runBootstrap } = await import('../../src/boot/bootstrap.js')
@@ -57,7 +50,7 @@ describe('boot never locks a user out of plaintext data', () => {
   it('does not ask to unlock a plaintext container', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(plainState())
-    await flush()
+    await flushPersist()
 
     vi.resetModules()
     const { runBootstrap } = await import('../../src/boot/bootstrap.js')
@@ -68,7 +61,7 @@ describe('boot never locks a user out of plaintext data', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(plainState())
-    await new Promise(resolve => setTimeout(resolve, 40))
+    await flushPersist()
 
     vi.resetModules()
     const { runBootstrap } = await import('../../src/boot/bootstrap.js')
@@ -79,7 +72,7 @@ describe('boot never locks a user out of plaintext data', () => {
     storage.setItem(MODE_KEY, 'local')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(plainState())
-    await new Promise(resolve => setTimeout(resolve, 40))
+    await flushPersist()
 
     vi.resetModules()
     const { runBootstrap } = await import('../../src/boot/bootstrap.js')
@@ -93,7 +86,7 @@ describe('boot does ask to unlock real ciphertext', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(plainState())
-    await flush()
+    await flushPersist()
 
     storage.removeItem(KEY_STORAGE_KEY)
     vi.resetModules()

@@ -80,11 +80,7 @@ export async function readStoredRaw() {
   return container === null ? null : JSON.stringify(container)
 }
 
-export async function waitForWrite(predicate = () => true, attempts = 60) {
-  for (let i = 0; i < attempts; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    const container = await readStoredContainer()
-    if (container && predicate(container)) return container
-  }
-  return readStoredContainer()
+export async function flushPersist() {
+  const { whenPersisted } = await import('../../src/store/persist.js')
+  await whenPersisted()
 }

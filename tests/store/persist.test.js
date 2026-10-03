@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { readStoredRaw, resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const KEY_STORAGE_KEY = 'f4rsantos.github.io/organizer:encryption-key'
@@ -43,26 +43,18 @@ const baseState = () => ({
   settings: {},
 })
 
-async function flush(predicate) {
-  for (let i = 0; i < 60; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    const raw = await readStoredRaw()
-    if (raw !== null && (!predicate || predicate(raw))) return
-  }
-}
-
 describe('plaintext persistence when no key is set', () => {
   it('writes readable JSON', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(await readStoredRaw()).toContain('secret plan')
   })
 
   it('loads the plaintext blob back', async () => {
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect((await loadStateAsync()).tasks[0].title).toBe('secret plan')
   })
 
@@ -74,7 +66,7 @@ describe('plaintext persistence when no key is set', () => {
   it('loads an old container written before local slices existed', async () => {
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
 
     const stored = JSON.parse(await readStoredRaw())
     expect(stored.slices.agentJournal).toBe(null)
@@ -96,14 +88,14 @@ describe('encrypted persistence when a key is set', () => {
   it('does not write readable plaintext', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(await readStoredRaw()).not.toContain('secret plan')
   })
 
   it('writes a sliced container of envelopes', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     const stored = JSON.parse(await readStoredRaw())
     expect(stored).toMatchObject({ format: 'blue-tangerine' })
     expect(stored.slices.tasks).toMatchObject({ version: 1 })
@@ -113,7 +105,7 @@ describe('encrypted persistence when a key is set', () => {
   it('keeps the metadata readable outside the ciphertext', async () => {
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(JSON.parse(await readStoredRaw()).meta)
       .toMatchObject({ version: 7, theme: 'system', lang: 'en', onboardingDone: true })
   })
@@ -121,7 +113,7 @@ describe('encrypted persistence when a key is set', () => {
   it('round trips through the async loader', async () => {
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     const loaded = await loadStateAsync()
     expect(loaded.tasks[0].title).toBe('secret plan')
   })
@@ -129,7 +121,7 @@ describe('encrypted persistence when a key is set', () => {
   it('the synchronous loader refuses an envelope', async () => {
     const { saveState, loadState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(loadState()).toBe(null)
   })
 })
@@ -139,7 +131,7 @@ describe('a missing key never downgrades to plaintext', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await flushPersist()
     expect(await readStoredRaw()).toBe(null)
   })
 
@@ -148,7 +140,7 @@ describe('a missing key never downgrades to plaintext', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
 
     storage.removeItem(KEY_STORAGE_KEY)
     vi.resetModules()
@@ -177,7 +169,7 @@ describe('large states are stored whole', () => {
 
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(heavy)
-    await flush()
+    await flushPersist()
 
     const loaded = await loadStateAsync()
     expect(loaded.tasks).toHaveLength(1)
@@ -191,7 +183,7 @@ describe('large states are stored whole', () => {
 
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(heavy)
-    await flush()
+    await flushPersist()
 
     const stored = JSON.parse(await readStoredRaw())
     expect(stored.omitted ?? []).toHaveLength(0)
@@ -211,7 +203,7 @@ describe('large states are stored whole', () => {
 
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(heavy)
-    await flush()
+    await flushPersist()
 
     const loaded = await loadStateAsync()
     expect(loaded.notes).toHaveLength(2)
@@ -229,11 +221,11 @@ describe('only changed slices are re-encrypted', () => {
     const { saveState } = await import('../../src/store/persist.js')
     const first = baseState()
     saveState(first)
-    await flush()
+    await flushPersist()
     const before = JSON.parse(await readStoredRaw())
 
     saveState({ ...first, tasks: [{ id: 't2', title: 'new plan' }] })
-    await flush(raw => JSON.parse(raw).slices.tasks.ciphertext !== before.slices.tasks.ciphertext)
+    await flushPersist()
     const after = JSON.parse(await readStoredRaw())
 
     expect(after.slices.tasks.ciphertext).not.toBe(before.slices.tasks.ciphertext)
@@ -245,11 +237,11 @@ describe('only changed slices are re-encrypted', () => {
     const { saveState } = await import('../../src/store/persist.js')
     const state = baseState()
     saveState(state)
-    await flush()
+    await flushPersist()
     const before = await readStoredRaw()
 
     saveState(state)
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await flushPersist()
     expect(await readStoredRaw()).toBe(before)
   })
 
@@ -257,11 +249,11 @@ describe('only changed slices are re-encrypted', () => {
     const { saveState } = await import('../../src/store/persist.js')
     const state = baseState()
     saveState(state)
-    await flush()
+    await flushPersist()
     const before = await readStoredRaw()
 
     saveState({ ...state, tasks: [] })
-    await flush(raw => raw !== before)
+    await flushPersist()
     expect(await readStoredRaw()).not.toBe(before)
   })
 
@@ -273,11 +265,11 @@ describe('only changed slices are re-encrypted', () => {
       agentRuntime: { status: 'pending', ops: [{ id: 'op1' }], entities: { n1: {} } },
     }
     saveState(first)
-    await flush()
+    await flushPersist()
     const before = JSON.parse(await readStoredRaw())
 
     saveState({ ...first, agentJournal: [{ id: 'run1', inverseOps: [] }, { id: 'run2', inverseOps: [] }] })
-    await flush(raw => JSON.parse(raw).slices.agentJournal.ciphertext !== before.slices.agentJournal.ciphertext)
+    await flushPersist()
     const after = JSON.parse(await readStoredRaw())
 
     expect(after.slices.agentJournal.ciphertext).not.toBe(before.slices.agentJournal.ciphertext)
@@ -307,7 +299,7 @@ describe('only changed slices are re-encrypted', () => {
       },
     }
     saveState(state)
-    await flush()
+    await flushPersist()
 
     const loaded = await loadStateAsync()
     const run = loaded.agentRuntime.runs.run1
@@ -335,7 +327,7 @@ describe('only changed slices are re-encrypted', () => {
       },
     }
     saveState(state)
-    await flush()
+    await flushPersist()
 
     const loaded = await loadStateAsync()
     expect(loaded.agentRuntime.runs.run1.status).toBe('interrupted')
@@ -348,12 +340,12 @@ describe('only changed slices are re-encrypted', () => {
       .mockRejectedValueOnce(new Error('boom'))
 
     saveState(baseState())
-    await new Promise(resolve => setTimeout(resolve, 30))
+    await flushPersist()
     expect(await readStoredRaw()).toBe(null)
 
     spy.mockImplementation(encrypt)
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(JSON.parse(await readStoredRaw()).slices.tasks).toBeTruthy()
     spy.mockRestore()
   })
@@ -367,8 +359,7 @@ describe('concurrent writes do not clobber each other', () => {
     const { saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState({ ...baseState(), tasks: [{ id: 't1', title: 'first' }] })
     saveState({ ...baseState(), tasks: [{ id: 't2', title: 'second' }] })
-    await flush()
-    await new Promise(resolve => setTimeout(resolve, 30))
+    await flushPersist()
 
     const loaded = await loadStateAsync()
     expect(loaded.tasks[0].title).toBe('second')
@@ -385,7 +376,7 @@ describe('transient fields never reach storage', () => {
       hydrated: true,
       collabRuntime: { teams: { t1: {} } },
     })
-    await flush()
+    await flushPersist()
 
     const raw = await readStoredRaw()
     expect(raw).not.toContain('activeTab')

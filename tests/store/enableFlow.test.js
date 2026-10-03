@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { readStoredRaw, resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 
@@ -40,10 +40,6 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-async function settle() {
-  await new Promise(resolve => setTimeout(resolve, 80))
-}
-
 async function stored() {
   const raw = await readStoredRaw()
   return raw ? JSON.parse(raw) : null
@@ -58,7 +54,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
     useStore.getState().addTask({ title: 'secret plan' })
-    await settle()
+    await flushPersist()
 
     expect(JSON.stringify(await stored())).toContain('secret plan')
 
@@ -66,7 +62,7 @@ describe('turning encryption on re-encrypts what is already stored', () => {
       passphrase: 'purple-tractor-91',
       resave: () => forceSaveState(useStore.getState()),
     })
-    await settle()
+    await flushPersist()
 
     expect(JSON.stringify(await stored())).not.toContain('secret plan')
   })
@@ -78,13 +74,13 @@ describe('turning encryption on re-encrypts what is already stored', () => {
 
     useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
-    await settle()
+    await flushPersist()
 
     await enableLocalEncryption({
       passphrase: 'purple-tractor-91',
       resave: () => forceSaveState(useStore.getState()),
     })
-    await settle()
+    await flushPersist()
 
     expect((await stored()).meta.onboardingDone).toBe(true)
   })
@@ -97,13 +93,13 @@ describe('turning encryption on re-encrypts what is already stored', () => {
     useStore.getState().markHydrated()
     useStore.getState().completeOnboarding()
     useStore.getState().addTask({ title: 'secret plan' })
-    await settle()
+    await flushPersist()
 
     await enableLocalEncryption({
       passphrase: 'purple-tractor-91',
       resave: () => forceSaveState(useStore.getState()),
     })
-    await settle()
+    await flushPersist()
 
     const { loadStateAsync } = await import('../../src/store/persist.js')
     const loaded = await loadStateAsync()

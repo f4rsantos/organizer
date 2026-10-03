@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { readStoredRaw, resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const KEY_STORAGE_KEY = 'f4rsantos.github.io/organizer:encryption-key'
@@ -37,13 +37,6 @@ const baseState = () => ({
   tasks: [{ id: 'a' }], notes: [], settings: {},
 })
 
-async function flush() {
-  for (let i = 0; i < 50; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    if (await readStoredRaw()) return
-  }
-}
-
 describe('the render gate follows what is actually stored', () => {
   it('does not gate a fresh install', async () => {
     const { hasEncryptedSnapshot } = await import('../../src/store/persist.js')
@@ -53,7 +46,7 @@ describe('the render gate follows what is actually stored', () => {
   it('does not gate a plaintext container', async () => {
     const { saveState, hasEncryptedSnapshot } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(hasEncryptedSnapshot()).toBe(false)
   })
 
@@ -61,7 +54,7 @@ describe('the render gate follows what is actually stored', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState, hasEncryptedSnapshot } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await new Promise(resolve => setTimeout(resolve, 40))
+    await flushPersist()
     expect(hasEncryptedSnapshot()).toBe(false)
   })
 
@@ -70,7 +63,7 @@ describe('the render gate follows what is actually stored', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState, hasEncryptedSnapshot } = await import('../../src/store/persist.js')
     saveState(baseState())
-    await flush()
+    await flushPersist()
     expect(hasEncryptedSnapshot()).toBe(true)
   })
 })
@@ -106,14 +99,14 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().addTask({ title: 'x' })
     useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
     useStore.getState().addTask({ title: 'y' })
-    await flush()
+    await flushPersist()
     expect(await readStoredRaw()).not.toContain('dirtiedBeforeHydrate')
   })
 
   it('does not write to disk before hydration', async () => {
     const { useStore } = await import('../../src/store/useStore.js')
     useStore.getState().addTask({ title: 'x' })
-    await flush()
+    await flushPersist()
     expect(await readStoredRaw()).toBe(null)
   })
 
@@ -329,7 +322,7 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().addTask({ title: 'typed before hydrate' })
 
     useStore.getState().hydrateState({ version: 7, tasks: [], notes: [], settings: {} })
-    await flush()
+    await flushPersist()
 
     expect(await readStoredRaw()).toContain('typed before hydrate')
   })
@@ -339,7 +332,7 @@ describe('edits made before hydration are never discarded', () => {
     useStore.getState().addTask({ title: 'survives failed load' })
 
     useStore.getState().markHydrated()
-    await flush()
+    await flushPersist()
 
     expect(await readStoredRaw()).toContain('survives failed load')
   })
@@ -348,7 +341,7 @@ describe('edits made before hydration are never discarded', () => {
     const { useStore } = await import('../../src/store/useStore.js')
 
     useStore.getState().removeCollabMembership('t1')
-    await flush()
+    await flushPersist()
 
     expect(await readStoredRaw()).toBe(null)
   })

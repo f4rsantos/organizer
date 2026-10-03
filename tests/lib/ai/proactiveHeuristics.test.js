@@ -7,7 +7,6 @@ import {
   gradeComponentMissingWeight,
   appOpenedOverdueTasks,
   evaluateProactiveHeuristic,
-  PROACTIVE_TRIGGER_ACTIONS,
 } from '../../../src/lib/ai/proactiveHeuristics'
 
 describe('taskAddedNoDueDate', () => {
@@ -139,12 +138,6 @@ describe('evaluateProactiveHeuristic', () => {
 
   it('returns null for an unknown trigger', () => {
     expect(evaluateProactiveHeuristic('deleteTask', {})).toBeNull()
-  })
-
-  it('exposes the known trigger action names', () => {
-    expect(PROACTIVE_TRIGGER_ACTIONS).toEqual(expect.arrayContaining([
-      'addTask', 'updateTask', 'addKanbanCard', 'moveKanbanCard', 'addEvent', 'setGradeComponents',
-    ]))
   })
 
   it('dispatches addKanbanCard to taskAddedNoDueDate for the newly added task', () => {

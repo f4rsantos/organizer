@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { readStoredRaw, resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const KEY_STORAGE_KEY = 'f4rsantos.github.io/organizer:encryption-key'
 const ENABLED_FLAG_KEY = 'f4rsantos.github.io/organizer:encryption-enabled'
@@ -52,21 +52,14 @@ async function loadSyncedStore() {
   return { useStore, synced }
 }
 
-async function flushWrites(predicate) {
-  for (let i = 0; i < 100; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2))
-    const raw = await readStoredRaw()
-    if (raw !== null && predicate(raw)) return raw
-  }
-  return readStoredRaw()
-}
-
 describe('sync base persistence', () => {
   it('is stored readable when encryption is off', async () => {
     const { useStore } = await loadSyncedStore()
     const expected = JSON.stringify(useStore.getState().syncBase)
-    const raw = await flushWrites(text => JSON.stringify(JSON.parse(text).slices.syncBase?.plain) === expected)
+    await flushPersist()
+    const raw = await readStoredRaw()
     const stored = JSON.parse(raw).slices.syncBase
+    expect(JSON.stringify(stored.plain)).toBe(expected)
     expect(stored.plain.scope).toBe(SCOPE)
 
     const { loadStateAsync } = await import('../../src/store/persist.js')
@@ -77,7 +70,8 @@ describe('sync base persistence', () => {
     storage.setItem(KEY_STORAGE_KEY, KEY)
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { useStore } = await loadSyncedStore()
-    const raw = await flushWrites(text => JSON.parse(text).slices.syncBase !== null)
+    await flushPersist()
+    const raw = await readStoredRaw()
     const stored = JSON.parse(raw).slices.syncBase
     expect(typeof stored.ciphertext).toBe('string')
     expect(raw).not.toContain(SCOPE)

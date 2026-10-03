@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { readStoredRaw, resetStateDb } from '../helpers/testStorage.js'
+import { readStoredRaw, resetStateDb, flushPersist } from '../helpers/testStorage.js'
 
 const STORAGE_KEY = 'f4rsantos.github.io/organizer'
 const BACKUP_KEY = 'f4rsantos.github.io/organizer:pre-slice-backup'
@@ -40,10 +40,6 @@ const legacyState = () => ({
   settings: { passThreshold: 9.5 },
 })
 
-async function settle() {
-  await new Promise(resolve => setTimeout(resolve, 60))
-}
-
 describe('a legacy plaintext install is migrated, not discarded', () => {
   it('reads the old format on boot', async () => {
     storage.setItem(STORAGE_KEY, JSON.stringify(legacyState()))
@@ -57,7 +53,7 @@ describe('a legacy plaintext install is migrated, not discarded', () => {
 
     const loaded = loadState()
     saveState(loaded)
-    await settle()
+    await flushPersist()
 
     expect(JSON.parse(await readStoredRaw()).format).toBe('blue-tangerine')
     const reloaded = await loadStateAsync()
@@ -70,7 +66,7 @@ describe('a legacy plaintext install is migrated, not discarded', () => {
     const { loadState, saveState, readBackup } = await import('../../src/store/persist.js')
 
     saveState(loadState())
-    await settle()
+    await flushPersist()
 
     expect(readBackup().tasks[0].title).toBe('precious data')
   })
@@ -80,11 +76,11 @@ describe('a legacy plaintext install is migrated, not discarded', () => {
     const { loadState, saveState, readBackup } = await import('../../src/store/persist.js')
 
     saveState(loadState())
-    await settle()
+    await flushPersist()
     const first = JSON.stringify(readBackup())
 
     saveState({ ...loadState(), tasks: [] })
-    await settle()
+    await flushPersist()
     expect(JSON.stringify(readBackup())).toBe(first)
   })
 })
@@ -110,7 +106,7 @@ describe('containers written under the old format name still load', () => {
     }))
     const { loadState, saveState, loadStateAsync } = await import('../../src/store/persist.js')
     saveState(loadState())
-    await settle()
+    await flushPersist()
     expect(JSON.parse(await readStoredRaw()).format).toBe('blue-tangerine')
     expect((await loadStateAsync()).tasks[0].title).toBe('precious data')
   })
@@ -147,7 +143,7 @@ describe('unreadable data is never overwritten', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const { saveState } = await import('../../src/store/persist.js')
     saveState(legacyState())
-    await settle()
+    await flushPersist()
     const encrypted = await readStoredRaw()
 
     storage.removeItem(KEY_STORAGE_KEY)
@@ -156,7 +152,7 @@ describe('unreadable data is never overwritten', () => {
     expect(await second.loadStateAsync()).toBe(null)
 
     second.saveState({ ...legacyState(), tasks: [] })
-    await settle()
+    await flushPersist()
     expect(await readStoredRaw()).toBe(encrypted)
   })
 
@@ -165,7 +161,7 @@ describe('unreadable data is never overwritten', () => {
     storage.setItem(ENABLED_FLAG_KEY, '1')
     const first = await import('../../src/store/persist.js')
     first.saveState(legacyState())
-    await settle()
+    await flushPersist()
 
     storage.removeItem(KEY_STORAGE_KEY)
     vi.resetModules()
@@ -186,7 +182,7 @@ describe('unreadable data is never overwritten', () => {
     expect(await loadStateAsync()).toBe(null)
 
     saveState(legacyState())
-    await settle()
+    await flushPersist()
     expect(await readStoredRaw()).toBe(before)
   })
 
@@ -219,7 +215,7 @@ describe('importing a backup persists it', () => {
     }
     useStore.getState().importData(backup, { preferLocalSettings: false })
 
-    await settle()
+    await flushPersist()
     const reloaded = await loadStateAsync()
     expect(reloaded).not.toBe(null)
     expect(reloaded.onboardingDone).toBe(true)

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildRowsFromLines } from '../../../src/lib/calendar/scheduleGrid'
+import { wordsFromOcrData } from '../../../src/lib/calendar/scheduleOcr'
 
 const HOUR_PX = 60
 
@@ -21,23 +22,13 @@ const RAW_WORDS = [
   word('P1', 400, 238, { width: 20 }),
 ]
 
-function mapLikeOcrModule(raw) {
-  return raw
-    .filter(w => (w.text ?? '').trim() && w.bbox)
-    .map(w => ({
-      text: w.text,
-      x0: w.bbox.x0, x1: w.bbox.x1,
-      y0: w.bbox.y0, y1: w.bbox.y1,
-    }))
-}
-
 describe('ocr to grid contract', () => {
   it('consumes the exact shape ocrScheduleImage emits', () => {
     const tesseractShape = RAW_WORDS.map(w => ({
       text: w.text,
       bbox: { x0: w.x0, y0: w.y0, x1: w.x1, y1: w.y1 },
     }))
-    const mapped = mapLikeOcrModule(tesseractShape)
+    const mapped = wordsFromOcrData({ words: tesseractShape })
     const { rows, reason } = buildRowsFromLines(mapped)
     expect(reason).toBeNull()
     expect(rows.length).toBeGreaterThan(0)
