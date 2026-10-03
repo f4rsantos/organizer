@@ -11,6 +11,7 @@ import { cacheCollabUserId } from '@/lib/collab/identity'
 import { mergeSyncedState } from '@/lib/sync/threeWayMerge'
 import { createSyncBase, syncBaseFor } from '@/lib/sync/syncBase'
 import { createFocusTomato } from '@/lib/focus/focusCycle'
+import { resolveSeriesFolder } from '@/lib/notes/eventFolder'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
@@ -306,9 +307,6 @@ export const useStore = create((set, get) => ({
   })),
   setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
 
-  // Find-or-create the note linked to a calendar event/occurrence. `key` is
-  // stable per occurrence so a recurring class gets one note per date rather
-  // than one shared across every week. Returns the note id either way.
   openNoteForEvent: ({ key, title, seriesKey, seriesName }) => {
     const existing = (get().notes ?? []).find(n => n.linkedEventKey === key)
     if (existing) {
@@ -322,24 +320,7 @@ export const useStore = create((set, get) => ({
     const now = Date.now()
     set(s => {
       const order = (s.notes ?? []).reduce((m, n) => Math.min(m, n.order ?? 0), 0) - 1
-
-      // A repeating event produces one note per date, so group them under a
-      // folder named for the series. One-off events stay at the root.
-      let folders = s.noteFolders ?? []
-      let folderId = null
-      if (seriesKey) {
-        const found = folders.find(f => f.linkedSeriesKey === seriesKey)
-        if (found) {
-          folderId = found.id
-        } else {
-          const folderOrder = folders.reduce((m, f) => Math.min(m, f.order ?? 0), 0) - 1
-          folderId = nanoid()
-          folders = [...folders, {
-            id: folderId, name: seriesName || 'Event', parentId: null,
-            order: folderOrder, linkedSeriesKey: seriesKey,
-          }]
-        }
-      }
+      const { folders, folderId } = resolveSeriesFolder(s.noteFolders, seriesKey, seriesName)
 
       return persist({
         ...s,
