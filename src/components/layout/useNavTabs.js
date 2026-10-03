@@ -4,6 +4,7 @@ import { useStrings } from '@/lib/strings'
 import { getAppTabs, getAppById } from '@/apps/registry'
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout'
 import { NAV_VISIBILITY_MODES } from '@/store/migrations'
+import { buildNavItems } from '@/lib/navItems'
 
 const ADD_ID = '__add__'
 const TAB_ICONS = { tasks: CheckSquare, kanban: Kanban, grades: GraduationCap, calendar: CalendarDays, focus: Timer, settings: Settings, notes: StickyNote, [ADD_ID]: Plus }
@@ -54,46 +55,24 @@ export function useNavTabs() {
 
   const labelFor = id => (id === ADD_ID ? t.add : (customNames[id] || t[pluginLabelKeys[id] ?? id]))
   const build = id => ({ id, label: labelFor(id), icon: TAB_ICONS[id] ?? pluginIcons[id], isAdd: id === ADD_ID })
-  const folderById = new Map(folderDefs.map(f => [f.id, f]))
-  const folderOf = new Map(folderDefs.flatMap(f => (f.children ?? []).map(id => [id, f.id])))
-  const folderVisibleOn = fid => isVisibleOnSurface(visibility, fid, surface)
-  const isAbsorbedByVisibleFolder = id => {
-    const fid = folderOf.get(id)
-    return fid !== undefined && folderById.has(fid) && folderVisibleOn(fid)
-  }
-
   const isVisible = id =>
     (!optionalTabIds.has(id) || enabledAppIds.has(id))
     && (id !== ADD_ID || showAddButton)
     && visibleOn(id)
     && !(hideGrades && id === 'grades')
-  const visible = order.filter(isVisible)
 
-  const folders = folderDefs.filter(f => folderVisibleOn(f.id)).map(f => {
-    const childrenSet = new Set(f.children ?? [])
-    const orderedChildren = order.filter(id => childrenSet.has(id))
-    const remainingChildren = (f.children ?? []).filter(id => !order.includes(id))
-    return {
-      id: f.id,
-      label: f.label,
-      iconKey: f.icon ?? 'folder',
-      icon: FOLDER_ICONS[f.icon] ?? Folder,
-      isFolder: true,
-      items: [...orderedChildren, ...remainingChildren].filter(isVisible).map(build),
-    }
-  }).filter(f => f.items.length > 0)
-
-  const renderedFolders = new Map(folders.map(f => [f.id, f]))
-  const items = []
-  for (const id of order) {
-    if (renderedFolders.has(id)) items.push(renderedFolders.get(id))
-    else if (isVisible(id) && !isAbsorbedByVisibleFolder(id)) items.push(build(id))
-  }
-  for (const f of folders) if (!order.includes(f.id)) items.push(f)
+  const { items, primary, folders } = buildNavItems({
+    order,
+    folderDefs,
+    isVisible,
+    folderVisibleOn: fid => isVisibleOnSurface(visibility, fid, surface),
+    build,
+    folderIcon: key => FOLDER_ICONS[key] ?? Folder,
+  })
 
   return {
     items,
-    primary: visible.filter(id => !isAbsorbedByVisibleFolder(id)).map(build),
+    primary,
     folders,
     showAddButton,
     labelMode,
