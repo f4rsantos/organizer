@@ -26,7 +26,7 @@ export const pirate = {
   scheduleImportPreview: 'Spyglass', scheduleImportSkipped: 'Lines cast overboard', scheduleImportConfirm: 'Haul aboard',
   notesCalendarLink: "Logs fer ship's dates", notesCalendarLinkDesc: 'Puts a log button on calendar doings, bound by date.',
   addToKanban: 'Add to Plank Board', themeLight: 'Daylight colours', themeDark: 'Midnight colours', themeSystem: 'Ship colours',
-  addPartTitle: 'Add a part', gradeParts: n => `${n} pieces o’ eight`, pctDone: pct => `${pct}% plundered`,
+  editPartWeightTitle: "Double-click t' change yer share o' the booty", addPartTitle: 'Add a part', gradeParts: n => `${n} pieces o’ eight`, pctDone: pct => `${pct}% plundered`,
   fromWeek: 'From fortnight', toWeek: 'To fortnight', dueDate: 'Reckoning day',
   other: 'Other', noTasks: 'No chores this fortnight, matey.',
   whatNeedsDone: 'What be needin doin?',

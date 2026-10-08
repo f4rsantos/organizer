@@ -13,7 +13,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
   const passThreshold = useStore(s => passThresholdOf(s.settings))
   const components = gradeData?.components ?? []
   const score = accumulatedScore(components)
-  const { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade } =
+  const { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade, updateSubWeight } =
     useGradeHandlers(semId, cls.id, components, setGradeComponents)
 
   const gradedPct = Math.round(gradedFraction(components) * 100)
@@ -40,6 +40,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
           : components.map(c => (
               <GradeComponentRow key={c.id ?? c.name} component={c} onChange={updateGrade}
                 onAddSub={addSubcomponent} onRemoveSub={removeSubcomponent} onSubGradeChange={updateSubGrade}
+                onSubWeightChange={updateSubWeight}
               />
             ))
         }

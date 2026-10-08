@@ -26,7 +26,7 @@ export const es = {
     scheduleImportPreview: "Vista previa", scheduleImportSkipped: "Líneas omitidas", scheduleImportConfirm: "Importar",
     notesCalendarLink: "Notas de eventos", notesCalendarLinkDesc: "Añade un botón de nota a los eventos del calendario, vinculado por fecha.",
     addToKanban: 'Añadir al Kanban', themeLight: 'Tema claro', themeDark: 'Tema oscuro', themeSystem: 'Tema del sistema',
-    addPartTitle: 'Añadir parte', gradeParts: n => `${n} partes`, pctDone: pct => `${pct}% completado`,
+    editPartWeightTitle: "Doble clic para editar el porcentaje", addPartTitle: 'Añadir parte', gradeParts: n => `${n} partes`, pctDone: pct => `${pct}% completado`,
     fromWeek: 'Desde la semana', toWeek: 'Hasta la semana', dueDate: 'Fecha límite',
     other: 'Otro', noTasks: 'Sin tareas esta semana.',
     whatNeedsDone: '¿Qué hay que hacer?',

@@ -60,7 +60,7 @@ export const cs = {
     nlpNextWeek: ["next week"],
     nlpAt: ["at"],
     nlpDow: [["sunday","sun"],["monday","mon"],["tuesday","tue"],["wednesday","wed"],["thursday","thu"],["friday","fri"],["saturday","sat"]],
-    addPartTitle: "Přidat část", gradeParts: n => `${n} částí`, pctDone: pct => `${pct}% hotovo`,
+    editPartWeightTitle: "Dvojklikem upravíte procento", addPartTitle: "Přidat část", gradeParts: n => `${n} částí`, pctDone: pct => `${pct}% hotovo`,
     voiceInputAria: "Dictate by voice",
     voiceInputStopAria: "Stop dictation",
     quickActionTaskWordsPlural: ['úkoly'],

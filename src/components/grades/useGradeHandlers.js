@@ -1,4 +1,5 @@
 import { nanoid } from '@/lib/ids'
+import { setSubcomponentShare } from '@/lib/gradeUtils'
 
 export function useGradeHandlers(semId, classId, components, setGradeComponents) {
   const save = updated => setGradeComponents(semId, classId, updated)
@@ -12,7 +13,7 @@ export function useGradeHandlers(semId, classId, components, setGradeComponents)
       const existing = c.subcomponents ?? []
       const newSubs = existing.length === 0
         ? [{ id: nanoid(), grade: null }, { id: nanoid(), grade: null }]
-        : [...existing, { id: nanoid(), grade: null }]
+        : [...existing.map(({ share: _share, ...rest }) => rest), { id: nanoid(), grade: null }]
       return { ...c, grade: null, subcomponents: newSubs }
     }))
 
@@ -28,5 +29,14 @@ export function useGradeHandlers(semId, classId, components, setGradeComponents)
       : c
     ))
 
-  return { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade }
+  const updateSubWeight = (compId, subId, percent, lockedIds) => {
+    const component = components.find(c => c.id === compId)
+    if (!(component?.weight > 0)) return lockedIds
+    const share = percent / 100 / component.weight
+    const result = setSubcomponentShare(component.subcomponents, subId, share, lockedIds)
+    save(components.map(c => c.id === compId ? { ...c, subcomponents: result.subcomponents } : c))
+    return result.lockedIds
+  }
+
+  return { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade, updateSubWeight }
 }

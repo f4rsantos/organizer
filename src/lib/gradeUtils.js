@@ -15,11 +15,71 @@ export function roundPT(value) {
   return Math.round(value * 10) / 10
 }
 
+const hasCustomShare = sub => Number.isFinite(sub?.share)
+
+function resolveShares(subs) {
+  if (subs.length === 0) return []
+  const customTotal = subs.filter(hasCustomShare).reduce((sum, s) => sum + s.share, 0)
+  const unsetCount = subs.filter(s => !hasCustomShare(s)).length
+  if (unsetCount > 0) {
+    const leftover = Math.max(0, 1 - customTotal) / unsetCount
+    return subs.map(s => hasCustomShare(s) ? s.share : leftover)
+  }
+  if (customTotal <= 0) return subs.map(() => 1 / subs.length)
+  return subs.map(s => s.share / customTotal)
+}
+
+export function subcomponentWeights(component) {
+  const weight = component?.weight || 0
+  return resolveShares(component?.subcomponents ?? []).map(share => share * weight)
+}
+
+function releasableLocks(subs, subId, lockedIds) {
+  const existing = new Set(subs.map(s => s.id))
+  const locks = lockedIds.filter(id => id !== subId && existing.has(id))
+  const freeSlots = subs.length - 1
+  return locks.slice(Math.max(0, locks.length - freeSlots + 1))
+}
+
+export function setSubcomponentShare(subs, subId, share, lockedIds = []) {
+  const shares = resolveShares(subs)
+  const locks = releasableLocks(subs, subId, lockedIds)
+  const isLocked = id => locks.includes(id)
+  const isFree = s => s.id !== subId && !isLocked(s.id)
+  const lockedTotal = subs.reduce((sum, s, i) => isLocked(s.id) ? sum + shares[i] : sum, 0)
+  const available = Math.max(0, 1 - lockedTotal)
+  const freeCount = subs.filter(isFree).length
+  const target = freeCount === 0 ? available : Math.min(available, Math.max(0, share))
+  const freeTotal = subs.reduce((sum, s, i) => isFree(s) ? sum + shares[i] : sum, 0)
+  const rest = available - target
+  const subcomponents = subs.map((s, i) => {
+    if (s.id === subId) return { ...s, share: target }
+    if (isLocked(s.id)) return { ...s, share: shares[i] }
+    const freeShare = freeTotal > 0 ? rest * shares[i] / freeTotal : rest / freeCount
+    return { ...s, share: freeShare }
+  })
+  return { subcomponents, lockedIds: [...locks, subId] }
+}
+
+const TENTHS_PER_PERCENT = 10
+
+export function roundedPercents(weights, totalWeight) {
+  const toTenths = weight => weight * 100 * TENTHS_PER_PERCENT
+  const exact = weights.map(toTenths)
+  const floors = exact.map(Math.floor)
+  const shortfall = Math.round(toTenths(totalWeight)) - floors.reduce((sum, f) => sum + f, 0)
+  const byRemainder = exact
+    .map((value, i) => ({ i, remainder: value - floors[i] }))
+    .sort((x, y) => y.remainder - x.remainder)
+  byRemainder.slice(0, Math.max(0, shortfall)).forEach(({ i }) => { floors[i] += 1 })
+  return floors.map(tenths => tenths / TENTHS_PER_PERCENT)
+}
+
 export function flattenComponents(components) {
   return components.flatMap(c => {
     if (!c.subcomponents?.length) return [c]
-    const subWeight = c.weight / c.subcomponents.length
-    return c.subcomponents.map(s => ({ ...s, weight: subWeight }))
+    const weights = subcomponentWeights(c)
+    return c.subcomponents.map((s, i) => ({ ...s, weight: weights[i] }))
   })
 }
 
