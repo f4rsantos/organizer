@@ -10,7 +10,7 @@ import {
   TOMATO_RADIUS,
 } from './utils'
 import { createGravitySensor, requiresDeviceOrientationPermission } from './gravity'
-import { stepBodies, wakeBodies } from './physicsEngine'
+import { advanceBodies, splitFrame, wakeBodies } from './physicsEngine'
 
 const MAX_WOBBLE_SECONDS = 5
 const FRESH_TOMATO_MS = 15000
@@ -168,6 +168,7 @@ export function usePomodoroBodies({
 
   const rafRef = useRef(null)
   const lastTimeRef = useRef(null)
+  const carrySecsRef = useRef(0)
   const hasSyncedBodiesRef = useRef(false)
   const draggingRef = useRef(null)
   const obstaclesRef = useRef([])
@@ -275,7 +276,8 @@ export function usePomodoroBodies({
 
     const tick = time => {
       if (!lastTimeRef.current) lastTimeRef.current = time
-      const dt = Math.min((time - lastTimeRef.current) / 1000, 0.05)
+      const { steps, carrySecs } = splitFrame(carrySecsRef.current, (time - lastTimeRef.current) / 1000)
+      carrySecsRef.current = carrySecs
       lastTimeRef.current = time
 
       const bounds = getBounds()
@@ -295,12 +297,13 @@ export function usePomodoroBodies({
         obstacles: obstaclesRef.current,
       }
 
-      setBodies(prev => stepBodies(prev, dt, env))
+      if (steps > 0) setBodies(prev => advanceBodies(prev, steps, env))
 
       rafRef.current = requestAnimationFrame(tick)
     }
 
     lastTimeRef.current = null
+    carrySecsRef.current = 0
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
   }, [focusRunning, hasActiveBodies, getBounds, gravitySensor])

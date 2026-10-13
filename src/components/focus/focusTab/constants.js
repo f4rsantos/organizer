@@ -5,6 +5,8 @@ export const defaultFocus = {
   useScheduled: false,
   scheduledBreakMins: 5,
   scheduledTimes: [],
+  useTimer: false,
+  timerMins: 25,
   focusLabel: '',
   breakLabel: '',
   alertsEnabled: true,

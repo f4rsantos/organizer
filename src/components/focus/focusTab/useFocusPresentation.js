@@ -4,6 +4,7 @@ import { useStrings } from '@/lib/strings'
 import { useFocusClock } from '../useFocusClock'
 import { defaultFocus } from './constants'
 import { growthFromSecs, sizeFromPct } from '../pomodoro/utils'
+import { focusWheelProgress } from '@/lib/focus/floatingWidget'
 
 export function useFocusPresentation() {
   const lang = useStore(s => s.lang ?? 'en')
@@ -17,15 +18,7 @@ export function useFocusPresentation() {
   const [growingFace, setGrowingFace] = useState(() => Math.floor(Math.random() * 5))
   const [prevPomodoroPhase, setPrevPomodoroPhase] = useState('focus')
 
-  const clock = useFocusClock({
-    useInterval: focus.useInterval,
-    intervalMins: focus.intervalMins,
-    intervalBreakMins: focus.intervalBreakMins,
-    useScheduled: focus.useScheduled,
-    scheduledBreakMins: focus.scheduledBreakMins,
-    scheduledTimes: focus.scheduledTimes,
-    intervalResetMode: focus.intervalResetMode ?? 'reset',
-  })
+  const clock = useFocusClock(focus)
 
   const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, scheduledPct, activeBreakSource, reset } = clock
 
@@ -44,11 +37,7 @@ export function useFocusPresentation() {
     ? focus.intervalBreakMins * 60
     : focus.scheduledBreakMins * 60
 
-  const focusPct = focus.useInterval
-    ? cycleElapsed / (focus.intervalMins * 60)
-    : Number.isFinite(scheduledPct)
-      ? scheduledPct
-      : 0
+  const focusPct = focusWheelProgress({ focus, phase: 'focus', cycleElapsed, breakSecsLeft: 0, scheduledPct })
 
   const ringPct = isBreak ? 1 - breakSecsLeft / breakDenom : focusPct
   const centerUnits = growthFromSecs(cycleElapsed)

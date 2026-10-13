@@ -37,7 +37,8 @@ const POMODORO_KEYS = [
   'pomodoroEraseStatsTitle', 'pomodoroEraseStatsDesc', 'pomodoroGraceCancel',
   'pomodoroStreakTitle', 'pomodoroCurrentStreak', 'pomodoroBestStreak',
   'pomodoroTrendTitle', 'pomodoroTrendNoData', 'pomodoroCopySummary', 'pomodoroCopiedSummary',
-  'focusNotifTitle', 'focusNotifBreakBody', 'focusNotifFocusBody',
+  'focusNotifTitle', 'focusNotifBreakBody', 'focusNotifFocusBody', 'focusNotifTimerBody',
+  'pomodoroRequireFocus',
   'tasksNotifTitle', 'taskReminderTitle',
 ]
 

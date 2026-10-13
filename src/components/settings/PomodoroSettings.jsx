@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 
-const DEFAULT = { enabled: false, resetPeriod: 'week', trackStats: false, showAbandoned: true, showPeriodStats: true, showOverlay: false }
+const DEFAULT = { enabled: false, resetPeriod: 'week', trackStats: false, showAbandoned: true, showPeriodStats: true, showOverlay: false, requireFocusOnScreen: true }
 
 export function PomodoroSettings() {
   const lang = useStore(s => s.lang ?? 'en')
@@ -13,6 +13,7 @@ export function PomodoroSettings() {
   const pom = useStore(s => s.settings?.pomodoro ?? DEFAULT)
   const updatePomodoroSettings = useStore(s => s.updatePomodoroSettings)
   const erasePomodoroStats = useStore(s => s.erasePomodoroStats)
+  const requiresFocus = pom.requireFocusOnScreen !== false
 
   const periodOptions = [
     { value: 'day', label: t.pomodoroResetDay },
@@ -78,6 +79,12 @@ export function PomodoroSettings() {
           className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
           {pom.showAbandoned ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
           <span>{t.pomodoroShowAbandoned}</span>
+        </button>
+
+        <button type="button" onClick={() => updatePomodoroSettings({ requireFocusOnScreen: !requiresFocus })}
+          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
+          {requiresFocus ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
+          <span>{t.pomodoroRequireFocus}</span>
         </button>
 
         <Button type="button" variant="outline" size="sm"

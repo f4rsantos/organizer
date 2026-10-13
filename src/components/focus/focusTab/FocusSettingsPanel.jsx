@@ -2,7 +2,11 @@ import React from 'react'
 import { Circle, CircleCheck, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PillSwitch } from '@/components/common/PillSwitch'
 import { fmtMins } from './formatters'
+
+const MAX_TIMER_MINS = 600
+const DEFAULT_TIMER_MINS = 25
 
 function BreakDial({ label, value, onChange, min = 1, max = 120 }) {
   const [local, setLocal] = React.useState(String(value))
@@ -30,6 +34,20 @@ function BreakDial({ label, value, onChange, min = 1, max = 120 }) {
   )
 }
 
+function ModeToggle({ checked, label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {checked
+        ? <CircleCheck className="h-4 w-4 text-primary" />
+        : <Circle className="h-4 w-4" />}
+      {label}
+    </button>
+  )
+}
+
 function ScheduledTimeRow({ totalMins, onRemove }) {
   return (
     <div className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-1.5">
@@ -38,6 +56,103 @@ function ScheduledTimeRow({ totalMins, onRemove }) {
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
+  )
+}
+
+function TimerSettings({ t, focus, updateFocusSettings }) {
+  return (
+    <div className="flex justify-center">
+      <BreakDial
+        label={t.focusTimerFor}
+        value={focus.timerMins ?? DEFAULT_TIMER_MINS}
+        max={MAX_TIMER_MINS}
+        onChange={v => updateFocusSettings({ timerMins: v })}
+      />
+    </div>
+  )
+}
+
+function ScheduledBreakSettings({ t, focus, newTimeH, newTimeM, setNewTimeH, setNewTimeM, updateFocusSettings }) {
+  const addScheduledTime = () => {
+    const mins = newTimeH * 60 + newTimeM
+    if (focus.scheduledTimes.includes(mins)) return
+    updateFocusSettings({ scheduledTimes: [...focus.scheduledTimes, mins].sort((a, b) => a - b) })
+  }
+
+  const removeScheduledTime = mins => {
+    updateFocusSettings({ scheduledTimes: focus.scheduledTimes.filter(x => x !== mins) })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end gap-2">
+        <BreakDial label="h" value={newTimeH} onChange={setNewTimeH} min={0} max={23} />
+        <BreakDial label="m" value={newTimeM} onChange={setNewTimeM} min={0} max={59} />
+        <BreakDial
+          label={t.focusScheduledBreakFor}
+          value={focus.scheduledBreakMins}
+          onChange={v => updateFocusSettings({ scheduledBreakMins: v })}
+        />
+        <Button size="icon" variant="ghost" onClick={addScheduledTime} className="h-8 w-8 shrink-0">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-1">
+        {focus.scheduledTimes.map(mins => (
+          <ScheduledTimeRow key={mins} totalMins={mins} onRemove={() => removeScheduledTime(mins)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BreakSettings({ t, lang, focus, updateFocusSettings, ...scheduledProps }) {
+  const displayBreakLabel = (focus.breakLabel ?? '').trim() || (lang === 'pt' ? 'momento pomodoro' : 'pomodoro time')
+
+  return (
+    <>
+      <ModeToggle
+        checked={focus.useInterval}
+        label={t.focusIntervalMode}
+        onClick={() => updateFocusSettings({ useInterval: !focus.useInterval })}
+      />
+
+      {focus.useInterval && (
+        <div className="flex justify-center gap-8">
+          <BreakDial
+            label={t.focusIntervalEvery}
+            value={focus.intervalMins}
+            onChange={v => updateFocusSettings({ intervalMins: v })}
+          />
+          <BreakDial
+            label={t.focusIntervalBreakFor}
+            value={focus.intervalBreakMins}
+            onChange={v => updateFocusSettings({ intervalBreakMins: v })}
+          />
+        </div>
+      )}
+
+      <ModeToggle
+        checked={focus.useScheduled}
+        label={t.focusScheduledMode}
+        onClick={() => updateFocusSettings({ useScheduled: !focus.useScheduled })}
+      />
+
+      {focus.useScheduled && (
+        <ScheduledBreakSettings t={t} focus={focus} updateFocusSettings={updateFocusSettings} {...scheduledProps} />
+      )}
+
+      <div className="space-y-1">
+        <span className="text-xs text-muted-foreground">{t.focusBreakLabel}</span>
+        <Input
+          className="h-8 text-sm"
+          placeholder={displayBreakLabel}
+          value={focus.breakLabel ?? ''}
+          onChange={e => updateFocusSettings({ breakLabel: e.target.value })}
+        />
+      </div>
+    </>
   )
 }
 
@@ -51,101 +166,43 @@ export function FocusSettingsPanel({
   setNewTimeM,
   updateFocusSettings,
 }) {
-  const addScheduledTime = () => {
-    const mins = newTimeH * 60 + newTimeM
-    if (!focus.scheduledTimes.includes(mins)) {
-      updateFocusSettings({ scheduledTimes: [...focus.scheduledTimes, mins].sort((a, b) => a - b) })
-    }
-  }
-
-  const removeScheduledTime = mins => {
-    updateFocusSettings({ scheduledTimes: focus.scheduledTimes.filter(x => x !== mins) })
-  }
-
-  const displayBreakLabel = (focus.breakLabel ?? '').trim() || (lang === 'pt' ? 'momento pomodoro' : 'pomodoro time')
+  const modeOptions = [
+    { value: 'timer', label: t.focusTimerMode },
+    { value: 'breaks', label: t.focusBreaksMode },
+  ]
+  const mode = focus.useTimer === true ? 'timer' : 'breaks'
 
   return (
     <div className="relative z-20 w-full max-w-xs space-y-4 rounded-xl border border-border bg-card p-4">
-      <button
-        onClick={() => updateFocusSettings({ useInterval: !focus.useInterval })}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {focus.useInterval
-          ? <CircleCheck className="h-4 w-4 text-primary" />
-          : <Circle className="h-4 w-4" />}
-        {t.focusIntervalMode}
-      </button>
+      <PillSwitch
+        options={modeOptions}
+        value={mode}
+        onChange={next => updateFocusSettings({ useTimer: next === 'timer' })}
+      />
 
-      {focus.useInterval && (
-        <>
-          <div className="flex justify-center gap-8">
-            <BreakDial
-              label={t.focusIntervalEvery}
-              value={focus.intervalMins}
-              onChange={v => updateFocusSettings({ intervalMins: v })}
-            />
-            <BreakDial
-              label={t.focusIntervalBreakFor}
-              value={focus.intervalBreakMins}
-              onChange={v => updateFocusSettings({ intervalBreakMins: v })}
-            />
-          </div>
-        </>
-      )}
-
-      <button
-        onClick={() => updateFocusSettings({ useScheduled: !focus.useScheduled })}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {focus.useScheduled
-          ? <CircleCheck className="h-4 w-4 text-primary" />
-          : <Circle className="h-4 w-4" />}
-        {t.focusScheduledMode}
-      </button>
-
-      {focus.useScheduled && (
-        <div className="space-y-3">
-          <div className="flex items-end gap-2">
-            <BreakDial label="h" value={newTimeH} onChange={setNewTimeH} min={0} max={23} />
-            <BreakDial label="m" value={newTimeM} onChange={setNewTimeM} min={0} max={59} />
-            <BreakDial
-              label={t.focusScheduledBreakFor}
-              value={focus.scheduledBreakMins}
-              onChange={v => updateFocusSettings({ scheduledBreakMins: v })}
-            />
-            <Button size="icon" variant="ghost" onClick={addScheduledTime} className="h-8 w-8 shrink-0">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="space-y-1">
-            {focus.scheduledTimes.map(mins => (
-              <ScheduledTimeRow key={mins} totalMins={mins} onRemove={() => removeScheduledTime(mins)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2 pt-1">
-        <div className="space-y-1">
-          <span className="text-xs text-muted-foreground">{t.focusFocusLabel}</span>
-          <Input
-            className="h-8 text-sm"
-            placeholder={lang === 'pt' ? 'ex: a focar…' : 'e.g. keep going…'}
-            value={focus.focusLabel ?? ''}
-            onChange={e => updateFocusSettings({ focusLabel: e.target.value })}
+      {mode === 'timer'
+        ? <TimerSettings t={t} focus={focus} updateFocusSettings={updateFocusSettings} />
+        : (
+          <BreakSettings
+            t={t}
+            lang={lang}
+            focus={focus}
+            updateFocusSettings={updateFocusSettings}
+            newTimeH={newTimeH}
+            newTimeM={newTimeM}
+            setNewTimeH={setNewTimeH}
+            setNewTimeM={setNewTimeM}
           />
-        </div>
+        )}
 
-        <div className="space-y-1">
-          <span className="text-xs text-muted-foreground">{t.focusBreakLabel}</span>
-          <Input
-            className="h-8 text-sm"
-            placeholder={displayBreakLabel}
-            value={focus.breakLabel ?? ''}
-            onChange={e => updateFocusSettings({ breakLabel: e.target.value })}
-          />
-        </div>
+      <div className="space-y-1">
+        <span className="text-xs text-muted-foreground">{t.focusFocusLabel}</span>
+        <Input
+          className="h-8 text-sm"
+          placeholder={lang === 'pt' ? 'ex: a focar…' : 'e.g. keep going…'}
+          value={focus.focusLabel ?? ''}
+          onChange={e => updateFocusSettings({ focusLabel: e.target.value })}
+        />
       </div>
     </div>
   )

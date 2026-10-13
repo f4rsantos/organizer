@@ -7,6 +7,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { PillSwitch } from '@/components/common/PillSwitch'
 import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
 import { useCollabActions } from '@/hooks/useCollabActions'
 import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
@@ -38,18 +39,16 @@ function NoteKindToggle({ note, t, onChangeKind }) {
     )
   }
   return (
-    <div className="relative mr-1 grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
-      <div className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
-        style={{ left: note.kind === 'canvas' ? 'calc(50% + 1px)' : '2px' }} />
-      {[['text', FileText, t.notesText], ['canvas', PenLine, t.notesCanvas]].map(([kind, Icon, label]) => (
-        <button key={kind} type="button" title={label}
-          onClick={() => note.kind !== kind && onChangeKind(kind)}
-          className={cn('relative z-10 flex items-center justify-center rounded-full px-2.5 py-1 transition-colors',
-            note.kind === kind ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-          <Icon className="h-3.5 w-3.5" />
-        </button>
-      ))}
-    </div>
+    <PillSwitch
+      className="mr-1"
+      optionClassName="px-2.5 py-1"
+      options={[
+        { value: 'text', title: t.notesText, label: <FileText className="h-3.5 w-3.5" /> },
+        { value: 'canvas', title: t.notesCanvas, label: <PenLine className="h-3.5 w-3.5" /> },
+      ]}
+      value={note.kind === 'canvas' ? 'canvas' : 'text'}
+      onChange={onChangeKind}
+    />
   )
 }
 

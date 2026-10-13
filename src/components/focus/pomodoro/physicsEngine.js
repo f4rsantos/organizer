@@ -14,6 +14,9 @@ const SLEEP_SPIN = 2
 const SLEEP_AFTER_SECONDS = 0.4
 const WAKE_SPEED = 40
 const WAKE_GRAVITY_CHANGE = 25
+const FIXED_STEP_SECS = 1 / 120
+const MAX_FRAME_SECS = 0.05
+const STEP_ROUNDING_SLACK = 1e-6
 
 function clampSpin(omega) {
   return Math.max(-MAX_SPIN, Math.min(MAX_SPIN, omega))
@@ -197,7 +200,7 @@ function obstacleNormal(body, rect, radius) {
 function resolveObstacleCollisions(bodies, obstacles, env, firstPass) {
   if (!obstacles || !obstacles.length) return
   for (let i = 0; i < bodies.length; i++) {
-    if (env.draggingId === bodies[i].id) continue
+    if (isPinned(bodies[i], env)) continue
     const radius = bodies[i].radius ?? TOMATO_RADIUS
     for (let o = 0; o < obstacles.length; o++) {
       const body = bodies[i]
@@ -210,7 +213,7 @@ function resolveObstacleCollisions(bodies, obstacles, env, firstPass) {
       const bounce = vn < 0 ? vn * (1 + restitution) : 0
       const spun = firstPass && wobbleOf(body) > 0 && -vn > BOUNCE_MIN_SPEED
       bodies[i] = {
-        ...(body.asleep ? awake(body) : body),
+        ...body,
         x: body.x + nx * overlap,
         y: body.y + ny * overlap,
         vx: body.vx - bounce * nx,
@@ -263,10 +266,25 @@ function settle(body, dt, env, gDir, surroundings) {
   }
 }
 
+function capSpeedToActualMotion(body, start, integrated, dt, gDir) {
+  const pushedByContact = body.x !== integrated.x || body.y !== integrated.y
+  if (body.asleep || !pushedByContact) return body
+  const movedVx = (body.x - start.x) / dt
+  const movedVy = (body.y - start.y) / dt
+  const reboundingFromContact = body.vx * movedVx + body.vy * movedVy < 0
+  if (reboundingFromContact) return body
+  const speed = Math.hypot(body.vx, body.vy)
+  const reachableSpeed = Math.hypot(movedVx, movedVy) + gDir.mag * dt
+  if (speed <= reachableSpeed) return body
+  const scale = reachableSpeed / speed
+  return { ...body, vx: body.vx * scale, vy: body.vy * scale }
+}
+
 export function stepBodies(prevBodies, dt, env) {
   const gDir = gravityDirection(env)
   const surroundings = surroundingsKey(env)
   const bodies = prevBodies.map(body => integrate(body, dt, env, surroundings))
+  const integrated = [...bodies]
 
   for (let pass = 0; pass < SOLVER_PASSES; pass++) {
     const firstPass = pass === 0
@@ -275,7 +293,21 @@ export function stepBodies(prevBodies, dt, env) {
     for (let i = 0; i < bodies.length; i++) bodies[i] = resolveWalls(bodies[i], env, gDir, firstPass)
   }
 
-  const settled = bodies.map(body => settle(body, dt, env, gDir, surroundings))
+  const settled = bodies
+    .map((body, i) => capSpeedToActualMotion(body, prevBodies[i], integrated[i], dt, gDir))
+    .map(body => settle(body, dt, env, gDir, surroundings))
   const unchanged = settled.length === prevBodies.length && settled.every((body, i) => body === prevBodies[i])
   return unchanged ? prevBodies : settled
+}
+
+export function splitFrame(carrySecs, frameSecs) {
+  const pending = carrySecs + Math.min(Math.max(0, frameSecs), MAX_FRAME_SECS)
+  const steps = Math.floor(pending / FIXED_STEP_SECS + STEP_ROUNDING_SLACK)
+  return { steps, carrySecs: Math.max(0, pending - steps * FIXED_STEP_SECS) }
+}
+
+export function advanceBodies(bodies, steps, env) {
+  let current = bodies
+  for (let step = 0; step < steps; step++) current = stepBodies(current, FIXED_STEP_SECS, env)
+  return current
 }

@@ -6,6 +6,11 @@ export function fmtTimer(secs) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+export function fmtClockLabel({ phase, breakSecsLeft, timerSecsLeft, totalElapsed }) {
+  if (phase === 'break') return fmtTimer(breakSecsLeft)
+  return fmtTimer(timerSecsLeft ?? totalElapsed)
+}
+
 export function fmtMins(totalMins) {
   const h = Math.floor(totalMins / 60)
   const m = totalMins % 60

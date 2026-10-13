@@ -226,6 +226,7 @@ function buildInitialState() {
       focus: {
         useInterval: true, intervalMins: 25, intervalBreakMins: 5,
         useScheduled: false, scheduledBreakMins: 5, scheduledTimes: [],
+        useTimer: false, timerMins: 25,
         focusLabel: '', breakLabel: '',
         intervalResetMode: 'reset',
         alertsEnabled: true,
@@ -237,6 +238,7 @@ function buildInitialState() {
         showAbandoned: true,
         showPeriodStats: true,
         showOverlay: false,
+        requireFocusOnScreen: true,
       },
       collabEnabled: false,
       workMode: false,

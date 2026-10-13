@@ -5,7 +5,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useFocusClock } from './useFocusClock'
 import { defaultFocus } from './focusTab/constants'
-import { fmtTimer } from './focusTab/formatters'
+import { fmtClockLabel } from './focusTab/formatters'
 import { FocusWheel } from './focusTab/FocusWheel'
 import { clampWidgetPosition, focusWheelProgress, isFocusSessionActive } from '@/lib/focus/floatingWidget'
 import {
@@ -176,15 +176,7 @@ export function FloatingFocusWidget() {
   const active = isFocusSessionActive(focusSync)
   const activeTab = useStore(s => s.currentTab)
 
-  const clock = useFocusClock({
-    useInterval: focus.useInterval,
-    intervalMins: focus.intervalMins,
-    intervalBreakMins: focus.intervalBreakMins,
-    useScheduled: focus.useScheduled,
-    scheduledBreakMins: focus.scheduledBreakMins,
-    scheduledTimes: focus.scheduledTimes,
-    intervalResetMode: focus.intervalResetMode ?? 'reset',
-  })
+  const clock = useFocusClock(focus)
 
   const [position, setPosition] = useState(defaultPosition)
   const [pipWindow, setPipWindow] = useState(null)
@@ -232,7 +224,7 @@ export function FloatingFocusWidget() {
   }, [overlaySupported, active, overlayActive])
 
   const overlayIsBreak = clock.phase === 'break'
-  const overlayLabel = overlayIsBreak ? fmtTimer(clock.breakSecsLeft) : fmtTimer(clock.totalElapsed)
+  const overlayLabel = fmtClockLabel(clock)
   const wheelPct = focusWheelProgress({
     focus,
     phase: clock.phase,
@@ -316,10 +308,8 @@ export function FloatingFocusWidget() {
 
   if (!active || activeTab === 'focus' || focus.floatingWidgetEnabled === false || dismissed) return null
 
-  const { running, phase, totalElapsed, breakSecsLeft, start, pause, resume, reset, skipBreak } = clock
+  const { running, phase, totalElapsed, start, pause, resume, reset, skipBreak } = clock
   const isBreak = phase === 'break'
-
-  const label = isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)
 
   const handleToggle = () => {
     if (isBreak) return
@@ -333,7 +323,7 @@ export function FloatingFocusWidget() {
       t={t}
       running={running}
       isBreak={isBreak}
-      label={label}
+      label={overlayLabel}
       wheelPct={wheelPct}
       onToggle={handleToggle}
       onReset={reset}
@@ -347,7 +337,7 @@ export function FloatingFocusWidget() {
       t={t}
       running={running}
       isBreak={isBreak}
-      label={label}
+      label={overlayLabel}
       wheelPct={wheelPct}
       onToggle={handleToggle}
       onReset={reset}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  AWAY_GRACE_SECS, advanceFocusClock, createFocusTomato, firstScheduledBreakBetween, focusCycleId, nextFocusTransition,
+  AWAY_GRACE_SECS, UNATTENDED_GAP_SECS, advanceFocusClock, clockWasUnattended, createFocusTomato, firstScheduledBreakBetween,
+  focusClockConfig, focusCycleId, nextFocusTransition,
 } from '../../../src/lib/focus/focusCycle.js'
 
 const INTERVAL_SECS = 25 * 60
@@ -239,5 +240,53 @@ describe('createFocusTomato', () => {
   it('records focus seconds only when stats are tracked', () => {
     const tomato = createFocusTomato({ id: 'focus-1', focusSecs: INTERVAL_SECS, trackStats: true, createdAt: 5, random: fixedRandom })
     expect(tomato.focusSecs).toBe(INTERVAL_SECS)
+  })
+})
+
+describe('advanceFocusClock in timer mode', () => {
+  const TIMER_SECS = 50 * 60
+  const TIMER_CONFIG = focusClockConfig({ useTimer: true, timerMins: 50, useInterval: true, intervalMins: 25, intervalBreakMins: 5 })
+
+  it('stops the clock when the timer runs out and awards one tomato for the full duration', () => {
+    const { state, events } = advanceFocusClock(runningFocus(), STARTED_AT + TIMER_SECS + 10, TIMER_CONFIG)
+    expect(events).toEqual([{
+      type: 'timerFinished',
+      at: STARTED_AT + TIMER_SECS,
+      completedFocus: { id: focusCycleId(runningFocus()), focusSecs: TIMER_SECS },
+    }])
+    expect(state).toMatchObject({ status: 'paused', phase: 'focus', startedAt: null, cycleElapsedBase: 0, totalElapsedBase: 0 })
+  })
+
+  it('ignores interval breaks while the timer is on', () => {
+    expect(advanceFocusClock(runningFocus(), STARTED_AT + TIMER_SECS - 1, TIMER_CONFIG).events).toEqual([])
+  })
+
+  it('finishes after only the time left when resumed from a pause', () => {
+    const resumed = runningFocus({ cycleElapsedBase: 600, totalElapsedBase: 600 })
+    expect(nextFocusTransition(resumed, TIMER_CONFIG).at).toBe(STARTED_AT + TIMER_SECS - 600)
+  })
+
+  it('still awards the tomato when the timer ran out while the app was gone', () => {
+    const { events } = advanceFocusClock(runningFocus(), STARTED_AT + TIMER_SECS * 4, TIMER_CONFIG, { unattended: true })
+    expect(events.map(e => e.type)).toEqual(['timerFinished'])
+  })
+})
+
+describe('clockWasUnattended', () => {
+  const NOW = STARTED_AT + 10_000
+
+  it('treats the first tick after a reload or a long silent gap as the user being away', () => {
+    expect(clockWasUnattended(null, NOW)).toBe(true)
+    expect(clockWasUnattended(NOW - UNATTENDED_GAP_SECS - 1, NOW)).toBe(true)
+    expect(clockWasUnattended(NOW - 1, NOW)).toBe(false)
+  })
+
+  it('never treats a gap as away when focus on screen is not required, so every missed cycle still earns its tomato', () => {
+    const cycle = INTERVAL_SECS + BREAK_SECS
+    const now = STARTED_AT + cycle * 3 + 10
+    const unattended = clockWasUnattended(null, now, { keepCountingWhileAway: true })
+    const { state, events } = advanceFocusClock(runningFocus(), now, INTERVAL_CONFIG, { unattended })
+    expect(events.filter(e => e.completedFocus)).toHaveLength(3)
+    expect(state).toMatchObject({ status: 'started', phase: 'focus' })
   })
 })

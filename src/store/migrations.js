@@ -364,6 +364,8 @@ function getDefaultFocusSettings() {
     useScheduled: false,
     scheduledBreakMins: 5,
     scheduledTimes: [],
+    useTimer: false,
+    timerMins: 25,
     focusLabel: '',
     breakLabel: '',
     alertsEnabled: true,
@@ -378,6 +380,7 @@ function getDefaultPomodoroSettings() {
     showAbandoned: true,
     showPeriodStats: true,
     showOverlay: false,
+    requireFocusOnScreen: true,
   }
 }
 

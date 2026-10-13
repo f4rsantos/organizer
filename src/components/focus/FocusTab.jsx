@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
-import { fmtMins, fmtTimer } from './focusTab/formatters'
+import { fmtClockLabel, fmtMins } from './focusTab/formatters'
 import { CenterPomodoro } from './focusTab/CenterPomodoro'
 import { FocusWheel } from './focusTab/FocusWheel'
 import { FocusSettingsPanel } from './focusTab/FocusSettingsPanel'
@@ -20,7 +20,7 @@ export function FocusTab() {
     isBreak, ringPct, focusPct, centerSize, activeFocusText, displayBreakLabel, handleReset,
   } = useFocusPresentation()
 
-  const { running, phase, cycleElapsed, totalElapsed, breakSecsLeft, nextScheduled,
+  const { running, phase, cycleElapsed, totalElapsed, nextScheduled,
     start, pause, resume, skipBreak } = clock
 
   return (
@@ -29,7 +29,7 @@ export function FocusTab() {
         {pomodoroEnabled && <FocusPomodoroStats />}
 
         <FocusWheel data-tomato-obstacle pct={ringPct} isBreak={isBreak}
-          label={isBreak ? fmtTimer(breakSecsLeft) : fmtTimer(totalElapsed)}
+          label={fmtClockLabel(clock)}
           centerOverlay={pomodoroEnabled && phase === 'focus' && (running || cycleElapsed > 0)
             ? <CenterPomodoro
                 pct={Math.min(1, Math.max(0, focusPct))}

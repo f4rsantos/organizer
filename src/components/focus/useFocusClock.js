@@ -2,18 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useNotify } from '@/hooks/useNotify'
 import { useStrings as stringsFor } from '@/lib/strings'
-import { AWAY_GRACE_SECS, advanceFocusClock, nextFocusTransition, totalAfterBreak } from '@/lib/focus/focusCycle'
+import {
+  AWAY_GRACE_SECS, advanceFocusClock, clockWasUnattended, focusClockConfig, focusTargetSecs, nextFocusTransition, totalAfterBreak,
+} from '@/lib/focus/focusCycle'
 import { scheduleWake } from '@/lib/focus/wakeTimer'
 
-const UNATTENDED_GAP_SECS = 3 * 60
-const PHASE_ALERT_EVENTS = ['breakStarted', 'focusStarted']
+const PHASE_ALERT_EVENTS = ['breakStarted', 'focusStarted', 'timerFinished']
 let lastAdvancedAtSecs = null
 
 function nowSecs() { return Math.floor(Date.now() / 1000) }
 
-function clampedFocusElapsed({ raw, cycleElapsedBase, intervalSecs, useInterval }) {
-  if (!useInterval) return raw
-  return Math.min(raw, Math.max(0, intervalSecs - cycleElapsedBase))
+function clampedFocusElapsed({ raw, cycleElapsedBase, targetSecs }) {
+  if (targetSecs === null) return raw
+  return Math.min(raw, Math.max(0, targetSecs - cycleElapsedBase))
+}
+
+function phaseAlertBody(t, eventType) {
+  if (eventType === 'breakStarted') return t.focusNotifBreakBody
+  if (eventType === 'timerFinished') return t.focusNotifTimerBody
+  return t.focusNotifFocusBody
 }
 
 function nextScheduledBreak(times) {
@@ -57,16 +64,19 @@ function scheduledWindowProgress(times) {
   return elapsed / span
 }
 
-export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, useScheduled, scheduledBreakMins, scheduledTimes, intervalResetMode }) {
+export function useFocusClock(focus) {
   const focusSync = useStore(s => s.focusSync)
   const setFocusSync = useStore(s => s.setFocusSync)
   const recordFocusTomato = useStore(s => s.recordFocusTomato)
   const alertsEnabled = useStore(s => s.settings?.focus?.alertsEnabled ?? true)
+  const keepCountingWhileAway = useStore(s => s.settings?.pomodoro?.requireFocusOnScreen === false)
   const lang = useStore(s => s.lang ?? 'en')
   const notify = useNotify()
   const [tick, setTick] = useState(0)
 
-  const intervalSecs = intervalMins * 60
+  const clockConfig = useMemo(() => focusClockConfig(focus), [focus])
+  const { useScheduled, scheduledTimes, resetMode: intervalResetMode } = clockConfig
+  const targetSecs = focusTargetSecs(clockConfig)
   const status = focusSync?.status === 'started' ? 'started' : 'paused'
   const running = status === 'started'
   const phase = focusSync?.phase === 'break' ? 'break' : 'focus'
@@ -86,7 +96,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   }, [running, startedAt, tick])
 
   const focusElapsedSinceStart = phase === 'focus'
-    ? clampedFocusElapsed({ raw: rawElapsedSinceStart, cycleElapsedBase, intervalSecs, useInterval })
+    ? clampedFocusElapsed({ raw: rawElapsedSinceStart, cycleElapsedBase, targetSecs })
     : rawElapsedSinceStart
 
   const cycleElapsed = phase === 'focus'
@@ -96,6 +106,10 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   const totalElapsed = phase === 'focus'
     ? totalElapsedBase + focusElapsedSinceStart
     : totalElapsedBase
+
+  const timerSecsLeft = clockConfig.useTimer && phase === 'focus'
+    ? Math.max(0, clockConfig.timerSecs - cycleElapsed)
+    : null
 
   const breakSecsLeft = phase === 'break'
     ? (running ? Math.max(0, breakSecsLeftBase - rawElapsedSinceStart) : breakSecsLeftBase)
@@ -113,16 +127,6 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     return scheduledWindowProgress(scheduledTimes)
   }, [useScheduled, scheduledTimes, phase, tick])
 
-  const clockConfig = useMemo(() => ({
-    useInterval,
-    intervalSecs,
-    intervalBreakSecs: intervalBreakMins * 60,
-    useScheduled,
-    scheduledTimes,
-    scheduledBreakSecs: scheduledBreakMins * 60,
-    resetMode: intervalResetMode,
-  }), [useInterval, intervalSecs, intervalBreakMins, useScheduled, scheduledTimes, scheduledBreakMins, intervalResetMode])
-
   const commit = useCallback((data) => {
     setFocusSync(data)
   }, [setFocusSync])
@@ -138,13 +142,13 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     notify({
       tag: 'organiser-focus-alert',
       title: t.focusNotifTitle,
-      body: event.type === 'breakStarted' ? t.focusNotifBreakBody : t.focusNotifFocusBody,
-    }, { vibratePattern: event.type === 'breakStarted' ? [22, 55, 22] : 24 })
+      body: phaseAlertBody(t, event.type),
+    }, { vibratePattern: event.type === 'focusStarted' ? 24 : [22, 55, 22] })
   }, [alertsEnabled, lang, notify])
 
   const advance = useCallback(() => {
     const now = nowSecs()
-    const unattended = lastAdvancedAtSecs === null || now - lastAdvancedAtSecs > UNATTENDED_GAP_SECS
+    const unattended = clockWasUnattended(lastAdvancedAtSecs, now, { keepCountingWhileAway })
     lastAdvancedAtSecs = now
     const { state, events } = advanceFocusClock(useStore.getState().focusSync, now, clockConfig, { unattended })
     if (!events.length) return
@@ -153,7 +157,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
     })
     commit(state)
     announcePhase(events[events.length - 1], now)
-  }, [clockConfig, recordFocusTomato, commit, announcePhase])
+  }, [clockConfig, keepCountingWhileAway, recordFocusTomato, commit, announcePhase])
 
   const nextTransitionAt = useMemo(
     () => nextFocusTransition(focusSync, clockConfig)?.at ?? null,
@@ -255,7 +259,7 @@ export function useFocusClock({ useInterval, intervalMins, intervalBreakMins, us
   }
 
   return {
-    running, phase, cycleElapsed, totalElapsed, breakSecsLeft, secsToNextBreak, scheduledPct, activeBreakSource,
+    running, phase, cycleElapsed, totalElapsed, breakSecsLeft, timerSecsLeft, secsToNextBreak, scheduledPct, activeBreakSource,
     start, pause, resume, reset, skipBreak,
     nextScheduled: useScheduled ? nextScheduledBreak(scheduledTimes) : null,
   }

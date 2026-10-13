@@ -1,6 +1,10 @@
 import { FACE_COUNT, POMODORO_UNITS_MAX, growthFromSecs } from '@/components/focus/pomodoro/utils'
 
 export const AWAY_GRACE_SECS = 60
+export const UNATTENDED_GAP_SECS = 3 * 60
+const DEFAULT_INTERVAL_MINS = 25
+const DEFAULT_BREAK_MINS = 5
+const DEFAULT_TIMER_MINS = 25
 const MAX_TOMATO_TILT_DEG = 20
 const MAX_SCHEDULE_LOOKBACK_DAYS = 8
 const MAX_CATCH_UP_STEPS = 500
@@ -8,6 +12,32 @@ const SECS_PER_DAY = 24 * 60 * 60
 
 function finiteOr(value, fallback) {
   return Number.isFinite(value) ? value : fallback
+}
+
+export function focusClockConfig(focus) {
+  const useTimer = focus?.useTimer === true
+  return {
+    useTimer,
+    timerSecs: finiteOr(focus?.timerMins, DEFAULT_TIMER_MINS) * 60,
+    useInterval: !useTimer && focus?.useInterval === true,
+    intervalSecs: finiteOr(focus?.intervalMins, DEFAULT_INTERVAL_MINS) * 60,
+    intervalBreakSecs: finiteOr(focus?.intervalBreakMins, DEFAULT_BREAK_MINS) * 60,
+    useScheduled: !useTimer && focus?.useScheduled === true,
+    scheduledTimes: Array.isArray(focus?.scheduledTimes) ? focus.scheduledTimes : [],
+    scheduledBreakSecs: finiteOr(focus?.scheduledBreakMins, DEFAULT_BREAK_MINS) * 60,
+    resetMode: focus?.intervalResetMode ?? 'reset',
+  }
+}
+
+export function focusTargetSecs(config) {
+  if (config.useTimer) return config.timerSecs
+  if (config.useInterval) return config.intervalSecs
+  return null
+}
+
+export function clockWasUnattended(lastAdvancedAtSecs, nowSecs, { keepCountingWhileAway = false } = {}) {
+  if (keepCountingWhileAway) return false
+  return lastAdvancedAtSecs === null || nowSecs - lastAdvancedAtSecs > UNATTENDED_GAP_SECS
 }
 
 export function focusCycleId(focusSync) {
@@ -50,7 +80,13 @@ export function firstScheduledBreakBetween(scheduledTimes, fromSecs, toSecs) {
   return null
 }
 
+function timerEnd(state, config) {
+  const at = state.startedAt + Math.max(0, config.timerSecs - finiteOr(state.cycleElapsedBase, 0))
+  return { type: 'timerEnd', at }
+}
+
 function nextBreakStart(state, config) {
+  if (config.useTimer) return timerEnd(state, config)
   const candidates = []
   if (config.useInterval) {
     const at = state.startedAt + Math.max(0, config.intervalSecs - finiteOr(state.cycleElapsedBase, 0))
@@ -92,6 +128,13 @@ function applyTransition(state, transition, config) {
 
   const focusedSinceStart = transition.at - state.startedAt
   const focusSecs = finiteOr(state.cycleElapsedBase, 0) + focusedSinceStart
+  const completedFocus = { id: focusCycleId(state), focusSecs }
+  if (transition.type === 'timerEnd') {
+    return {
+      state: pausedFocus(0),
+      event: { type: 'timerFinished', at: transition.at, completedFocus },
+    }
+  }
   return {
     state: {
       status: 'started',
@@ -102,7 +145,7 @@ function applyTransition(state, transition, config) {
       breakSecsLeftBase: transition.breakSecs,
       activeBreakSource: transition.source,
     },
-    event: { type: 'breakStarted', at: transition.at, completedFocus: { id: focusCycleId(state), focusSecs } },
+    event: { type: 'breakStarted', at: transition.at, completedFocus },
   }
 }
 

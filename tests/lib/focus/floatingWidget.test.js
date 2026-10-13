@@ -61,6 +61,12 @@ describe('focusWheelProgress', () => {
       .toBe(0.5)
   })
 
+  it('fills over the timer length in timer mode, even with interval mode still switched on', () => {
+    const timerFocus = { ...intervalFocus, useTimer: true, timerMins: 50 }
+    expect(focusWheelProgress({ focus: timerFocus, phase: 'focus', cycleElapsed: 750, breakSecsLeft: 0, scheduledPct: 0.9 }))
+      .toBe(0.25)
+  })
+
   it('uses the scheduled percentage when not in interval mode', () => {
     expect(focusWheelProgress({ focus: scheduledFocus, phase: 'focus', cycleElapsed: 750, breakSecsLeft: 0, scheduledPct: 0.3 }))
       .toBe(0.3)

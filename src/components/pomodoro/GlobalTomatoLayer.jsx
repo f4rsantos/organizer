@@ -81,15 +81,7 @@ export function GlobalTomatoLayer({ activeTab }) {
   const showOverlay = useStore(s => s.settings?.pomodoro?.showOverlay === true)
   const resetSignal = useStore(s => s.resetSignal)
 
-  const { running } = useFocusClock({
-    useInterval: focus.useInterval,
-    intervalMins: focus.intervalMins,
-    intervalBreakMins: focus.intervalBreakMins,
-    useScheduled: focus.useScheduled,
-    scheduledBreakMins: focus.scheduledBreakMins,
-    scheduledTimes: focus.scheduledTimes,
-    intervalResetMode: focus.intervalResetMode ?? 'reset',
-  })
+  const { running } = useFocusClock(focus)
 
   const showVisuals = activeTab === 'focus' || showOverlay
 

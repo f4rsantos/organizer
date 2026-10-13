@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PillSwitch } from '@/components/common/PillSwitch'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { ocrScheduleImage } from '@/lib/calendar/scheduleOcr'
@@ -107,18 +108,14 @@ export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) 
           <div className="space-y-2 overflow-y-auto -mx-1 px-1">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">{t.scheduleImportRepeatLabel}</Label>
-              <div className="relative grid grid-cols-2 rounded-full bg-muted/60 p-0.5">
-                <div className="absolute inset-y-0.5 w-[calc(50%-4px)] rounded-full bg-background shadow-sm transition-[left] duration-200 ease-out"
-                  style={{ left: repeat ? '2px' : 'calc(50% + 2px)' }} />
-                <button type="button" onClick={() => setRepeat(true)}
-                  className={`relative z-10 rounded-full px-2 py-1.5 text-xs transition-colors ${repeat ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {t.scheduleImportEveryWeek}
-                </button>
-                <button type="button" onClick={() => setRepeat(false)}
-                  className={`relative z-10 rounded-full px-2 py-1.5 text-xs transition-colors ${!repeat ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {t.scheduleImportThisWeek}
-                </button>
-              </div>
+              <PillSwitch
+                options={[
+                  { value: 'every', label: t.scheduleImportEveryWeek },
+                  { value: 'this', label: t.scheduleImportThisWeek },
+                ]}
+                value={repeat ? 'every' : 'this'}
+                onChange={next => setRepeat(next === 'every')}
+              />
             </div>
 
             <div className="rounded-lg border border-border divide-y divide-border/60">

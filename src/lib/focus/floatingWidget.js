@@ -1,3 +1,5 @@
+import { focusClockConfig, focusTargetSecs } from './focusCycle'
+
 const EDGE_MARGIN = 8
 
 export function clampWidgetPosition({ x, y, width, height, viewportWidth, viewportHeight, margin = EDGE_MARGIN }) {
@@ -28,16 +30,14 @@ function clampUnit(value) {
 }
 
 export function focusWheelProgress({ focus, phase, cycleElapsed, breakSecsLeft, scheduledPct }) {
+  const config = focusClockConfig(focus)
   if (phase === 'break') {
-    const breakMins = focus?.useInterval ? focus?.intervalBreakMins : focus?.scheduledBreakMins
-    const breakSecs = (breakMins ?? 0) * 60
+    const breakSecs = config.useInterval ? config.intervalBreakSecs : config.scheduledBreakSecs
     if (breakSecs <= 0) return 0
     return clampUnit(1 - breakSecsLeft / breakSecs)
   }
-  if (focus?.useInterval) {
-    const intervalSecs = (focus?.intervalMins ?? 0) * 60
-    if (intervalSecs <= 0) return 0
-    return clampUnit(cycleElapsed / intervalSecs)
-  }
-  return clampUnit(scheduledPct)
+  const targetSecs = focusTargetSecs(config)
+  if (targetSecs === null) return clampUnit(scheduledPct)
+  if (targetSecs <= 0) return 0
+  return clampUnit(cycleElapsed / targetSecs)
 }
