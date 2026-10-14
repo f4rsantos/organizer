@@ -21,7 +21,7 @@ vi.mock('@/lib/presetsFirebase', () => ({
 }))
 
 const { useStore } = await import('@/store/useStore')
-const { fetchPreset, applyPreset, dateSourceKey } = await import('@/lib/presets')
+const { fetchPreset, applyPreset, updatePreset, dateSourceKey } = await import('@/lib/presets')
 
 describe('dateSourceKey', () => {
   it('maps EI keys to the generic preset holding the dates', () => {
@@ -120,5 +120,45 @@ describe('applyPreset', () => {
     )
     expect(useStore.getState().semesters.find(x => x.id === semId))
       .toMatchObject({ startDate: '2026-02-09', endDate: '2026-06-03' })
+  })
+})
+
+describe('preset grade weights', () => {
+  const PERCENT_PRESET = {
+    name: '3a1s', startDate: '2026-09-14', endDate: '2027-01-30',
+    classes: [{ name: 'IA', ects: 6 }],
+    grades: { IA: { components: [{ name: 'Exame', weight: 75 }, { name: 'Projeto', weight: 25 }] } },
+  }
+
+  beforeEach(() => {
+    useStore.setState({
+      semesters: [], classes: [], tasks: [], events: [], holidays: [],
+      kanban: {}, grades: {}, activeSemesterId: null,
+    })
+  })
+
+  const actions = () => ({ ...useStore.getState(), getState: useStore.getState, getClasses: () => useStore.getState().classes })
+  const iaWeights = semId => {
+    const s = useStore.getState()
+    const ia = s.classes.find(c => c.name === 'IA')
+    return s.grades[semId][ia.id].components.map(c => [c.name, c.weight])
+  }
+
+  it('reads weights authored as percentages as fractions', () => {
+    const semId = applyPreset(PERCENT_PRESET, actions(), '3a1s')
+    expect(iaWeights(semId)).toEqual([['Exame', 0.75], ['Projeto', 0.25]])
+  })
+
+  it('updates the weights of existing components and keeps their grades', () => {
+    const semId = applyPreset(PERCENT_PRESET, actions(), '3a1s')
+    const ia = useStore.getState().classes.find(c => c.name === 'IA')
+    const graded = useStore.getState().grades[semId][ia.id].components.map(c => ({ ...c, grade: 14 }))
+    useStore.getState().setGradeComponents(semId, ia.id, graded)
+
+    const revised = { grades: { IA: { components: [{ name: 'Exame', weight: 0.7 }, { name: 'Projeto', weight: 0.3 }] } } }
+    updatePreset(semId, revised, actions())
+
+    expect(iaWeights(semId)).toEqual([['Exame', 0.7], ['Projeto', 0.3]])
+    expect(useStore.getState().grades[semId][ia.id].components.map(c => c.grade)).toEqual([14, 14])
   })
 })

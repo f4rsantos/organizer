@@ -14,6 +14,8 @@ const NEXT_KEY_MAP = {
   's2':   'summer',
 }
 
+const PERCENT_SCALE_THRESHOLD = 1.5
+
 const AFTER_SUMMER_MAP = {
   '1a2s': '2a1s',
   '2a2s': '3a1s',
@@ -89,6 +91,18 @@ function assertPresetDates(data, presetKey) {
   if (parsedStart > parsedEnd) throw new Error(`preset-${presetKey} end before start`)
 
   return { start, end }
+}
+
+function presetComponents(gradeData) {
+  const components = gradeData?.components ?? []
+  const total = components.reduce((sum, c) => sum + (Number(c.weight) || 0), 0)
+  const scale = total > PERCENT_SCALE_THRESHOLD ? 100 : 1
+  return components.map(({ grade: _g, ...c }) => ({
+    id: nanoid(),
+    ...c,
+    weight: (Number(c.weight) || 0) / scale,
+    grade: null,
+  }))
 }
 
 export function applyPreset(data, actions, presetKey, previousPresetKey) {
@@ -191,12 +205,15 @@ export function updatePreset(semId, data, actions) {
     const classId = classIdByName[className]
     if (!classId) continue
     const existingComponents = getState().grades?.[semId]?.[classId]?.components ?? []
+    const presetByName = new Map(presetComponents(gradeData).map(c => [c.name, c]))
     const existingComponentNames = new Set(existingComponents.map(c => c.name))
-    const newComponents = (gradeData.components ?? [])
-      .map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c, grade: null }))
-      .filter(c => !existingComponentNames.has(c.name))
-    if (newComponents.length) {
-      setGradeComponents(semId, classId, [...existingComponents, ...newComponents])
+    const reweighted = existingComponents.map(c =>
+      presetByName.has(c.name) ? { ...c, weight: presetByName.get(c.name).weight } : c
+    )
+    const newComponents = [...presetByName.values()].filter(c => !existingComponentNames.has(c.name))
+    const weightsChanged = reweighted.some((c, i) => c.weight !== existingComponents[i].weight)
+    if (newComponents.length || weightsChanged) {
+      setGradeComponents(semId, classId, [...reweighted, ...newComponents])
     }
     if (gradeData.targetGrade != null && existingComponents.length === 0) {
       setTargetGrade(semId, classId, gradeData.targetGrade)
@@ -234,7 +251,7 @@ function _populateSemester(semId, data, actions) {
   for (const [className, gradeData] of Object.entries(grades)) {
     const classId = classIdByName[className]
     if (!classId) continue
-    const components = (gradeData.components ?? []).map(({ grade: _g, ...c }) => ({ id: nanoid(), ...c, grade: null }))
+    const components = presetComponents(gradeData)
     if (components.length) setGradeComponents(semId, classId, components)
     if (gradeData.targetGrade != null) setTargetGrade(semId, classId, gradeData.targetGrade)
   }
