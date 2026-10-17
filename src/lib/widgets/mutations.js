@@ -88,6 +88,15 @@ function applySetFocusRunning(op, actions, state) {
 
   const startedAt = Number.isFinite(sync.startedAt) ? sync.startedAt : null
   const gap = startedAt === null ? 0 : Math.max(0, nowSecs - startedAt)
+  if (sync.phase === 'break') {
+    actions.setFocusSync({
+      status: 'paused',
+      startedAt: null,
+      breakSecsLeftBase: Math.max(0, (Number.isFinite(sync.breakSecsLeftBase) ? sync.breakSecsLeftBase : 0) - gap),
+      updatedAt: op.ts,
+    })
+    return true
+  }
   actions.setFocusSync({
     status: 'paused',
     startedAt: null,

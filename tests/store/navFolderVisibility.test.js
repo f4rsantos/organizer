@@ -45,3 +45,13 @@ describe('navbar folder visibility', () => {
     expect(navbar.visibility.bogusTab).toBeUndefined()
   })
 })
+
+describe('navbar native glass toggle', () => {
+  it('defaults the iOS native glass bar on', () => {
+    expect(normalizeNavbar({ order: ['tasks', 'settings'] }).nativeGlass).toBe(true)
+  })
+
+  it('keeps the user turning the native glass bar off', () => {
+    expect(normalizeNavbar({ order: ['tasks', 'settings'], nativeGlass: false }).nativeGlass).toBe(false)
+  })
+})

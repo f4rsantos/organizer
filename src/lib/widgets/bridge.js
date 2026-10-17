@@ -68,3 +68,31 @@ export async function drainQueue() {
     return []
   }
 }
+
+function isIos() {
+  return typeof window !== 'undefined' && window.Capacitor?.getPlatform?.() === 'ios'
+}
+
+export function liveActivitiesAvailable() {
+  return isIos() && plugin() !== null
+}
+
+export async function syncLiveActivities(payload) {
+  const api = plugin()
+  if (!api || !isIos()) return false
+  try {
+    await api.syncLiveActivities({ payload: JSON.stringify(payload) })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function onWidgetQueueChanged(callback) {
+  const api = plugin()
+  if (!api?.addListener) return () => {}
+  const pending = Promise.resolve(api.addListener('queueChanged', callback)).catch(() => null)
+  return () => {
+    pending.then(handle => handle?.remove?.())
+  }
+}

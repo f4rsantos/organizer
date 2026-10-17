@@ -4,6 +4,8 @@ import { sortByOrder } from '@/lib/utils'
 import { getWeekContext } from '@/lib/weekContext'
 import { currentPeriodKey, isCheckedIn, isRestDay, habitStreak } from '@/lib/habits'
 import { mergedKanban, mergedTasks } from './merge'
+import { getStrings } from '@/lib/strings'
+import { focusClockConfig, nextFocusTransition } from '@/lib/focus/focusCycle'
 import {
   getPeriodStart, getPomodoroTimestamp, getPomodoroCompletedCount,
   getPomodoroAbandonedCount, getPomodoroFocusSecs,
@@ -360,12 +362,18 @@ export function buildPomodoroProjection(state, now = new Date()) {
 
   const sync = state.focusSync ?? {}
   const running = sync.status === 'started'
+  const phase = sync.phase === 'break' ? 'break' : 'focus'
+  const startedAt = Number.isFinite(sync.startedAt) ? sync.startedAt : null
+  const cycleElapsedBase = Number.isFinite(sync.cycleElapsedBase) ? sync.cycleElapsedBase : 0
+  const transition = running ? nextFocusTransition(sync, focusClockConfig(state.settings?.focus)) : null
   const timer = {
     running,
-    phase: sync.phase === 'break' ? 'break' : 'focus',
-    startedAt: Number.isFinite(sync.startedAt) ? sync.startedAt : null,
-    cycleElapsedBase: Number.isFinite(sync.cycleElapsedBase) ? sync.cycleElapsedBase : 0,
+    phase,
+    startedAt,
+    cycleElapsedBase,
     intervalSecs: Math.max(0, Number(state.settings?.focus?.intervalMins ?? 25) * 60),
+    countFrom: startedAt === null ? null : startedAt - (phase === 'focus' ? cycleElapsedBase : 0),
+    endsAt: transition ? transition.at : null,
   }
 
   return { enabled: true, completed, abandoned, focusSecs, tomatoes, period, timer, dayKey: toDateKey(now) }
@@ -381,6 +389,43 @@ export function buildSummaryProjection(state, dayKey, tasks, today, habits) {
     tasksOpen: tasks.length,
     eventsToday: today.length,
     habitsPending: habits.filter(g => !g.done).length,
+  }
+}
+
+export function buildWidgetLabels(lang) {
+  const t = getStrings(lang)
+  return {
+    overview: t.widgetOverviewTitle,
+    tasks: t.widgetTasksLabel,
+    events: t.widgetEventsLabel,
+    habits: t.widgetHabitsLabel,
+    openCount: t.widgetOpenCount,
+    overdueCount: t.widgetOverdueCount,
+    tasksEmpty: t.widgetTasksEmpty,
+    today: t.widgetTodayLabel,
+    noData: t.widgetNoData,
+    calendar: t.widgetCalendarTitle,
+    kanban: t.widgetKanbanTitle,
+    agenda: t.widgetAgendaTitle,
+    pomodoro: t.widgetPomodoroTitle,
+    kanbanEmpty: t.widgetKanbanEmpty,
+    agendaEmpty: t.widgetAgendaEmpty,
+    habitsEmpty: t.widgetHabitsEmpty,
+    tomorrow: t.widgetTomorrowLabel,
+    allDay: t.widgetAllDay,
+    focusPhase: t.widgetFocusPhase,
+    breakPhase: t.widgetBreakPhase,
+    completedCount: t.widgetCompletedCount,
+    streakCount: t.widgetStreakCount,
+    pomodoroOff: t.widgetPomodoroOff,
+    upNext: t.liveUpNext,
+    dueSoon: t.liveDueSoon,
+    agentWorking: t.liveAgentWorking,
+    agentConfirm: t.liveAgentConfirm,
+    agentReady: t.aiPillReplyReady,
+    agentFailed: t.aiPillFailed,
+    weekdaysShort: t.weekdaysShort,
+    months: t.months,
   }
 }
 
@@ -405,6 +450,7 @@ export function buildProjection(state, now = new Date()) {
     calendarYears: [-1, 0, 1].map(offset => buildCalendarYearProjection(state, now, offset)),
     habits,
     summary: buildSummaryProjection(state, dayKey, tasks, today, habits),
+    labels: buildWidgetLabels(state.lang),
   }
 }
 
@@ -425,5 +471,6 @@ export function emptyProjection(now = new Date()) {
     habits: [],
     summary: { overdue: 0, dueToday: 0, tasksOpen: 0, eventsToday: 0, habitsPending: 0 },
     kanban: [],
+    labels: buildWidgetLabels('en'),
   }
 }

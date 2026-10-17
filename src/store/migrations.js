@@ -273,7 +273,8 @@ function normalizeNavbar(navbar) {
       children: (Array.isArray(f.children) ? f.children : []).filter(id => known.has(id)),
     } : null))
     .filter(Boolean)
-  return { order, visibility, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, addButtonLabel, customNames, folders }
+  const nativeGlass = n.nativeGlass !== false
+  return { order, visibility, showAddButton: Boolean(n.showAddButton), labelMode, mobilePosition, addAction, addButtonLabel, customNames, folders, nativeGlass }
 }
 
 function defaultStandby() {

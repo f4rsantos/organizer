@@ -8,7 +8,7 @@ export function StorageWarningModal({ onDismiss }) {
   const t = useStrings(lang)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-6">
+    <div data-native-chrome-cover className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-6">
       <div className="w-full max-w-xs rounded-2xl border border-border bg-card p-6 space-y-4 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10">

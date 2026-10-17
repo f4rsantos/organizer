@@ -9,13 +9,16 @@ import { useStrings } from '@/lib/strings'
 import { useWeekContext } from '@/hooks/useWeekContext'
 import { cn } from '@/lib/utils'
 import { matchesShortcut } from '@/lib/shortcuts'
+import { ADD_ACTION_LABEL_KEYS, addPickerActionIds } from '@/lib/navAddActions'
+import { onNativeTabSelected } from '@/lib/nativeChrome'
+import { ADD_ID } from './useNavTabs'
 
-const ACTION_META = {
-  task: { icon: CheckSquare, key: 'addTask' },
-  kanban: { icon: Kanban, key: 'addCard' },
-  event: { icon: CalendarDays, key: 'addEvent' },
-  note: { icon: StickyNote, key: 'notesNew' },
-  quickaction: { icon: Zap, key: 'quickAction' },
+const ACTION_ICONS = {
+  task: CheckSquare,
+  kanban: Kanban,
+  event: CalendarDays,
+  note: StickyNote,
+  quickaction: Zap,
 }
 
 export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
@@ -67,11 +70,12 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
   }
 
   const customLabel = useStore(s => s.settings?.navbar?.addButtonLabel)
-  const label = customLabel || (configured === 'picker' ? t.add : t[ACTION_META[configured]?.key ?? 'addTask'])
+  const label = customLabel || (configured === 'picker' ? t.add : t[ADD_ACTION_LABEL_KEYS[configured] ?? 'addTask'])
   const showIcon = labelMode !== 'names'
   const showLabel = labelMode !== 'icons'
   const trigger =
-    variant === 'sidebar' ? (
+    variant === 'native' ? null
+    : variant === 'sidebar' ? (
       <button onClick={onClick}
         className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors text-left">
         {showIcon && <Plus className="h-4 w-4 shrink-0" />} {showLabel && label}
@@ -94,7 +98,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
       </button>
     )
 
-  const pickerActions = ['task', 'kanban', 'event', ...(notesEnabled ? ['note'] : []), ...(quickActionAppEnabled ? ['quickaction'] : [])]
+  const pickerActions = addPickerActionIds({ notesEnabled, quickActionEnabled: quickActionAppEnabled })
   const menuAnchor = variant === 'sidebar' || variant === 'sidebar-collapsed'
     ? 'left-0 bottom-full mb-2'
     : 'right-0 bottom-full mb-2'
@@ -126,6 +130,13 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [quickActionAppEnabled, navbarShortcut, configured, runAction])
 
+  useEffect(() => {
+    if (variant !== 'native') return
+    return onNativeTabSelected(({ id, action }) => {
+      if (id === ADD_ID) runAction(action ?? (configured === 'picker' ? 'task' : configured))
+    })
+  }, [variant, runAction, configured])
+
   if (!navbarVisible) return null
 
   return (
@@ -137,11 +148,11 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
           <div className="fixed inset-0 z-40 cursor-pointer" onClick={() => setPickerOpen(false)} onPointerDown={() => setPickerOpen(false)} />
           <div className={cn('absolute z-50 min-w-40 rounded-xl border border-border bg-background p-1 shadow-lg', menuAnchor)}>
             {pickerActions.map(a => {
-              const Icon = ACTION_META[a].icon
+              const Icon = ACTION_ICONS[a]
               return (
                 <button key={a} onClick={() => { setPickerOpen(false); runAction(a) }}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors text-left">
-                  <Icon className="h-4 w-4 shrink-0 text-primary" /> {t[ACTION_META[a].key]}
+                  <Icon className="h-4 w-4 shrink-0 text-primary" /> {t[ADD_ACTION_LABEL_KEYS[a]]}
                 </button>
               )
             })}

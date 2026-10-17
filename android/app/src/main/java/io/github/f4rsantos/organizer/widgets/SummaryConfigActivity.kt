@@ -54,7 +54,7 @@ class SummaryConfigActivity : Activity() {
     private fun goalsEnabled(): Boolean {
         val projection = WidgetStore.getProjection(this)
         val summary = projection?.optJSONObject("summary")
-        return summary != null && summary.optBoolean("goalsEnabled", false)
+        return summary != null && summary.optBoolean("habitsEnabled", false)
     }
 
     private fun radioIdFor(metric: String): Int {

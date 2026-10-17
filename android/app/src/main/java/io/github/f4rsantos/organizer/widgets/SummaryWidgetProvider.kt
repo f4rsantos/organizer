@@ -37,9 +37,9 @@ class SummaryWidgetProvider : AppWidgetProvider() {
 
         val tasksOpen = summary?.optInt("tasksOpen", 0) ?: 0
         val eventsToday = summary?.optInt("eventsToday", 0) ?: 0
-        val goalsPending = summary?.optInt("goalsPending", 0) ?: 0
+        val goalsPending = summary?.optInt("habitsPending", 0) ?: 0
         val overdue = summary?.optInt("overdue", 0) ?: 0
-        val goalsEnabled = summary != null && summary.optBoolean("goalsEnabled", false)
+        val goalsEnabled = summary != null && summary.optBoolean("habitsEnabled", false)
 
         val views = RemoteViews(context.packageName,
             if (compact) R.layout.widget_summary_compact else R.layout.widget_summary)
@@ -57,7 +57,7 @@ class SummaryWidgetProvider : AppWidgetProvider() {
             } else if (WidgetStore.METRIC_GOALS == metric) {
                 value = goalsPending
                 labelRes = R.string.widget_label_goals
-                tab = "goals"
+                tab = "habits"
             }
 
             views.setTextViewText(R.id.widget_summary_tasks_value, value.toString())
@@ -91,7 +91,7 @@ class SummaryWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_summary_events,
             TasksWidgetProvider.openApp(context, "calendar"))
         views.setOnClickPendingIntent(R.id.widget_summary_goals,
-            TasksWidgetProvider.openApp(context, "goals"))
+            TasksWidgetProvider.openApp(context, "habits"))
 
         return views
     }

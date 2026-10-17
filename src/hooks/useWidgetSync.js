@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
-import { pushProjection, clearProjection, drainQueue } from '@/lib/widgets/bridge'
+import { pushProjection, clearProjection, drainQueue, onWidgetQueueChanged } from '@/lib/widgets/bridge'
 import { useWidgetsAvailable } from '@/hooks/useWidgetsAvailable'
 import { replayOps } from '@/lib/widgets/mutations'
 import { isEncryptionEnabled, getCachedDek, subscribeDek } from '@/lib/crypto'
@@ -28,6 +28,7 @@ export function useWidgetSync() {
   const collabTeams = useStore(s => s.collabRuntime?.teams)
   const [extraTick, setExtraTick] = useState(0)
   const busy = useRef(false)
+  const rerun = useRef(false)
 
   const available = useWidgetsAvailable()
   const [unlocked, setUnlocked] = useState(() => readable())
@@ -53,7 +54,10 @@ export function useWidgetSync() {
     if (!active) return
 
     const sync = async () => {
-      if (busy.current) return
+      if (busy.current) {
+        rerun.current = true
+        return
+      }
       busy.current = true
       try {
         const ops = await drainQueue()
@@ -65,6 +69,10 @@ export function useWidgetSync() {
       } finally {
         busy.current = false
       }
+      if (rerun.current) {
+        rerun.current = false
+        sync()
+      }
     }
 
     const onVisible = () => {
@@ -73,6 +81,10 @@ export function useWidgetSync() {
 
     sync()
     document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    const stopQueueListener = onWidgetQueueChanged(sync)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      stopQueueListener()
+    }
   }, [active])
 }

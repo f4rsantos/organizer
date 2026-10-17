@@ -426,6 +426,20 @@ describe('calendar view modes', () => {
 describe('pomodoro projection', () => {
   const on = { settings: { pomodoro: { enabled: true, resetPeriod: 'week' } } }
 
+  it('gives the widget timer the real end of the current phase, not the raw interval', () => {
+    const startedAt = Math.floor(NOW.getTime() / 1000) - 60
+    const running = { status: 'started', phase: 'focus', startedAt, cycleElapsedBase: 120 }
+    const interval = buildPomodoroProjection({ settings: { pomodoro: { enabled: true }, focus: { useInterval: true, intervalMins: 25 } }, pomodoros: [], focusSync: running }, NOW)
+    expect(interval.timer).toMatchObject({ countFrom: startedAt - 120, endsAt: startedAt - 120 + 1500 })
+
+    const stopwatch = buildPomodoroProjection({ settings: { pomodoro: { enabled: true }, focus: { useInterval: false, intervalMins: 25 } }, pomodoros: [], focusSync: running }, NOW)
+    expect(stopwatch.timer).toMatchObject({ countFrom: startedAt - 120, endsAt: null })
+
+    const onBreak = { status: 'started', phase: 'break', startedAt, cycleElapsedBase: 1500, breakSecsLeftBase: 300 }
+    const breakOut = buildPomodoroProjection({ settings: { pomodoro: { enabled: true }, focus: { useInterval: true } }, pomodoros: [], focusSync: onBreak }, NOW)
+    expect(breakOut.timer).toMatchObject({ phase: 'break', countFrom: startedAt, endsAt: startedAt + 300 })
+  })
+
   it('reports disabled when the app is off', () => {
     const out = buildPomodoroProjection({ settings: { pomodoro: { enabled: false } }, pomodoros: [] }, NOW)
     expect(out.enabled).toBe(false)
@@ -506,5 +520,24 @@ describe('buildProjection', () => {
   it('produces the same shape as the empty projection', () => {
     const built = buildProjection({ ...NONE_MODE, tasks: [], events: [], classes: [], kanban: {} }, NOW)
     expect(Object.keys(built).sort()).toEqual(Object.keys(emptyProjection(NOW)).sort())
+  })
+})
+
+describe('widget labels', () => {
+  it('ships widget text in the user language so native widgets need no own i18n', () => {
+    const out = buildProjection({ ...NONE_MODE, lang: 'pt', tasks: [], events: [], classes: [], kanban: {} }, NOW)
+    expect(out.labels.tasks).toBe('Tarefas')
+    expect(out.labels.openCount).toBe('{count} por fazer')
+  })
+
+  it('ships Monday-first weekday and month names in the user language for the calendar widget', () => {
+    const out = buildProjection({ ...NONE_MODE, lang: 'pt', tasks: [], events: [], classes: [], kanban: {} }, NOW)
+    expect(out.labels.weekdaysShort[0]).toBe('Seg')
+    expect(out.labels.months[2]).toBe('Março')
+  })
+
+  it('falls back to English labels when the language is unknown', () => {
+    const out = buildProjection({ ...NONE_MODE, lang: 'xx', tasks: [], events: [], classes: [], kanban: {} }, NOW)
+    expect(out.labels.tasks).toBe('Tasks')
   })
 })

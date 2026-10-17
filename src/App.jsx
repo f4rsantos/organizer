@@ -5,7 +5,11 @@ import { useCollabSync } from '@/hooks/useCollabSync'
 import { useCollabDeepLink } from '@/hooks/useCollabDeepLink'
 import { useGoogleCalendarSync } from '@/apps/googleCalendar/useGoogleCalendarSync'
 import { AppShell } from '@/components/layout/AppShell'
-import { TabBar, SideBar } from '@/components/layout/TabBar'
+import { TabBar, SideBar, NativeNavAccessories } from '@/components/layout/TabBar'
+import { NavAddButton } from '@/components/layout/NavAddButton'
+import { NativeTabBar } from '@/components/layout/NativeTabBar'
+import { useLiquidGlass } from '@/hooks/useLiquidGlass'
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout'
 import { Onboarding } from '@/components/layout/Onboarding'
 import { NextSemesterDialog } from '@/components/layout/NextSemesterDialog'
 import { PresetUpdateDialog } from '@/components/layout/PresetUpdateDialog'
@@ -21,6 +25,7 @@ import { StorageWarningModal } from '@/components/common/StorageWarningModal'
 import { useTheme } from '@/hooks/useTheme'
 import { useStandby } from '@/hooks/useStandby'
 import { useWidgetSync } from '@/hooks/useWidgetSync'
+import { useLiveActivities } from '@/hooks/useLiveActivities'
 import { consumeLaunchTab } from '@/lib/widgets/bridge'
 import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
@@ -129,10 +134,12 @@ function writeLastTab(tab) {
   }
 }
 
+const GLASS_SCROLL_TABS = new Set(['settings', 'grades', 'focus'])
+
 function TabPanel({ id, activeTab, children }) {
   const isActive = id === activeTab
   return (
-    <div aria-hidden={!isActive} className={cn(
+    <div aria-hidden={!isActive} data-tab-panel data-glass-scroll={GLASS_SCROLL_TABS.has(id) || undefined} className={cn(
       'transition-opacity duration-150 h-full w-full',
       isActive ? 'opacity-100' : 'pointer-events-none opacity-0 invisible absolute inset-0'
     )}>
@@ -148,6 +155,7 @@ export default function App() {
   useCollabDeepLink()
   useGoogleCalendarSync()
   useWidgetSync()
+  useLiveActivities()
   const standbyActive = useStandby()
   const onboardingDone = useStore(s => s.onboardingDone)
   const completeOnboarding = useStore(s => s.completeOnboarding)
@@ -218,6 +226,11 @@ export default function App() {
     return () => mq?.removeEventListener?.('change', sync)
   }, [])
   const safeTop = IS_NATIVE || standalone
+  const mobileSide = navbarMobilePosition === 'side'
+  const liquidGlass = useLiquidGlass()
+  const isDesktopLayout = useIsDesktopLayout()
+  const nativeTabBarActive = liquidGlass && !mobileSide
+  const nativeTabBarPlacement = isDesktopLayout ? 'top' : 'bottom'
   const { status: syncStatus, pullIfStale, pullNow } = useFirebaseSync()
 
   const quickActionAppEnabled = useStore(s => s.settings?.apps?.quickAction !== false)
@@ -315,12 +328,15 @@ export default function App() {
 
   if (standbyActive) return <AppShell><StandbyOverlay /></AppShell>
 
-  const mobileSide = navbarMobilePosition === 'side'
+  const contentPadding = nativeTabBarActive ? `native-tab-bar-${nativeTabBarPlacement}`
+    : mobileSide ? 'pb-0'
+    : isIconsOnly ? 'pb-tab-bar-compact'
+    : 'pb-tab-bar'
   return (
     <AppShell>
       <div className="flex h-full overflow-hidden">
-        <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />
-        <div className={cn('relative min-w-0 flex-1 overflow-hidden md:pb-0', safeTop && 'native-safe-top', mobileSide ? 'pb-0' : (isIconsOnly ? 'pb-tab-bar-compact' : 'pb-tab-bar'))}>
+        {!nativeTabBarActive && <SideBar activeTab={activeTab} onTabChange={setActiveTab} open={sidebarOpen} onToggle={() => setSidebarOpen(v => !v)} mobileSide={mobileSide} />}
+        <div className={cn('relative min-w-0 flex-1 overflow-hidden md:pb-0', safeTop && 'native-safe-top', contentPadding)}>
           {tabs.map(tab => {
             const pluginTab = getAppTabs().find(pt => pt.id === tab)
             const PluginComp = pluginTab?.component
@@ -338,7 +354,10 @@ export default function App() {
           })}
         </div>
       </div>
-      {!mobileSide && <TabBar activeTab={activeTab} onTabChange={setActiveTab} />}
+      {nativeTabBarActive && <NativeTabBar activeTab={activeTab} onTabChange={setActiveTab} placement={nativeTabBarPlacement} />}
+      {nativeTabBarActive && <NativeNavAccessories placement={nativeTabBarPlacement} activeTab={activeTab} />}
+      {nativeTabBarActive && <NavAddButton variant="native" />}
+      {!nativeTabBarActive && !mobileSide && <TabBar activeTab={activeTab} onTabChange={setActiveTab} />}
       <GlobalTomatoLayer activeTab={activeTab} />
       <CollabErrorToast />
       {syncStatus === 'key-required' && activeTab !== 'settings' && (

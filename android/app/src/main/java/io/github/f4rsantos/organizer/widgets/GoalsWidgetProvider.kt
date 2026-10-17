@@ -51,7 +51,7 @@ class GoalsWidgetProvider : AppWidgetProvider() {
         try {
             val op = JSONObject()
             op.put("id", goalId)
-            op.put("type", "setGoalCheckIn")
+            op.put("type", "setHabitCheckIn")
             op.put("done", done)
             op.put("ts", System.currentTimeMillis())
             WidgetStore.enqueue(context, op)
@@ -82,14 +82,14 @@ class GoalsWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.widget_goals_progress,
                 if (progress.isEmpty()) View.GONE else View.VISIBLE)
             views.setOnClickPendingIntent(R.id.widget_goals_header,
-                TasksWidgetProvider.openApp(context, "goals"))
+                TasksWidgetProvider.openApp(context, "habits"))
         }
         return views
     }
 
     private fun progressLabel(context: Context): String {
         val projection = WidgetStore.getProjection(context)
-        val goals = projection?.optJSONArray("goals")
+        val goals = projection?.optJSONArray("habits")
         if (goals == null || goals.length() == 0) return ""
 
         var done = 0
