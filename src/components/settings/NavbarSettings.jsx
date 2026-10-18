@@ -12,8 +12,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { nativeTabBarAvailable } from '@/lib/nativeChrome'
 
 const NO_FOLDER = '__none__'
+
+function NativeGlassToggle({ t, checked, onChange }) {
+  if (!nativeTabBarAvailable()) return null
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="space-y-0.5">
+        <Label>{t.navNativeGlass}</Label>
+        <p className="text-xs text-muted-foreground">{t.navNativeGlassHint}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  )
+}
 
 const VIS_CYCLE = { both: 'none', none: 'desktop', desktop: 'mobile', mobile: 'both' }
 const VIS_ICONS = { both: Eye, none: EyeOff, desktop: Monitor, mobile: Smartphone }
@@ -258,6 +272,8 @@ export function NavbarSettings() {
           </SelectContent>
         </Select>
       </div>
+
+      <NativeGlassToggle t={t} checked={navbar.nativeGlass ?? true} onChange={v => save({ nativeGlass: v })} />
 
       <div className="flex items-center justify-between">
         <Label>{t.navFolders}</Label>

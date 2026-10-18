@@ -12,7 +12,7 @@ export function PresetOverlay({ open, onClose }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-y-auto p-safe">
+    <div data-native-chrome-cover className="fixed inset-0 z-50 bg-background overflow-y-auto p-safe">
       <PresetPicker onBack={onClose} onLoaded={onClose} />
     </div>
   )

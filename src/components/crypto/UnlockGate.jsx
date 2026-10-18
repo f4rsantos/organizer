@@ -6,7 +6,7 @@ export function UnlockGate({ lang = 'en', hint, storeError, onUnlock }) {
   const t = useStrings(lang)
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background p-safe">
+    <div data-native-chrome-cover className="fixed inset-0 z-50 overflow-y-auto bg-background p-safe">
       <div className="flex min-h-full flex-col items-center justify-center px-8 py-16">
         <div className="w-full max-w-xs space-y-6">
           <div className="flex items-center gap-2">

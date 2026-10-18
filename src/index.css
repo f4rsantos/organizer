@@ -274,6 +274,20 @@
             bottom: 1.5rem;
         }
     }
+    .native-tab-bar-bottom > [data-tab-panel]:not([data-glass-scroll]),
+    .native-tab-bar-bottom > [data-glass-scroll] .overflow-y-auto:not(.overflow-y-auto .overflow-y-auto) {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    }
+    .native-tab-bar-top > [data-tab-panel]:not([data-glass-scroll]),
+    .native-tab-bar-top > [data-glass-scroll] .overflow-y-auto:not(.overflow-y-auto .overflow-y-auto) {
+        padding-top: calc(4.5rem + env(safe-area-inset-top));
+    }
+    .bottom-native-tab-bar {
+        bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    }
+    .top-native-tab-bar {
+        top: calc(1rem + env(safe-area-inset-top));
+    }
     .native-safe-top {
         padding-top: env(safe-area-inset-top);
     }

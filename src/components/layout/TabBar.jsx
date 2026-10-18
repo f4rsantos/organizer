@@ -125,6 +125,24 @@ function FolderMenu({ folder, activeTab, onTabChange, orientation, labelMode }) 
   )
 }
 
+export function NativeNavAccessories({ placement, activeTab }) {
+  if (placement === 'top') {
+    return (
+      <div className="fixed right-4 top-native-tab-bar z-40 flex items-center gap-2">
+        <AgentRunPill orientation="sidebar" activeTab={activeTab} />
+        <NavNotificationBell />
+      </div>
+    )
+  }
+  return (
+    <div className="fixed inset-x-0 bottom-native-tab-bar z-40 flex justify-center px-safe pointer-events-none">
+      <div className="pointer-events-auto">
+        <AgentRunPill orientation="bottom" activeTab={activeTab} />
+      </div>
+    </div>
+  )
+}
+
 export function TabBar({ activeTab, onTabChange }) {
   const { items, labelMode } = useNavTabs()
   const showIcon = labelMode !== 'names'

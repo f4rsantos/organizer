@@ -208,6 +208,22 @@ describe('replayOps setFocusRunning', () => {
     )
   })
 
+  it('pausing during a break spends the break countdown, not focus time', () => {
+    const startedAt = Math.floor(NOW / 1000) - 60
+    const state = {
+      focusSync: {
+        status: 'started', phase: 'break', startedAt, updatedAt: 0,
+        cycleElapsedBase: 1500, totalElapsedBase: 1500, breakSecsLeftBase: 300,
+      },
+    }
+    const actions = stubActions()
+    replayOps([{ id: 'focus', type: OP_SET_FOCUS_RUNNING, running: false, ts: NOW }], actions, () => state)
+    const update = actions.setFocusSync.mock.calls[0][0]
+    expect(update).toMatchObject({ status: 'paused', breakSecsLeftBase: 240 })
+    expect(update.cycleElapsedBase).toBeUndefined()
+    expect(update.totalElapsedBase).toBeUndefined()
+  })
+
   it('ignores an op that matches the current state', () => {
     const state = { focusSync: { status: 'started', startedAt: 1, updatedAt: 0 } }
     const actions = stubActions()

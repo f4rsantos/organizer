@@ -26,7 +26,7 @@ class GoalsWidgetService : RemoteViewsService() {
 
         override fun onDataSetChanged() {
             val projection = WidgetStore.getProjection(context)
-            goals = projection?.optJSONArray("goals") ?: JSONArray()
+            goals = projection?.optJSONArray("habits") ?: JSONArray()
             pending = WidgetStore.getPending(context)
         }
 

@@ -4,6 +4,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { isEncryptionEnabled } from '@/lib/crypto'
 import { useWidgetsAvailable } from '@/hooks/useWidgetsAvailable'
+import { LiveActivitySettings } from './LiveActivitySettings'
 
 export function WidgetSettings() {
   const updateSettings = useStore(s => s.updateSettings)
@@ -33,6 +34,7 @@ export function WidgetSettings() {
           : <Circle className="h-4 w-4" />}
         {widgetsEnabled ? t.settingEnabled : t.settingDisabled}
       </button>
+      {widgetsEnabled && <LiveActivitySettings />}
     </div>
   )
 }
