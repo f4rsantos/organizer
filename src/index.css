@@ -112,6 +112,12 @@
         height: 100%;
         overflow: hidden;
     }
+    @media (display-mode: standalone) {
+        html {
+            position: static;
+            min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+        }
+    }
     input[type="date"],
     input[type="time"],
     input[type="datetime-local"],
