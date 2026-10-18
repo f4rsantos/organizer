@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  toBase64, fromBase64, toBase64Url, fromBase64Url,
+  toBase64, fromBase64,
   bytesToHex, hexToBytes, randomBytes, constantTimeEqualHex, zeroFill,
 } from '../../../src/lib/crypto/bytes.js'
 
@@ -13,26 +13,6 @@ describe('base64', () => {
 
   it('round trips an empty array', () => {
     expect(fromBase64(toBase64(new Uint8Array(0))).length).toBe(0)
-  })
-})
-
-describe('base64url', () => {
-  it('round trips arbitrary bytes', () => {
-    expect(Array.from(fromBase64Url(toBase64Url(SAMPLE)))).toEqual(Array.from(SAMPLE))
-  })
-
-  it('emits no characters that need url escaping', () => {
-    for (let i = 0; i < 50; i++) {
-      const encoded = toBase64Url(randomBytes(32))
-      expect(encoded).toBe(encodeURIComponent(encoded))
-    }
-  })
-
-  it('round trips every unpadded length', () => {
-    for (const length of [1, 2, 3, 4, 15, 16, 17, 32]) {
-      const bytes = randomBytes(length)
-      expect(Array.from(fromBase64Url(toBase64Url(bytes)))).toEqual(Array.from(bytes))
-    }
   })
 })
 

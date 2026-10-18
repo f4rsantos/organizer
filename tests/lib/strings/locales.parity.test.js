@@ -54,7 +54,7 @@ const SCHEDULE_IMPORT_KEYS = [
 ]
 
 const EISENHOWER_KEYS = [
-  'eisenhower', 'eisenhowerEnable', 'eisenhowerEnableDesc',
+  'eisenhower', 'eisenhowerEnableDesc',
   'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate', 'eisenhowerEliminate',
   'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
   'eisenhowerAddTask', 'eisenhowerCustomize', 'eisenhowerResetDefaults',
@@ -62,7 +62,7 @@ const EISENHOWER_KEYS = [
 ]
 
 const HABITS_KEYS = [
-  'habits', 'habitsEnable', 'habitsEnableDesc', 'habitsEmpty',
+  'habits', 'habitsEnableDesc', 'habitsEmpty',
   'habitAdd', 'habitEdit', 'habitTitleLabel', 'habitTitlePlaceholder',
   'habitCadenceLabel', 'habitCadenceDesc',
   'habitCadenceDaily', 'habitCadence2Days', 'habitCadence3Days', 'habitCadenceWeekly', 'habitCadenceMonthly',
@@ -155,7 +155,7 @@ describe('pomodoro and eisenhower strings are defined everywhere', () => {
 const SHARED_WITH_ENGLISH = new Set([
   'pomodoro', 'pomodoroInsightsPerDaySuffix', 'pomodoroStreakDaySuffix',
   'eisenhowerCustomize', 'eisenhowerAddTask', 'eisenhowerCleanDone',
-  'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc', 'eisenhowerEnable',
+  'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc',
   'eisenhowerEnableDesc', 'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate',
   'eisenhowerEliminate', 'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
   'eisenhowerResetDefaults', 'taskReminderTitle',

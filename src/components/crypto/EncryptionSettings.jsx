@@ -30,7 +30,7 @@ function syncTargetForEnable() {
   }
 }
 
-function EncryptionModal({ onClose }) {
+export function EncryptionModal({ onClose }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const [mode, setMode] = useState(() => getEncMode())
@@ -168,22 +168,5 @@ function EncryptionModal({ onClose }) {
         title={t.encDisableTitle} description={t.encDisableDesc}
         destructive onConfirm={handleDisable} />
     </div>
-  )
-}
-
-export function EncryptionButton() {
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
-  const [open, setOpen] = useState(false)
-  const locked = getEncMode() !== MODE_OFF
-
-  return (
-    <>
-      <Button variant="outline" className="col-span-2 gap-2 w-full" onClick={() => setOpen(true)}>
-        {locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-        {locked ? t.encTitle : t.encEnableAction}
-      </Button>
-      {open && <EncryptionModal onClose={() => setOpen(false)} />}
-    </>
   )
 }

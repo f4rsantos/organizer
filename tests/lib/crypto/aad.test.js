@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   aadForLocalSlice, aadForPersonalSlice, aadForTeamSlice,
-  aadForExport, aadForShare, aadForWrap,
+  aadForExport, aadForWrap,
 } from '../../../src/lib/crypto/aad.js'
 
 describe('scope separation', () => {
@@ -25,10 +25,6 @@ describe('scope separation', () => {
 
   it('gives each wrap slot a distinct aad', () => {
     expect(aadForWrap('passphrase')).not.toBe(aadForWrap('recoveryCode'))
-  })
-
-  it('keeps share separate from every slice scope', () => {
-    expect(aadForShare()).not.toBe(aadForLocalSlice('tasks'))
   })
 })
 

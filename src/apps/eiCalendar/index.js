@@ -3,7 +3,6 @@ import { CalendarDays } from 'lucide-react'
 import { parseISO, subDays, subMonths, format, isValid } from 'date-fns'
 import { selectActiveSemester } from '@/store/selectors'
 import { PRESET_GROUPS } from '@/lib/presets'
-import { EICalendarAppModal } from '@/components/settings/apps/EICalendarAppModal'
 
 const CAL_ID = '7m2mlm7k1huomjeaa45gbhog0k@group.calendar.google.com'
 const API_KEY = 'AIzaSyDnT8fO6ARjx3OxMJCimhenNDLTkGuOmjE'
@@ -113,8 +112,7 @@ export const eiCalendarApp = {
   isVisible: state => isEIKey(selectActiveSemester(state)?.presetKey),
   isEnabled,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, eiCalendar: value } }),
-  wipe: state => state,
-  SettingsModal: EICalendarAppModal,
+  SettingsModal: null,
   tab: null,
   useCalendarEvents: useEICalendarEvents,
 }

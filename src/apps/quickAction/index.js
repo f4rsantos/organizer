@@ -9,6 +9,5 @@ export const quickActionApp = {
   keywords: ['quick', 'action', 'add', 'spotlight', 'command'],
   isEnabled: state => state.settings?.apps?.quickAction !== false,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, quickAction: value } }),
-  wipe: state => state,
   SettingsModal: QuickActionAppModal,
 }

@@ -25,11 +25,11 @@ export function CollabAppModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-5xl">
+      <DialogContent className="w-[95vw] overflow-hidden sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t.collabApp}</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[85vh] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain -mx-4 px-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="md:w-[320px] shrink-0 space-y-2">
               <div className="grid grid-cols-2 gap-2">

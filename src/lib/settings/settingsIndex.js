@@ -21,7 +21,6 @@ export const SETTINGS_INDEX = [
   { id: 'weekStartDay', section: 'calendar', labelKey: 'weekStartDay', keywords: ['week', 'start', 'first day', 'monday', 'sunday', 'saturday'] },
   { id: 'weatherPreview', section: 'calendar', labelKey: 'weatherPreview', descKey: 'weatherPreviewDesc', keywords: ['weather', 'forecast', 'rain', 'city'] },
   { id: 'calendarNowColor', section: 'calendar', labelKey: 'calendarNowColor', descKey: 'calendarNowColorDesc', keywords: ['calendar', 'now', 'line', 'colour', 'color'] },
-  { id: 'calendarColors', section: 'calendar', labelKey: 'calendarColors', keywords: ['calendar', 'colour', 'color'] },
   { id: 'scheduleImport', section: 'calendar', labelKey: 'scheduleImportTitle', descKey: 'scheduleImportDesc', keywords: ['schedule', 'timetable', 'import', 'scan', 'photo', 'screenshot'] },
   { id: 'focusAlerts', section: 'focus', labelKey: 'focusAlertsEnabledLabel', descKey: 'focusAlertsEnabledDesc', keywords: ['focus', 'timer', 'alert', 'sound', 'pomodoro'] },
   { id: 'focusFloatingWidget', section: 'focus', labelKey: 'focusFloatingWidgetLabel', descKey: 'focusFloatingWidgetDesc', keywords: ['focus', 'timer', 'floating', 'widget'] },
@@ -38,8 +37,6 @@ export const SETTINGS_INDEX = [
   { id: 'navNativeGlass', section: 'navbar', labelKey: 'navNativeGlass', descKey: 'navNativeGlassHint', keywords: ['glass', 'ios', 'tab bar'] },
   { id: 'exportJson', section: 'data', labelKey: 'exportJson', keywords: ['export', 'backup', 'download', 'save', 'json'] },
   { id: 'importJson', section: 'data', labelKey: 'importJson', keywords: ['import', 'restore', 'backup', 'upload', 'json'] },
-  { id: 'shareLink', section: 'data', labelKey: 'shareLink', keywords: ['share', 'link', 'transfer', 'device'] },
-  { id: 'qrCode', section: 'data', labelKey: 'qrCode', keywords: ['qr', 'share', 'transfer', 'phone'] },
   { id: 'firebaseSync', section: 'data', labelKey: 'firebaseSync', keywords: ['sync', 'cloud', 'firebase', 'devices', 'backup'] },
   { id: 'encryption', section: 'data', labelKey: 'encTitle', keywords: ['encryption', 'encrypt', 'password', 'passphrase', 'lock', 'privacy', 'security'] },
 ]

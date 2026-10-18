@@ -14,8 +14,9 @@ export const myApp = {
   isEnabled: state => state.settings?.apps?.myApp === true,
   setEnabled: (updateSettings, apps, value, state) =>
     updateSettings({ apps: { ...apps, myApp: value } }),
-  wipe: state => ({ ...state, myAppData: [] }), // erase this app's data on disable
-  SettingsModal: MyAppModal,     // dialog: ({ open, onOpenChange }) => ...
+  wipe: state => ({ ...state, myAppData: [] }), // optional: erase this app's data on disable (asks to confirm)
+  needsSetup: false,            // true opens SettingsModal when switched on instead of enabling directly
+  SettingsModal: MyAppModal,     // settings for the enabled app, or null when there is nothing to configure
   tab: { id: 'my-app', component: MyAppTab }, // or null for no navbar tab
 }
 ```

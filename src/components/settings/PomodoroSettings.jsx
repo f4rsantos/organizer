@@ -1,7 +1,5 @@
-import { Circle, CircleCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SettingList, SettingSelect, SettingToggle } from './SettingRow'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 
@@ -25,7 +23,6 @@ export function PomodoroSettings() {
   const toggle = (key) => {
     if (key === 'showPeriodStats') {
       const nextShow = !pom.showPeriodStats
-      // One-way dependency: turning off period stats also disables tracking.
       if (!nextShow && pom.trackStats) {
         updatePomodoroSettings({ showPeriodStats: nextShow, trackStats: false })
         return
@@ -40,59 +37,24 @@ export function PomodoroSettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label>{t.pomodoroResetPeriod}</Label>
-        <Select value={pom.resetPeriod ?? 'week'} onValueChange={v => updatePomodoroSettings({ resetPeriod: v })} items={periodOptions}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {periodOptions.map(o => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <button type="button" onClick={() => toggle('showPeriodStats')}
-          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showPeriodStats ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
-          <span>{t.pomodoroShowPeriodPomodoros}</span>
-        </button>
-
-        <button type="button" onClick={() => toggle('showOverlay')}
-          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showOverlay === true ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
-          <span>{t.pomodoroShowOverlay}</span>
-        </button>
-
-        <button type="button" onClick={() => toggle('trackStats')}
-          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!pom.showPeriodStats}>
-          {pom.trackStats ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
-          <span>{t.pomodoroTrackPeriodStats}</span>
-        </button>
-
-        <button type="button" onClick={() => toggle('showAbandoned')}
-          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
-          {pom.showAbandoned ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
-          <span>{t.pomodoroShowAbandoned}</span>
-        </button>
-
-        <button type="button" onClick={() => updatePomodoroSettings({ requireFocusOnScreen: !requiresFocus })}
-          className="flex items-center gap-2 text-sm text-left text-muted-foreground hover:text-foreground transition-colors">
-          {requiresFocus ? <CircleCheck className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0" />}
-          <span>{t.pomodoroRequireFocus}</span>
-        </button>
-
-        <Button type="button" variant="outline" size="sm"
-          className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
+    <SettingList>
+      <SettingSelect label={t.pomodoroResetPeriod} value={pom.resetPeriod ?? 'week'}
+        onChange={v => updatePomodoroSettings({ resetPeriod: v })} options={periodOptions} />
+      <SettingToggle label={t.pomodoroShowPeriodPomodoros} checked={Boolean(pom.showPeriodStats)} onChange={() => toggle('showPeriodStats')} />
+      <SettingToggle label={t.pomodoroShowOverlay} checked={pom.showOverlay === true} onChange={() => toggle('showOverlay')} />
+      {pom.showPeriodStats && (
+        <SettingToggle label={t.pomodoroTrackPeriodStats} checked={Boolean(pom.trackStats)} onChange={() => toggle('trackStats')} />
+      )}
+      <SettingToggle label={t.pomodoroShowAbandoned} checked={Boolean(pom.showAbandoned)} onChange={() => toggle('showAbandoned')} />
+      <SettingToggle label={t.pomodoroRequireFocus} checked={requiresFocus}
+        onChange={() => updatePomodoroSettings({ requireFocusOnScreen: !requiresFocus })} />
+      <div className="pt-3.5">
+        <Button type="button" variant="ghost" size="sm"
+          className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={() => erasePomodoroStats()}>
           {t.pomodoroEraseStats}
         </Button>
       </div>
-    </div>
+    </SettingList>
   )
 }

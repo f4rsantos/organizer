@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Circle, CircleCheck, Plus, X } from 'lucide-react'
-import { Label } from '@/components/ui/label'
+import { Plus, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SettingList, SettingRow, SettingSelect, SettingToggle } from './SettingRow'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { NotificationDeliverySettings } from '@/components/settings/notifications/NotificationDeliverySettings'
@@ -45,104 +44,33 @@ export function TaskSettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label>{t.taskSpanLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.taskSpanDesc}</p>
-        <Select value={settings.taskSpanMode ?? 'single'} onValueChange={v => updateSettings({ taskSpanMode: v })} items={spanOptions}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {spanOptions.map(o => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <SettingList>
+      <SettingSelect label={t.taskSpanLabel} desc={t.taskSpanDesc} value={settings.taskSpanMode ?? 'single'}
+        onChange={v => updateSettings({ taskSpanMode: v })} options={spanOptions} />
 
-      <div className="space-y-1.5">
-        <Label>{t.taskDefaultToCalendarLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.taskDefaultToCalendarDesc}</p>
-        <button type="button" onClick={() => updateSettings({ taskDefaultToCalendar: !taskDefaultToCalendar })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {taskDefaultToCalendar
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {taskDefaultToCalendar ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
+      <SettingToggle label={t.taskDefaultToCalendarLabel} desc={t.taskDefaultToCalendarDesc} checked={taskDefaultToCalendar} onChange={v => updateSettings({ taskDefaultToCalendar: v })} />
 
-      <div className="space-y-1.5">
-        <Label>{t.taskTimesLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.taskTimesDesc}</p>
-        <button type="button" onClick={() => updateSettings({ taskTimes: !taskTimes })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {taskTimes
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {taskTimes ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
+      <SettingToggle label={t.taskTimesLabel} desc={t.taskTimesDesc} checked={taskTimes} onChange={v => updateSettings({ taskTimes: v })} />
 
-      <div className="space-y-1.5">
-        <Label>{t.hideCompletedTasksLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.hideCompletedTasksDesc}</p>
-        <button type="button" onClick={() => updateSettings({ hideCompletedTasks: !hideCompletedTasks })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {hideCompletedTasks
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {hideCompletedTasks ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
+      <SettingToggle label={t.hideCompletedTasksLabel} desc={t.hideCompletedTasksDesc} checked={hideCompletedTasks} onChange={v => updateSettings({ hideCompletedTasks: v })} />
 
-      <div className="space-y-1.5">
-        <Label>{t.taskAlertModeLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.taskAlertModeDesc}</p>
-        <button type="button" onClick={() => updateSettings({ taskAlertsEnabled: !taskAlertsEnabled })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {taskAlertsEnabled
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {taskAlertsEnabled ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
+      <SettingToggle label={t.taskAlertModeLabel} desc={t.taskAlertModeDesc} checked={taskAlertsEnabled} onChange={v => updateSettings({ taskAlertsEnabled: v })} />
 
       {taskAlertsEnabled && (
-        <div className="space-y-1.5">
-          <Label>{t.taskAlertInAppLabel}</Label>
-          <p className="text-xs text-muted-foreground">{t.taskAlertInAppDesc}</p>
-          <button type="button" onClick={() => updateSettings({ taskAlertsInApp: !taskAlertsInApp })}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            {taskAlertsInApp
-              ? <CircleCheck className="h-4 w-4 text-primary" />
-              : <Circle className="h-4 w-4" />}
-            {taskAlertsInApp ? t.settingEnabled : t.settingDisabled}
-          </button>
-        </div>
+        <SettingToggle label={t.taskAlertInAppLabel} desc={t.taskAlertInAppDesc} checked={taskAlertsInApp} onChange={v => updateSettings({ taskAlertsInApp: v })} />
       )}
 
       {taskAlertsEnabled && <NotificationDeliverySettings />}
 
       {taskAlertsEnabled && (
-        <div className="space-y-1.5">
-          <Label>{t.taskAlertNextDayTimeLabel}</Label>
-          <p className="text-xs text-muted-foreground">{t.taskAlertNextDayTimeDesc}</p>
-          <Input
-            type="time"
-            value={taskAlertNextDayTime}
-            onChange={e => handleTaskAlertNextDayTime(e.target.value)}
-            className="w-full"
-          />
-        </div>
+        <SettingRow label={t.taskAlertNextDayTimeLabel} desc={t.taskAlertNextDayTimeDesc} control={
+          <Input type="time" value={taskAlertNextDayTime} onChange={e => handleTaskAlertNextDayTime(e.target.value)} className="h-8 w-28" />
+        } />
       )}
 
       {taskAlertsEnabled && (
         <>
-          <div className="space-y-1.5">
-            <Label>{t.taskReminderOffsetsLabel}</Label>
-            <p className="text-xs text-muted-foreground">{t.taskReminderOffsetsDesc}</p>
+          <SettingRow label={t.taskReminderOffsetsLabel} desc={t.taskReminderOffsetsDesc}>
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               {reminderOffsets.map(offset => (
                 <span key={offset}
@@ -170,20 +98,13 @@ export function TaskSettings() {
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>
-          </div>
+          </SettingRow>
 
-          <div className="space-y-1.5">
-            <Label>{t.taskReminderTimeLabel}</Label>
-            <p className="text-xs text-muted-foreground">{t.taskReminderTimeDesc}</p>
-            <Input
-              type="time"
-              value={taskReminderTime}
-              onChange={e => updateSettings({ taskReminderTime: e.target.value || '09:00' })}
-              className="w-full"
-            />
-          </div>
+          <SettingRow label={t.taskReminderTimeLabel} desc={t.taskReminderTimeDesc} control={
+            <Input type="time" value={taskReminderTime} onChange={e => updateSettings({ taskReminderTime: e.target.value || '09:00' })} className="h-8 w-28" />
+          } />
         </>
       )}
-    </div>
+    </SettingList>
   )
 }

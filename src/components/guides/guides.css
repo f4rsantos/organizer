@@ -2,7 +2,7 @@
    forking six working components. */
 .guide-scene-scale .tour-scene {
     height: 11rem;
-    border-radius: 1rem;
+    border-radius: calc(var(--radius) * 1.33);
 }
 
 @media (min-width: 768px) {

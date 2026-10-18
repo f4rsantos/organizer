@@ -9,7 +9,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { googleCalendarApp } from '@/apps/googleCalendar'
 import {
-  loadGoogleClientId, saveGoogleClientId, requestAccessToken, disconnectGoogle,
+  loadGoogleClientId, saveGoogleClientId, requestAccessToken,
 } from '@/apps/googleCalendar/googleAuth'
 
 const STEPS = ['gcalStep1', 'gcalStep2', 'gcalStep3']
@@ -63,7 +63,6 @@ export function GoogleCalendarAppModal({ open, onOpenChange }) {
   }
 
   const handleDisconnectConfirmed = () => {
-    disconnectGoogle()
     wipeAppData(googleCalendarApp.wipe)
     updateSettings({ apps: { ...apps, googleCalendar: false } })
     setStep(0)

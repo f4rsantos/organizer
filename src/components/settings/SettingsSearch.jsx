@@ -67,7 +67,8 @@ export function SettingsSearch({ query, onQueryChange, sections, onReveal }) {
   }
 
   const selectResult = result => {
-    if (result.appId) {
+    const app = result.appId ? getAppById(result.appId) : null
+    if (app?.SettingsModal && app.isEnabled(useStore.getState())) {
       setAppModal(result.appId)
       return
     }

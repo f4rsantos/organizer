@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { formatShortcut, shortcutFromEvent, defaultQuickActionShortcut } from '@/lib/shortcuts'
+import { SettingList, SettingRow, SettingSelect, SettingToggle } from '../SettingRow'
+import { cn } from '@/lib/utils'
+
+function ShortcutField({ t, value, listening, onListen }) {
+  return (
+    <Input readOnly
+      value={listening ? t.qaShortcutListening : formatShortcut(value)}
+      placeholder={t.qaShortcutNone}
+      onFocus={() => onListen(true)}
+      onBlur={() => onListen(false)}
+      className={cn('h-8 w-40 cursor-pointer text-center font-mono text-xs', listening && 'bg-primary/5 ring-2 ring-primary')} />
+  )
+}
 
 export function QuickActionAppModal({ open, onOpenChange }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -15,7 +25,6 @@ export function QuickActionAppModal({ open, onOpenChange }) {
   const navbarSettings = useStore(s => s.settings?.navbar) ?? {}
   const updateSettings = useStore(s => s.updateSettings)
 
-  const quickAction = apps.quickAction !== false
   const tripleTap = apps.quickActionTripleTap === true
   const shortcut = apps.quickActionShortcut === undefined ? defaultQuickActionShortcut() : apps.quickActionShortcut
   const navbarShortcut = apps.quickActionNavbarShortcut || null
@@ -27,14 +36,13 @@ export function QuickActionAppModal({ open, onOpenChange }) {
     { value: 'task', label: t.task },
     { value: 'kanban', label: t.addCard },
     { value: 'event', label: t.addEvent },
-    { value: 'note', label: t.notesNew || 'New Note' },
-    { value: 'picker', label: t.navAddPicker || 'Ask each time' },
+    { value: 'note', label: t.notesNew },
+    { value: 'picker', label: t.navAddPicker },
   ]
 
   const [listeningSpotlight, setListeningSpotlight] = useState(false)
   const [listeningNavbar, setListeningNavbar] = useState(false)
 
-  const toggle = v => updateSettings({ apps: { ...(useStore.getState().settings?.apps || {}), quickAction: v } })
   const toggleTripleTap = v => updateSettings({ apps: { ...(useStore.getState().settings?.apps || {}), quickActionTripleTap: v } })
   const toggleShowAddButton = v => updateSettings({ navbar: { ...(useStore.getState().settings?.navbar || {}), showAddButton: v } })
   const setAddAction = v => updateSettings({ navbar: { ...(useStore.getState().settings?.navbar || {}), addAction: v } })
@@ -72,86 +80,27 @@ export function QuickActionAppModal({ open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>{t.quickActionApp}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">{t.quickActionAppEnable}</p>
-              <p className="text-xs text-muted-foreground">{t.quickActionAppEnableDesc}</p>
-            </div>
-            <Switch checked={quickAction} onCheckedChange={toggle} />
-          </div>
-
-          {quickAction && (
-            <div className="space-y-4 border-t border-border/50 pt-4">
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium">{t.quickActionShortcutEnable || 'Spotlight Shortcut'}</p>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={listeningSpotlight ? 'Press key combo or Backspace...' : formatShortcut(shortcut)}
-                    onFocus={() => setListeningSpotlight(true)}
-                    onBlur={() => setListeningSpotlight(false)}
-                    className={`font-mono text-xs cursor-pointer ${listeningSpotlight ? 'ring-2 ring-primary bg-primary/5' : ''}`}
-                    placeholder="Disabled (Click to set)"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{t.quickActionTripleTapEnable}</p>
-                  <p className="text-xs text-muted-foreground">{t.quickActionTripleTapEnableDesc}</p>
-                </div>
-                <Switch checked={tripleTap} onCheckedChange={toggleTripleTap} />
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4 border-t border-border/50 pt-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">{t.navAddButton || 'Show Navbar Add Button'}</p>
-              <Switch checked={showAddButton} onCheckedChange={toggleShowAddButton} />
-            </div>
+        <SettingList>
+          <SettingRow label={t.quickActionShortcutEnable} control={
+            <ShortcutField t={t} value={shortcut} listening={listeningSpotlight} onListen={setListeningSpotlight} />
+          } />
+          <SettingToggle label={t.quickActionTripleTapEnable} desc={t.quickActionTripleTapEnableDesc} checked={tripleTap} onChange={toggleTripleTap} />
+          <SettingToggle label={t.navAddButton} checked={showAddButton} onChange={toggleShowAddButton}>
             {showAddButton && (
-              <>
-                <div className="space-y-1.5">
-                  <Label>{t.navAddAction || 'Add button action'}</Label>
-                  <Select
-                    value={addActionOptions.some(o => o.value === addAction) ? addAction : 'task'}
-                    onValueChange={setAddAction}
-                  >
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4}>
-                      {addActionOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Navbar Button Label (Optional)</Label>
-                  <Input
-                    value={addButtonLabel}
-                    onChange={e => setAddButtonLabel(e.target.value)}
-                    placeholder="Leave empty for default"
-                  />
-                </div>
-                {quickAction && (
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium text-muted-foreground">Navbar Button Shortcut</p>
-                    <div className="flex gap-2">
-                      <Input
-                        readOnly
-                        value={listeningNavbar ? 'Press key combo or Backspace...' : formatShortcut(navbarShortcut)}
-                        onFocus={() => setListeningNavbar(true)}
-                        onBlur={() => setListeningNavbar(false)}
-                        className={`font-mono text-xs cursor-pointer ${listeningNavbar ? 'ring-2 ring-primary bg-primary/5' : ''}`}
-                        placeholder="Disabled (Click to set)"
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
+              <SettingList>
+                <SettingSelect label={t.navAddAction} options={addActionOptions}
+                  value={addActionOptions.some(o => o.value === addAction) ? addAction : 'task'} onChange={setAddAction} />
+                <SettingRow label={t.navAddLabelField} control={
+                  <Input value={addButtonLabel} onChange={e => setAddButtonLabel(e.target.value)}
+                    placeholder={t.navAddLabelPlaceholder} className="h-8 w-40" />
+                } />
+                <SettingRow label={t.navAddShortcut} control={
+                  <ShortcutField t={t} value={navbarShortcut} listening={listeningNavbar} onListen={setListeningNavbar} />
+                } />
+              </SettingList>
             )}
-          </div>
-        </div>
+          </SettingToggle>
+        </SettingList>
       </DialogContent>
     </Dialog>
   )

@@ -1,5 +1,4 @@
 import { Target } from 'lucide-react'
-import { HabitsAppModal } from '@/components/settings/apps/HabitsAppModal'
 import { HabitsTab } from './HabitsTab'
 
 export const habitsApp = {
@@ -11,6 +10,6 @@ export const habitsApp = {
   isEnabled: state => state.settings?.apps?.habits === true,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, habits: value } }),
   wipe: state => ({ ...state, habits: [] }),
-  SettingsModal: HabitsAppModal,
+  SettingsModal: null,
   tab: { id: 'habits', component: HabitsTab },
 }

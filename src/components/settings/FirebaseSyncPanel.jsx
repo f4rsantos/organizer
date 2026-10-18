@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, CircleDashed, CloudOff, Cloud, Loader2, X, ShieldAlert, ShieldCheck, KeyRound, Copy, Check } from 'lucide-react'
+import { CheckCircle2, CircleDashed, CloudOff, Loader2, X, ShieldAlert, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -355,25 +355,5 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
         </div>
       </div>
     </div>
-  )
-}
-
-export function FirebaseSyncButton({ syncStatus }) {
-  const lang = useStore(s => s.lang ?? 'en')
-  const t = useStrings(lang)
-  const [open, setOpen] = useState(false)
-  const connected = !!loadFirebaseConfig()
-
-  return (
-    <>
-      <Button variant="outline" className="col-span-2 gap-2 w-full" onClick={() => setOpen(true)}>
-        {syncStatus === 'syncing'
-          ? <Loader2 className="h-4 w-4 animate-spin" />
-          : <Cloud className="h-4 w-4" />
-        }
-        {connected ? t.firebaseConnected : t.firebaseSync}
-      </Button>
-      {open && <FirebaseGuideModal onClose={() => setOpen(false)} syncStatus={syncStatus} />}
-    </>
   )
 }
