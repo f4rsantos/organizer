@@ -8,6 +8,26 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { useWeatherForecast } from '@/hooks/useWeatherForecast'
 import { WeatherIcon } from './WeatherIcon'
+import { dayTimeRange, sortDayAgenda } from '@/lib/calendar/dayAgenda'
+
+function TimeLabel({ range, allDayLabel }) {
+  if (!range) {
+    return <span className="w-11 shrink-0 pt-px text-[10px] font-medium uppercase tracking-wide opacity-60">{allDayLabel}</span>
+  }
+  return (
+    <span className="flex w-11 shrink-0 flex-col tabular-nums leading-tight">
+      <span className="text-[11px] font-semibold">{range.start ?? '…'}</span>
+      {(range.end || range.continues === 'after') && (
+        <span className="text-[10px] opacity-60">{range.end ?? '…'}</span>
+      )}
+    </span>
+  )
+}
+
+function taskTimeRange(task) {
+  if (!task.startTime) return null
+  return { start: task.startTime, end: task.endTime ?? null }
+}
 
 export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, events, classes, onAddEvent, onEditEvent, onEditTask, onShareEvent, canShare = false }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -58,22 +78,29 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
               {h.name}
             </div>
           ))}
-          {events.map(e => {
+          {sortDayAgenda(events, day).map(e => {
             const color = e.color ?? '#6366f1'
             const style = { backgroundColor: color + '1f', color: readableTextColor(color, { background: dialogBg }) }
+            const time = <TimeLabel range={dayTimeRange(e, day)} allDayLabel={t.eventAllDay} />
             if (e._remote) return (
-              <div key={e.id} className="text-xs px-2 py-1.5 rounded-sm" style={style}>
-                <span className="font-medium">{e.title}</span>
-                {e.note ? <span className="block opacity-70">{e.note}</span> : null}
+              <div key={e.id} className="flex gap-2 text-xs px-2 py-1.5 rounded-sm" style={style}>
+                {time}
+                <span className="min-w-0">
+                  <span className="font-medium">{e.title}</span>
+                  {e.note ? <span className="block opacity-70">{e.note}</span> : null}
+                </span>
               </div>
             )
             const shareable = canShare && onShareEvent && !e.sharedMeta && !e.sharedRef
             return (
               <div key={e.id} className="flex items-stretch gap-1 rounded-sm overflow-hidden" style={style}>
                 <button onClick={() => onEditEvent(e)}
-                  className="flex-1 min-w-0 text-xs px-2 py-1.5 text-left transition-opacity hover:opacity-80">
-                  <span className="font-medium">{e.title}</span>
-                  {e.note ? <span className="block opacity-70">{e.note}</span> : null}
+                  className="flex flex-1 min-w-0 gap-2 text-xs px-2 py-1.5 text-left transition-opacity hover:opacity-80">
+                  {time}
+                  <span className="min-w-0">
+                    <span className="font-medium">{e.title}</span>
+                    {e.note ? <span className="block opacity-70">{e.note}</span> : null}
+                  </span>
                 </button>
                 {showNoteButton && (
                   <button onClick={() => openNote(e)}
@@ -96,15 +123,22 @@ export function DayDetailDialog({ open, onOpenChange, day, holidays, tasks, even
             const color = cls?.color ?? '#6366f1'
             const style = { backgroundColor: color + '1f', color }
             const label = cls ? `${tk.title} - ${cls.name}` : tk.title
+            const range = taskTimeRange(tk)
+            const content = (
+              <>
+                {range && <TimeLabel range={range} />}
+                <span className="min-w-0">{label}</span>
+              </>
+            )
             if (!onEditTask || tk._remote) return (
-              <div key={tk.id} className="text-xs px-2 py-1.5 rounded-sm" style={style}>
-                {label}
+              <div key={tk.id} className="flex gap-2 text-xs px-2 py-1.5 rounded-sm" style={style}>
+                {content}
               </div>
             )
             return (
               <button key={tk.id} onClick={() => onEditTask(tk)}
-                className="text-xs px-2 py-1.5 rounded-sm text-left transition-opacity hover:opacity-80" style={style}>
-                {label}
+                className="flex gap-2 text-xs px-2 py-1.5 rounded-sm text-left transition-opacity hover:opacity-80" style={style}>
+                {content}
               </button>
             )
           })}

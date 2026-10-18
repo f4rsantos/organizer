@@ -7,7 +7,8 @@ Each app is a self-contained module under `src/apps/<id>/` exporting a descripto
 ```js
 export const myApp = {
   id: 'my-app',                 // unique id, also the tab id if it has a tab
-  labelKey: 'myApp',            // key in src/lib/strings.js (en + pt)
+  labelKey: 'myApp',            // key in src/lib/strings/ (every locale)
+  descKey: 'myAppDesc',         // optional one-line pitch; apps with one are offered in onboarding
   icon: SomeLucideIcon,
   keywords: ['search', 'terms'],// used by the Apps search bar
   isEnabled: state => state.settings?.apps?.myApp === true,

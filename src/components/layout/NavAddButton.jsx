@@ -187,7 +187,7 @@ export function NavAddButton({ variant = 'bottom', labelMode = 'both' }) {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{t.quickAction}</DialogTitle></DialogHeader>
           {dialog === 'quickaction' && (
-            <QuickActionBar semesterId={scopeId} classes={classes} onDone={() => setDialog(null)} />
+            <QuickActionBar onDone={() => setDialog(null)} />
           )}
         </DialogContent>
       </Dialog>

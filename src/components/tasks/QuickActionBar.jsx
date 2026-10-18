@@ -1,506 +1,116 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/store/useStore";
-import { useStrings } from "@/lib/strings";
+import { getStrings, useStrings } from "@/lib/strings";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
-import { parseQuickAction } from "@/lib/parser/quickActionParse";
-import { FREE_BOARD_ID } from "@/lib/taskUtils";
-import { useWeekContext } from "@/hooks/useWeekContext";
-import { nanoid } from "@/lib/ids";
 import { useMergedKanbanBoard } from "@/hooks/useMergedKanbanBoard";
 import { useCollabActions } from "@/hooks/useCollabActions";
-import { sortByOrder } from "@/lib/utils";
-import { currentPeriodKey, isCheckedIn } from "@/lib/habits";
+import { useQuickActionHistory } from "@/hooks/useQuickActionHistory";
+import { parseWithFallback } from "@/lib/quickAction/parseWithFallback";
+import { canUndo, executeQuickAction, quickActionScope, storeQuickActionContext } from "@/lib/quickAction/execute";
 
-function AutoTextarea({ value, onChange, onKeyDown, placeholder, ...props }) {
+const MAX_TEXTAREA_PX = 150;
+const FALLBACK_LANG = "en";
+
+function AutoTextarea({ value, onChange, onKeyDown, placeholder }) {
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
-    }
+    if (!textareaRef.current) return;
+    textareaRef.current.style.height = "auto";
+    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, MAX_TEXTAREA_PX)}px`;
   }, [value]);
 
   return (
     <textarea
       ref={textareaRef}
+      autoFocus
       value={value}
       onChange={onChange}
       onKeyDown={onKeyDown}
       placeholder={placeholder}
       rows={1}
-      className="flex w-full rounded-lg border-0 bg-transparent px-2.5 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 resize-none overflow-y-auto"
-      style={{ minHeight: "38px", maxHeight: "150px" }}
-      {...props}
+      className="flex w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent px-2.5 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
+      style={{ minHeight: "38px", maxHeight: `${MAX_TEXTAREA_PX}px` }}
     />
   );
 }
 
-const DEFAULT_COLUMNS = [
-  { id: "col_todo", title: "To Do", order: 0 },
-  { id: "col_inprogress", title: "In Progress", order: 1 },
-  { id: "col_done", title: "Done", order: 2 },
-];
-
-export function QuickActionBar({ semesterId, classes = [], onDone }) {
-  const lang = useStore((s) => s.lang ?? "en");
-  const t = useStrings(lang);
-  const addTask = useStore((s) => s.addTask);
-  const addEvent = useStore((s) => s.addEvent);
-  const boardId = semesterId ?? FREE_BOARD_ID;
-  const rawColumns = useStore(
-    (s) => s.kanban?.[boardId]?.columns ?? DEFAULT_COLUMNS,
-  );
-  const columns = useMemo(
-    () => sortByOrder(rawColumns),
-    [rawColumns],
-  );
-
-  const [text, setText] = useState("");
-
-  const { currentWeek, weekCount, dateToWeek } = useWeekContext();
-  const resolveWeek = (dateStr, explicitWeek) => {
-    if (Number.isFinite(explicitWeek)) return Math.max(1, Math.min(weekCount || explicitWeek, explicitWeek))
-    const w = dateStr ? dateToWeek(dateStr) : null
-    const fallback = currentWeek ?? 1
-    if (!Number.isFinite(w)) return fallback
-    return Math.max(1, Math.min(weekCount || w, w))
-  }
-
-  const { isSupported, isListening, start, stop } = useSpeechInput({
-    lang,
-    onResult: (value) => setText(value),
-  });
-
-  const teams = useStore((s) => s.collabRuntime?.teams ?? {});
-  const apps = useStore((s) => s.settings?.apps ?? {});
-  const navbar = useStore((s) => s.settings?.navbar ?? {});
-  const setActiveTab = useStore((s) => s.setActiveTab);
-  const updateTask = useStore((s) => s.updateTask);
-  const localTasks = useStore((s) => s.tasks ?? []);
-  const deleteTask = useStore((s) => s.deleteTask);
+function useMergedTasks(semesterId, localTasks) {
   const { cards: mergedCards } = useMergedKanbanBoard(semesterId);
-  const { moveSharedCard, updateSharedCard, deleteSharedCard } = useCollabActions();
-
-  // Local tasks may double-count with their own kanban card via mergedCards, so search over
-  // the union keyed by id — this is what lets "remove the card X" find cards shared by other
-  // team members (their cards only exist in the merged/remote view, not in plain s.tasks).
-  const tasks = useMemo(() => {
-    const byId = new Map(localTasks.map((t) => [t.id, t]));
-    for (const card of mergedCards) {
-      if (!byId.has(card.id)) byId.set(card.id, card);
-    }
+  return useMemo(() => {
+    const byId = new Map((localTasks ?? []).map((task) => [task.id, task]));
+    for (const card of mergedCards) if (!byId.has(card.id)) byId.set(card.id, card);
     return [...byId.values()];
   }, [localTasks, mergedCards]);
-  const focusSync = useStore((s) => s.focusSync);
-  const setFocusSync = useStore((s) => s.setFocusSync);
-  const updateFocusSettings = useStore((s) => s.updateFocusSettings);
-  const grades = useStore((s) => s.grades ?? {});
-  const setGradeComponents = useStore((s) => s.setGradeComponents);
-  const addNote = useStore((s) => s.addNote);
-  const addNoteFolder = useStore((s) => s.addNoteFolder);
-  const habits = useStore((s) => s.habits ?? []);
-  const checkInHabit = useStore((s) => s.checkInHabit);
-  const undoHabitCheckIn = useStore((s) => s.undoHabitCheckIn);
+}
 
-  const runFocusCommand = (cmd) => {
-    const running = focusSync?.status === "started";
-    const phase = focusSync?.phase === "break" ? "break" : "focus";
-    const nowSecs = Math.floor(Date.now() / 1000);
+export function QuickActionBar({ onDone }) {
+  const lang = useStore((s) => s.lang ?? "en");
+  const t = useStrings(lang);
+  const state = useStore((s) => s);
+  const setQuickActionUndo = useStore((s) => s.setQuickActionUndo);
+  const scope = quickActionScope(state);
+  const tasks = useMergedTasks(scope.semesterId, state.tasks);
+  const shared = useCollabActions();
+  const [text, setText] = useState("");
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const { history, remember } = useQuickActionHistory();
 
-    if (cmd.action === "start" || cmd.action === "resume") {
-      if (cmd.workMins || cmd.breakMins) {
-        updateFocusSettings({
-          ...(cmd.workMins ? { intervalMins: cmd.workMins } : {}),
-          ...(cmd.breakMins ? { intervalBreakMins: cmd.breakMins } : {}),
-        });
-      }
-      if (cmd.action === "resume" && running) return;
-      if (cmd.action === "resume" && !running && focusSync?.startedAt === null && (focusSync?.totalElapsedBase || focusSync?.cycleElapsedBase)) {
-        setFocusSync({ status: "started", startedAt: nowSecs });
-        return;
-      }
-      setFocusSync({
-        status: "started",
-        phase: "focus",
-        startedAt: nowSecs,
-        totalElapsedBase: 0,
-        cycleElapsedBase: 0,
-        breakSecsLeftBase: 0,
-        activeBreakSource: null,
-      });
-      return;
-    }
-
-    if (cmd.action === "pause") {
-      if (!running || focusSync?.startedAt == null) return;
-      const elapsed = Math.max(0, nowSecs - focusSync.startedAt);
-      if (phase === "focus") {
-        setFocusSync({
-          status: "paused",
-          startedAt: null,
-          totalElapsedBase: (focusSync?.totalElapsedBase ?? 0) + elapsed,
-          cycleElapsedBase: (focusSync?.cycleElapsedBase ?? 0) + elapsed,
-        });
-      } else {
-        setFocusSync({
-          status: "paused",
-          startedAt: null,
-          breakSecsLeftBase: Math.max(0, (focusSync?.breakSecsLeftBase ?? 0) - elapsed),
-        });
-      }
-      return;
-    }
-
-    if (cmd.action === "reset") {
-      setFocusSync({
-        status: "paused",
-        phase: "focus",
-        startedAt: null,
-        totalElapsedBase: 0,
-        cycleElapsedBase: 0,
-        breakSecsLeftBase: 0,
-        activeBreakSource: null,
-      });
-      return;
-    }
-
-    if (cmd.action === "skipBreak") {
-      if (phase !== "break") return;
-      setFocusSync({
-        phase: "focus",
-        startedAt: running ? nowSecs : null,
-        cycleElapsedBase: 0,
-        breakSecsLeftBase: 0,
-        activeBreakSource: null,
-      });
-    }
-  };
-
-  const runGradeCommand = (cmd) => {
-    if (!semesterId || !cmd.classId) return;
-    const semGrades = grades[semesterId] ?? {};
-    const classGrades = semGrades[cmd.classId] ?? { components: [], targetGrade: 9.5 };
-    const components = classGrades.components ?? [];
-
-    const nameTokens = cmd.componentName.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const match = components.find((c) => {
-      const cTokens = (c.name || "").toLowerCase().split(/\s+/);
-      return nameTokens.every((tok) => cTokens.includes(tok));
-    });
-
-    if (cmd.type === "addComponent") {
-      if (match) {
-        setGradeComponents(semesterId, cmd.classId, components.map((c) =>
-          c.id === match.id ? { ...c, ...(cmd.weight != null ? { weight: cmd.weight } : {}) } : c
-        ));
-        return;
-      }
-      setGradeComponents(semesterId, cmd.classId, [
-        ...components,
-        { id: nanoid(), name: cmd.componentName, weight: cmd.weight ?? 0.25, grade: null },
-      ]);
-      return;
-    }
-
-    if (cmd.type === "setGrade") {
-      if (match) {
-        setGradeComponents(semesterId, cmd.classId, components.map((c) =>
-          c.id === match.id ? { ...c, grade: cmd.grade, subcomponents: undefined } : c
-        ));
-        return;
-      }
-      if (!cmd.componentName) return;
-      setGradeComponents(semesterId, cmd.classId, [
-        ...components,
-        { id: nanoid(), name: cmd.componentName, weight: 0.25, grade: cmd.grade },
-      ]);
-    }
-  };
-
-  const runNoteCommand = (cmd) => {
-    if (cmd.type === "addFolder") {
-      addNoteFolder(cmd.name || t.notesNewFolder);
-      setActiveTab?.("notes");
-      return;
-    }
-    if (cmd.type === "addNote") {
-      const id = crypto.randomUUID?.() ?? String(Date.now());
-      addNote({ id, kind: "text", title: cmd.title || "" });
-      setActiveTab?.("notes");
-    }
-  };
-
-  const findBestTask = (query) => {
-    if (!query) return null;
-    const qTokens = query.toLowerCase().trim().split(/\s+/);
-    const activeTasks = tasks.filter((t) => !t.done);
-
-    const scored = activeTasks
-      .map((t) => {
-        const titleTokens = (t.title || "").toLowerCase().split(/\s+/);
-        let matches = 0;
-        for (const qt of qTokens) {
-          if (titleTokens.includes(qt)) matches++;
-        }
-        return { task: t, score: matches };
-      })
-      .filter((s) => s.score > 0);
-
-    if (scored.length === 0) return null;
-
-    scored.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-
-      const aTime = a.task.dueDate ? new Date(a.task.dueDate).getTime() : 0;
-      const bTime = b.task.dueDate ? new Date(b.task.dueDate).getTime() : 0;
-
-      if (!aTime && !bTime) return 0;
-      if (!aTime) return 1;
-      if (!bTime) return -1;
-
-      const now = Date.now();
-      const getCategory = (time) => {
-        const daysDiff = (time - now) / (1000 * 60 * 60 * 24);
-        if (daysDiff >= -1 && daysDiff <= 7) return 0;
-        if (daysDiff > 7) return 1;
-        return 2;
-      };
-
-      const aCat = getCategory(aTime);
-      const bCat = getCategory(bTime);
-
-      if (aCat !== bCat) return aCat - bCat;
-      return aTime - bTime;
-    });
-
-    return scored[0].task;
-  };
-
-  const openForCheckIn = (habit, now) => {
-    const pk = currentPeriodKey(habit, now);
-    return pk !== null && !isCheckedIn(habit, pk);
-  };
-
-  const findBestHabit = (query) => {
-    if (!query) return null;
-    const qTokens = query.toLowerCase().trim().split(/\s+/);
-
-    const scored = habits
-      .map((g) => {
-        const titleTokens = (g.title || "").toLowerCase().split(/\s+/);
-        let matches = 0;
-        for (const qt of qTokens) {
-          if (titleTokens.includes(qt)) matches++;
-        }
-        return { habit: g, score: matches };
-      })
-      .filter((s) => s.score > 0);
-
-    if (scored.length === 0) return null;
-
-    const now = new Date();
-    scored.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      const aOpen = openForCheckIn(a.habit, now) ? 0 : 1;
-      const bOpen = openForCheckIn(b.habit, now) ? 0 : 1;
-      return aOpen - bOpen;
-    });
-
-    return scored[0].habit;
-  };
-
-  const runHabitMutation = (item, habit) => {
-    const now = new Date();
-    const periodKey = currentPeriodKey(habit, now);
-    if (periodKey === null) return;
-
-    if (item.action === "complete") {
-      if (isCheckedIn(habit, periodKey)) return;
-      checkInHabit(habit.id, periodKey, item.note ?? "");
-      return;
-    }
-
-    if (item.action === "undo") {
-      undoHabitCheckIn(habit.id, periodKey);
-    }
-  };
+  const { isSupported, isListening, start, stop } = useSpeechInput({ lang, onResult: (value) => setText(value) });
 
   const runParse = () => {
     if (!text.trim()) return;
-    const items = parseQuickAction(text, {
-      classes,
-      now: new Date(),
+    const now = new Date();
+    const items = parseWithFallback(text, {
+      classes: scope.classes,
+      now,
       t,
-      columns,
-      teams,
+      columns: scope.columns,
+      teams: state.collabRuntime?.teams ?? {},
       lang,
-      apps,
-      navbar,
-    });
-
-    for (const item of items) {
-      if (item.kind === "navigation") {
-        setActiveTab(item.target);
-        continue;
-      }
-
-      if (item.kind === "focus") {
-        runFocusCommand(item);
-        continue;
-      }
-
-      if (item.kind === "gradeAction") {
-        runGradeCommand(item);
-        continue;
-      }
-
-      if (item.kind === "noteAction") {
-        runNoteCommand(item);
-        continue;
-      }
-
-      if (item.kind === "mutation") {
-        const habitsEnabled = apps.habits === true;
-        const habitOnly = item.action === "undo" || item.habitScoped;
-
-        if (habitsEnabled && habitOnly) {
-          const targetHabit = findBestHabit(item.query);
-          if (targetHabit) runHabitMutation(item, targetHabit);
-          continue;
-        }
-
-        const targetTask = findBestTask(item.query);
-        if (!targetTask) {
-          if (habitsEnabled) {
-            const fallbackHabit = findBestHabit(item.query);
-            if (fallbackHabit) runHabitMutation(item, fallbackHabit);
-          }
-          continue;
-        }
-
-        const remote = targetTask.sharedMeta?.remote ? targetTask.sharedMeta : null;
-
-        if (item.action === "complete") {
-          if (remote) {
-            updateSharedCard({ teamId: remote.teamId, sharedCardId: remote.sharedCardId, patch: { done: true } });
-          } else {
-            updateTask(targetTask.id, { done: true });
-          }
-        } else if (item.action === "delete") {
-          if (remote) {
-            deleteSharedCard({ teamId: remote.teamId, sharedCardId: remote.sharedCardId });
-          } else {
-            deleteTask(targetTask.id);
-          }
-        } else if (item.action === "move" && item.columnId) {
-          if (remote) {
-            moveSharedCard({ teamId: remote.teamId, sharedCardId: remote.sharedCardId, targetColumnId: item.columnId });
-          } else {
-            updateTask(targetTask.id, {
-              kanban: { ...targetTask.kanban, columnId: item.columnId },
-            });
-          }
-        } else if (item.action === "share" && item.teamId) {
-          if (!remote) updateTask(targetTask.id, { teamId: item.teamId });
-        } else if (item.action === "assign" && item.memberId) {
-          if (remote) {
-            updateSharedCard({ teamId: remote.teamId, sharedCardId: remote.sharedCardId, patch: { assigneeUserId: item.memberId } });
-          } else {
-            updateTask(targetTask.id, { assigneeUserId: item.memberId });
-          }
-        }
-        continue;
-      }
-
-      if (item.kind === "event") {
-        addEvent({
-          title: item.title || t.newEvent,
-          semesterId: semesterId ?? null,
-          date: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          allDay: !item.startTime,
-          teamId: item.teamId ?? null,
-          recurrence: item.recurrence ?? null,
-        });
-      } else if (item.kind === "kanbanCard") {
-        addTask({
-          semesterId: semesterId ?? null,
-          title: item.title || t.task,
-          classId: item.classId,
-          priority: item.priority ?? null,
-          dueDate: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          weekStart: resolveWeek(item.date, item.week),
-          weekEnd: resolveWeek(item.date, item.week),
-          views: { list: false, kanban: true, calendar: false },
-          kanban: { columnId: item.columnId, order: 0, checklist: [] },
-          teamId: item.teamId ?? null,
-          recurrence: item.recurrence ?? null,
-          duration: item.duration ?? null,
-        });
-      } else {
-        addTask({
-          semesterId: semesterId ?? null,
-          title: item.title || t.task,
-          classId: item.classId,
-          priority: item.priority ?? null,
-          dueDate: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          weekStart: resolveWeek(item.date, item.week),
-          weekEnd: resolveWeek(item.date, item.week),
-          views: {
-            list: true,
-            kanban: false,
-            calendar: Boolean(item.showOnCalendar),
-          },
-          teamId: item.teamId ?? null,
-          recurrence: item.recurrence ?? null,
-          duration: item.duration ?? null,
-        });
-      }
-    }
-
+      apps: state.settings?.apps ?? {},
+      navbar: state.settings?.navbar ?? {},
+    }, { lang: FALLBACK_LANG, t: getStrings(FALLBACK_LANG) });
+    const result = executeQuickAction(items, storeQuickActionContext(useStore, { t, now, tasks, shared }));
+    remember(text);
+    if (canUndo(result.effects)) setQuickActionUndo({ ...result, at: Date.now() });
     setText("");
+    setHistoryIndex(-1);
     onDone?.();
   };
 
+  const recall = (delta) => {
+    const next = Math.max(-1, Math.min(history.length - 1, historyIndex + delta));
+    setHistoryIndex(next);
+    setText(next === -1 ? "" : history[next]);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      runParse();
+      return;
+    }
+    if (text.includes("\n") || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    recall(e.key === "ArrowUp" ? 1 : -1);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <AutoTextarea
-          autoFocus
-          placeholder={t.quickActionPlaceholder}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              runParse();
-            }
-          }}
-        />
-        {isSupported && (
-          <Button
-            type="button"
-            variant="clear"
-            size="icon"
-            className="border-0"
-            onClick={() => (isListening ? stop() : start())}
-          >
-            {isListening ? (
-              <MicOff className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
-          </Button>
-        )}
-      </div>
+    <div className="flex items-center gap-2">
+      <AutoTextarea
+        placeholder={t.quickActionPlaceholder}
+        value={text}
+        onChange={(e) => { setText(e.target.value); setHistoryIndex(-1); }}
+        onKeyDown={onKeyDown}
+      />
+      {isSupported && (
+        <Button type="button" variant="clear" size="icon" className="border-0" onClick={() => (isListening ? stop() : start())}>
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </Button>
+      )}
     </div>
   );
 }

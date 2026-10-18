@@ -184,6 +184,8 @@ function buildInitialState() {
     proactiveSuggestion: null,
     requestedNoteId: null,
     openNoteId: null,
+    settingsSearchRequest: null,
+    quickActionUndo: null,
     scheduleImports: [],
     activeSemesterId: null,
     semesters: [],
@@ -308,6 +310,9 @@ export const useStore = create((set, get) => ({
     aiContextRequest: { tab: 'aiAssistant', suggestionText: suggestion?.text ?? '', at: Date.now() },
   })),
   setRequestedNote: id => set(s => ({ ...s, requestedNoteId: id })),
+  requestSettingsSearch: query => set(s => ({ ...s, activeTab: 'settings', settingsSearchRequest: query })),
+  clearSettingsSearchRequest: () => set(s => ({ ...s, settingsSearchRequest: null })),
+  setQuickActionUndo: entry => set(s => ({ ...s, quickActionUndo: entry })),
 
   openNoteForEvent: ({ key, title, seriesKey, seriesName }) => {
     const existing = (get().notes ?? []).find(n => n.linkedEventKey === key)
@@ -522,6 +527,13 @@ export const useStore = create((set, get) => ({
   clearAllUnreadNotifications: () => set(s => ({
     ...s,
     notificationQueue: clearAllUnread(s.notificationQueue),
+  })),
+  removeTasks: ids => set(s => persist({ ...s, tasks: s.tasks.filter(t => !ids.includes(t.id)) })),
+  restoreTask: task => set(s => persist({
+    ...s,
+    tasks: s.tasks.some(t => t.id === task.id)
+      ? s.tasks.map(t => t.id === task.id ? task : t)
+      : [...s.tasks, task],
   })),
   deleteTask: id => set(s => persist({
     ...s,

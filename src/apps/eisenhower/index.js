@@ -5,6 +5,7 @@ import { EisenhowerTab } from './EisenhowerTab'
 export const eisenhowerApp = {
   id: 'eisenhower',
   labelKey: 'eisenhower',
+  descKey: 'eisenhowerEnableDesc',
   icon: LayoutGrid,
   keywords: ['eisenhower', 'matrix', 'urgent', 'important', 'priority'],
   isEnabled: state => state.settings?.apps?.eisenhower === true,

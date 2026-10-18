@@ -6,7 +6,7 @@ import react from 'eslint-plugin-react'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'android', 'ios', 'public/tesseract']),
+  globalIgnores(['dist', 'dist-cli', 'android', 'ios', 'public/tesseract']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -40,7 +40,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['vite.config.js'],
-    languageOptions: { globals: globals.node },
+    files: ['vite.config.js', 'vite.cli.config.js', 'src/cli/**/*.js'],
+    languageOptions: { globals: { ...globals.node, __NATIVE_BUILD__: 'readonly' } },
   },
 ])

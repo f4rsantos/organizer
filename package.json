@@ -3,12 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "organizer": "dist-cli/organizer.mjs"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:native": "cross-env BUILD_TARGET=native vite build",
     "sync:native": "npm run build:native && cap sync android",
     "sync:ios": "npm run build:native && cap sync ios",
+    "build:cli": "vite build --config vite.cli.config.js",
+    "cli": "node dist-cli/organizer.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

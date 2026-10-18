@@ -125,7 +125,7 @@ export const af = {
     quickActionArticleWords: ['banana'],
     quickActionRespectivelyWords: ['banana'],
     quickActionOrdinalWords: ['banana'],
-    obNext: 'Volgende', obBack: 'Terug', obFinish: 'Klaar', obSkip: 'Slaan oor',
+    obNext: 'Volgende', obBack: 'Terug',
     welcomeTitle: 'Welkom by organiseerder',
     chunkLoadError: 'Hierdie deel kon nie gelaai word nie.', chunkRetry: 'Probeer weer',
     carryOverTitle: 'Dra oor',

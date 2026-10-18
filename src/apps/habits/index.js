@@ -5,6 +5,7 @@ import { HabitsTab } from './HabitsTab'
 export const habitsApp = {
   id: 'habits',
   labelKey: 'habits',
+  descKey: 'habitsEnableDesc',
   icon: Target,
   keywords: ['habits', 'habit', 'streak', 'objetivos', 'metas', 'hábito', 'ziel'],
   isEnabled: state => state.settings?.apps?.habits === true,

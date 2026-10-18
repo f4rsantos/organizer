@@ -54,6 +54,8 @@ export const en = {
   },
   atWords: ['at'],
   timeConnectors: ['and', 'h'],
+  timeFromWords: ['from'],
+  timeRangeWords: ['to', 'until', 'till'],
   navVerbs: ['open', 'show', 'go to', 'view', 'navigate to'],
   focusWords: {
     start: ['start', 'begin', 'resume'],

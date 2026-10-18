@@ -5,13 +5,37 @@ import { NumberParser } from './NumberParser.js'
 import { dictWithEnglishFallback } from '../localeDict.js'
 import { escapeRe, mergeWordList } from '../wordMatch.js'
 
-const TIME_RANGE_RE = /(\d{1,2})(?::(\d{2}))?\s*h?\s*(?:-|to|–)\s*(\d{1,2})(?::(\d{2}))?\s*h?/i
+const MERIDIEM = String.raw`(am|pm|a\.m\.|p\.m\.)`
+const HALF_DAY_HOURS = 12
+const DASH_RANGE_RE = /^\d{1,2}(?:[:.]\d{2})?\s*h?\s*[-–]/
+const TIME_MARKER_RE = /[:.h]|[ap]\.?m/i
+
+function meridiemOf(raw) {
+  if (!raw) return null
+  return raw.toLowerCase().startsWith('p') ? 'pm' : 'am'
+}
+
+function applyMeridiem(hour, meridiem) {
+  if (!meridiem || hour > HALF_DAY_HOURS) return hour
+  if (meridiem === 'pm') return hour % HALF_DAY_HOURS + HALF_DAY_HOURS
+  return hour % HALF_DAY_HOURS
+}
+
+function rangeHours(m) {
+  const endMeridiem = meridiemOf(m[6])
+  const startMeridiem = meridiemOf(m[3]) ?? endMeridiem
+  const end = applyMeridiem(Number(m[4]), endMeridiem)
+  let start = applyMeridiem(Number(m[1]), startMeridiem)
+  if (!m[3] && endMeridiem === 'pm' && start > end) start = applyMeridiem(Number(m[1]), 'am')
+  return { start, end }
+}
 
 export class TimeParser extends Parser {
   constructor() {
     super()
     this.trieCache = new Map()
     this.ampmCache = new Map()
+    this.rangeCache = new Map()
     this.numberParser = new NumberParser()
   }
 
@@ -47,6 +71,17 @@ export class TimeParser extends Parser {
     return entry
   }
 
+  getRangeRe(locale) {
+    if (this.rangeCache.has(locale)) return this.rangeCache.get(locale)
+    const separators = ['-', '–', ...mergeWordList('timeRangeWords', locale)].map(escapeRe).join('|')
+    const re = new RegExp(
+      String.raw`(?<![\d:])(\d{1,2})(?:[:.](\d{2}))?\s*h?\s*${MERIDIEM}?\s*(?:${separators})\s*(\d{1,2})(?:[:.](\d{2}))?\s*h?\s*${MERIDIEM}?(?![\d\p{L}])`,
+      'iu',
+    )
+    this.rangeCache.set(locale, re)
+    return re
+  }
+
   clamp2(n) {
     return String(n).padStart(2, '0')
   }
@@ -78,19 +113,26 @@ export class TimeParser extends Parser {
     const connectors = new Set(mergeWordList('timeConnectors', context.locale))
     const attachedAmPm = this.getAttachedAmPm(context.locale)
 
-    const rangeMatch = matchUnconsumedTokens(tokens, TIME_RANGE_RE)
+    const fromWords = mergeWordList('timeFromWords', context.locale)
+    const rangeMatch = matchUnconsumedTokens(tokens, this.getRangeRe(context.locale))
     if (rangeMatch) {
       const m = rangeMatch.match
-      const startTime = this.toHHmm(m[1], m[2])
-      const endTime = this.toHHmm(m[3], m[4])
+      const hours = rangeHours(m)
+      const startTime = this.toHHmm(hours.start, m[2])
+      const endTime = this.toHHmm(hours.end, m[5])
       if (startTime && endTime) {
         let startToken = rangeMatch.startToken
-        if (startToken > 0 && tokens[startToken-1] && atWords.includes(tokens[startToken-1].value) && !tokens[startToken-1].consumed) {
-          startToken--
-        }
-        results.push({
+        const opener = tokens[startToken - 1]
+        const opensRange = opener && !opener.consumed && (atWords.includes(opener.value) || fromWords.includes(opener.value))
+        if (startToken > 0 && opensRange) startToken--
+        let endToken = rangeMatch.endToken
+        const closer = tokens[endToken + 1]
+        const closesRange = closer && !closer.consumed && connectors.has(closer.value)
+        if (closesRange) endToken++
+        const looksLikeTime = DASH_RANGE_RE.test(m[0]) || TIME_MARKER_RE.test(m[0]) || opensRange || closesRange
+        if (looksLikeTime) results.push({
           startToken,
-          endToken: rangeMatch.endToken,
+          endToken,
           value: { startTime, endTime },
           type: 'time_range',
           confidence: 0.99

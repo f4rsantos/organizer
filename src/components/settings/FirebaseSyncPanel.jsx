@@ -4,12 +4,10 @@ import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import {
-  loadFirebaseConfig, saveFirebaseConfig, clearFirebaseConfig, validateFirebaseConfig,
+  loadFirebaseConfig, clearFirebaseConfig,
   loadCollabRulesTag, pullFromFirebase, inspectRemoteState, pushEnabledContainer, pushWraps,
   fetchStateContainer, publishRotation,
 } from '@/lib/firebase'
-import { parseFirebaseConfig } from '@/lib/firebaseConfig'
-import { describeFirebaseError } from '@/lib/firebaseErrors'
 import { forceSaveState } from '@/store/persist'
 import { stripTransient, getHint, putDek } from '@/lib/crypto'
 import { isUnlocked, unlockWithSecret, openStore } from '@/lib/crypto/encryptionService'
@@ -21,6 +19,8 @@ import { KeyManagementPanel } from '@/components/crypto/KeyManagementPanel'
 import { PlaintextSyncWarning } from '@/components/crypto/PlaintextSyncWarning'
 import { SecretPrompt } from '@/components/crypto/SecretPrompt'
 import { RulesBox } from '@/components/settings/RulesBox'
+import { useFirebaseConnect } from '@/hooks/useFirebaseConnect'
+import { cn } from '@/lib/utils'
 
 const STEPS = ['firebaseStep1', 'firebaseStep2', 'firebaseStepAuth', 'firebaseStep3', 'firebaseStep4']
 const RULES_STEP = 'firebaseStep2'
@@ -244,7 +244,7 @@ function ConnectedView({ config, syncStatus, t, onDisconnect }) {
   )
 }
 
-function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
+export function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
   const handleUnlock = async ({ slot, secret }) => {
     await unlockWithSecret({
       wraps: pending.remote.wraps,
@@ -272,15 +272,52 @@ function ConnectUnlockPrompt({ t, pending, onUnlocked, onCancel }) {
   )
 }
 
+export function FirebaseConfigInput({ t, connection, className }) {
+  const { raw, setRaw, error, testing, submit } = connection
+  return (
+    <div className={cn('space-y-2', className)}>
+      <textarea
+        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-mono resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
+        rows={5}
+        placeholder={t.firebaseConfigPlaceholder}
+        value={raw}
+        onChange={e => setRaw(e.target.value)}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button className="w-full" onClick={submit} disabled={!raw.trim() || testing}>
+        {testing
+          ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />{t.firebaseSyncing}</>
+          : t.firebaseSave}
+      </Button>
+    </div>
+  )
+}
+
+function SetupGuide({ t, connection }) {
+  const [step, setStep] = useState(0)
+  return (
+    <div className="space-y-6">
+      <div className="space-y-5">
+        {STEPS.map((key, i) => (
+          <SetupStep key={key} titleKey={key} t={t}
+            active={i === step} done={i < step}
+            onClick={() => i < step && setStep(i)}>
+            {key === RULES_STEP && <RulesBox label={t.firebaseRulesTemplateLink} />}
+          </SetupStep>
+        ))}
+      </div>
+      {step < LAST_STEP_INDEX
+        ? <Button className="w-full" onClick={() => setStep(s => s + 1)}>{t.firebaseNext}</Button>
+        : <FirebaseConfigInput t={t} connection={connection} />}
+    </div>
+  )
+}
+
 export function FirebaseGuideModal({ onClose, syncStatus }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const [config, setConfig] = useState(() => loadFirebaseConfig())
-  const [step, setStep] = useState(0)
-  const [raw, setRaw] = useState('')
-  const [error, setError] = useState(null)
-  const [testing, setTesting] = useState(false)
-  const [pendingConnect, setPendingConnect] = useState(null)
+  const connection = useFirebaseConnect({ t, onConnected: setConfig })
 
   useEffect(() => {
     const handler = e => { if (e.key === 'Escape') onClose() }
@@ -292,42 +329,16 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
     forceSaveState(useStore.getState())
     clearFirebaseConfig()
     setConfig(null)
-    setRaw('')
-    setStep(0)
-    setError(null)
+    connection.reset()
   }
 
-  const handleSave = async () => {
-    setError(null)
-    const parsed = parseFirebaseConfig(raw)
-    if (!parsed) { setError(t.firebaseConfigInvalid); return }
-    setTesting(true)
-    try {
-      const remote = await validateFirebaseConfig(parsed)
-
-      if (remote.encrypted && !remote.hasWraps) {
-        setError(t.encRemoteUnrecoverable)
-        return
-      }
-
-      if (remote.encrypted) {
-        setPendingConnect({ config: parsed, remote })
-        return
-      }
-
-      saveFirebaseConfig(parsed)
-      setConfig(parsed)
-    } catch (err) {
-      setError(describeFirebaseError(err, t))
-    } finally {
-      setTesting(false)
+  const body = () => {
+    if (connection.pending) {
+      return <ConnectUnlockPrompt t={t} pending={connection.pending}
+        onUnlocked={connection.completePending} onCancel={connection.cancelPending} />
     }
-  }
-
-  const completePendingConnect = () => {
-    saveFirebaseConfig(pendingConnect.config)
-    setConfig(pendingConnect.config)
-    setPendingConnect(null)
+    if (config) return <ConnectedView config={config} syncStatus={syncStatus} t={t} onDisconnect={handleDisconnect} />
+    return <SetupGuide t={t} connection={connection} />
   }
 
   return (
@@ -340,50 +351,7 @@ export function FirebaseGuideModal({ onClose, syncStatus }) {
               <X className="h-4 w-4" />
             </button>
           </div>
-
-          {pendingConnect
-            ? <ConnectUnlockPrompt t={t} pending={pendingConnect}
-                onUnlocked={completePendingConnect}
-                onCancel={() => setPendingConnect(null)} />
-            : config
-            ? <ConnectedView config={config} syncStatus={syncStatus} t={t} onDisconnect={handleDisconnect} />
-            : (
-              <div className="space-y-6">
-                <div className="space-y-5">
-                  {STEPS.map((key, i) => (
-                    <SetupStep key={key} titleKey={key} t={t}
-                      active={i === step} done={i < step}
-                      onClick={() => i < step && setStep(i)}>
-                      {key === RULES_STEP && <RulesBox label={t.firebaseRulesTemplateLink} />}
-                    </SetupStep>
-                  ))}
-                </div>
-
-                {step < LAST_STEP_INDEX
-                  ? <Button className="w-full" onClick={() => setStep(s => s + 1)}>
-                      {t.firebaseNext}
-                    </Button>
-                  : (
-                    <div className="space-y-2">
-                      <textarea
-                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-mono resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-                        rows={5}
-                        placeholder={t.firebaseConfigPlaceholder}
-                        value={raw}
-                        onChange={e => { setRaw(e.target.value); setError(null) }}
-                      />
-                      {error && <p className="text-xs text-destructive">{error}</p>}
-                      <Button className="w-full" onClick={handleSave} disabled={!raw.trim() || testing}>
-                        {testing
-                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />{t.firebaseSyncing}</>
-                          : t.firebaseSave}
-                      </Button>
-                    </div>
-                  )
-                }
-              </div>
-            )
-          }
+          {body()}
         </div>
       </div>
     </div>

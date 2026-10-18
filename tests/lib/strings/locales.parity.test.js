@@ -77,6 +77,10 @@ const HABITS_KEYS = [
   'habitTargetCountPlaceholder', 'habitTargetReached',
 ]
 
+const ONBOARDING_SEARCH_CLI_PREFIXES = ['ob', 'settingsSearch', 'qa', 'cli']
+const NEW_FLOW_KEYS = Object.keys(en).filter(key => ONBOARDING_SEARCH_CLI_PREFIXES.some(prefix => key.startsWith(prefix) && /[A-Z]/.test(key[prefix.length] ?? '')))
+const NEW_FLOW_SHARED_WITH_ENGLISH = new Set(['obStepApps', 'obStepDates', 'obProfileStudent', 'obStepTour'])
+
 const HABIT_TONE_KEYS = ['purpose', 'warm', 'upbeat', 'game']
 const HABIT_MILESTONE_KEYS = ['day1', 'early', 'week', 'month', 'daily', 'rescue']
 
@@ -225,3 +229,26 @@ describe('notes editor strings are translated everywhere', () => {
       })
     })
 })
+
+describe('onboarding, settings search, quick action and cli strings', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .forEach(([name, strings]) => {
+      it(`${name} defines every key`, () => {
+        const missing = NEW_FLOW_KEYS.filter(key => !(key in strings))
+        expect(missing).toEqual([])
+      })
+    })
+
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name) && name !== 'pirate')
+    .forEach(([name, strings]) => {
+      it(`${name} does not copy English verbatim`, () => {
+        const copied = NEW_FLOW_KEYS
+          .filter(key => !NEW_FLOW_SHARED_WITH_ENGLISH.has(key))
+          .filter(key => typeof en[key] === 'string' && en[key] === strings[key])
+        expect(copied).toEqual([])
+      })
+    })
+})
+

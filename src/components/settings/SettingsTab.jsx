@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard'
 import { Download, Upload, Link, QrCode, Info } from 'lucide-react'
 import { useStore } from '@/store/useStore'
@@ -22,6 +22,7 @@ import { TaskSettings } from './TaskSettings'
 import { WidgetSettings } from './WidgetSettings'
 import { NavbarSettings } from './NavbarSettings'
 import { AppsGrid } from './AppsGrid'
+import { SettingsSearch } from './SettingsSearch'
 import { KanbanSettings } from './KanbanSettings'
 import { FocusSettings } from './FocusSettings'
 import { NotificationBellSettings } from './notifications/NotificationBellSettings'
@@ -38,6 +39,31 @@ import {
 } from '@/components/ui/select'
 
 const QR_MAX_CHARS = 2800
+const ALWAYS_AVAILABLE_SECTIONS = ['semester', 'tasks', 'calendar', 'focus', 'notifications', 'general', 'navbar', 'data', 'apps']
+const REVEAL_FLASH_MS = 1600
+
+function availableSections({ hasValidDates, hasClasses, workMode }) {
+  const sections = new Set(ALWAYS_AVAILABLE_SECTIONS)
+  if (hasValidDates) ['classes', 'holidays', 'kanban'].forEach(s => sections.add(s))
+  if (hasValidDates && hasClasses && !workMode) sections.add('grades')
+  return sections
+}
+
+function findLabelElement(root, label) {
+  const candidates = root.querySelectorAll('label, p, span, h3, button')
+  return [...candidates].find(el => el.textContent.trim() === label) ?? root
+}
+
+function revealSetting({ section, label }) {
+  const root = document.getElementById(`settings-section-${section}`)
+  if (!root) return
+  const target = findLabelElement(root, label)
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  target.animate?.(
+    [{ backgroundColor: 'color-mix(in oklch, var(--primary) 22%, transparent)' }, { backgroundColor: 'transparent' }],
+    { duration: REVEAL_FLASH_MS, easing: 'ease-out' },
+  )
+}
 
 function DataPanel({ syncStatus }) {
   const state = useStore(s => s)
@@ -171,8 +197,37 @@ export function SettingsTab({ syncStatus }) {
   const [showGuides, setShowGuides] = useState(false)
   const [showFirebaseGuide, setShowFirebaseGuide] = useState(false)
   const [importError, setImportError] = useState(null)
+  const [query, setQuery] = useState('')
+  const [openSections, setOpenSections] = useState([])
+  const [pendingReveal, setPendingReveal] = useState(null)
   const fileInputRef = useRef(null)
   const firebaseConnected = !!loadFirebaseConfig()
+  const sections = useMemo(
+    () => availableSections({ hasValidDates, hasClasses, workMode }),
+    [hasValidDates, hasClasses, workMode],
+  )
+  const searching = query.trim().length > 0
+
+  const settingsSearchRequest = useStore(s => s.settingsSearchRequest)
+  const clearSettingsSearchRequest = useStore(s => s.clearSettingsSearchRequest)
+  useEffect(() => {
+    if (settingsSearchRequest === null) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(settingsSearchRequest)
+    clearSettingsSearchRequest()
+  }, [settingsSearchRequest, clearSettingsSearchRequest])
+
+  useEffect(() => {
+    if (!pendingReveal) return
+    const frame = requestAnimationFrame(() => revealSetting(pendingReveal))
+    return () => cancelAnimationFrame(frame)
+  }, [pendingReveal])
+
+  const reveal = (section, label) => {
+    setQuery('')
+    setOpenSections([section])
+    setPendingReveal({ section, label })
+  }
 
   const handleFileChange = async e => {
     const file = e.target.files?.[0]
@@ -265,141 +320,145 @@ export function SettingsTab({ syncStatus }) {
           </Select>
         )}
 
-        <Accordion type="multiple" defaultValue={[]} className="space-y-2">
-          <AccordionItem value="semester" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.semester}</AccordionTrigger>
-            <AccordionContent className="pb-4 space-y-3">
-              <SemesterDatesForm />
-              {semester && (
-                <div className="rounded-lg bg-secondary/60 px-3 py-2.5 text-sm">
-                  <span className="font-medium">{semester.name}</span>
-                  <span className="ml-2 text-muted-foreground">{semester.startDate} → {semester.endDate}</span>
-                </div>
-              )}
-              {showNextSemesterHint && (
-                <div className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">{t.nextSemesterDesc}</span>
-                  <Button size="sm" variant="outline" className="ml-3 shrink-0 text-xs"
-                    onClick={() => setShowPresets(true)}>
-                    {t.loadNextSemester}
-                  </Button>
-                </div>
-              )}
-              {!hasValidDates && (
-                <p className="text-xs text-muted-foreground">{t.addUnlocks}</p>
-              )}
-            </AccordionContent>
-          </AccordionItem>
+        <SettingsSearch query={query} onQueryChange={setQuery} sections={sections} onReveal={reveal} />
 
-          {hasValidDates && (
-            <AccordionItem value="classes" className="rounded-xl border border-border bg-card px-4">
-              <AccordionTrigger className="text-sm font-semibold py-3">{workMode ? t.groups : t.classes}</AccordionTrigger>
-              <AccordionContent className="pb-4">
-                <ClassesForm semesterId={activeSemesterId} classes={classes} workMode={workMode} />
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {hasValidDates && (
-            <AccordionItem value="holidays" className="rounded-xl border border-border bg-card px-4">
-              <AccordionTrigger className="text-sm font-semibold py-3">{t.holidays}</AccordionTrigger>
-              <AccordionContent className="pb-4">
-                <HolidaysForm semesterId={activeSemesterId} />
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {hasValidDates && hasClasses && !workMode && (
-            <AccordionItem value="grades" className="rounded-xl border border-border bg-card px-4">
-              <AccordionTrigger className="text-sm font-semibold py-3">{t.gradeComponents}</AccordionTrigger>
-              <AccordionContent className="pb-4 space-y-5">
-                <GradeScaleSettings />
-                {classes.map(cls => (
-                  <div key={cls.id} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls.color }} />
-                      <span className="text-sm font-medium">{cls.name}</span>
-                    </div>
-                    <GradeConfigForm semesterId={activeSemesterId} cls={cls}
-                      components={grades[activeSemesterId]?.[cls.id]?.components ?? []} />
+        {!searching && (
+          <Accordion value={openSections} onValueChange={setOpenSections} className="space-y-2">
+            <AccordionItem id="settings-section-semester" value="semester" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.semester}</AccordionTrigger>
+              <AccordionContent className="pb-4 space-y-3">
+                <SemesterDatesForm />
+                {semester && (
+                  <div className="rounded-lg bg-secondary/60 px-3 py-2.5 text-sm">
+                    <span className="font-medium">{semester.name}</span>
+                    <span className="ml-2 text-muted-foreground">{semester.startDate} → {semester.endDate}</span>
                   </div>
-                ))}
+                )}
+                {showNextSemesterHint && (
+                  <div className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">{t.nextSemesterDesc}</span>
+                    <Button size="sm" variant="outline" className="ml-3 shrink-0 text-xs"
+                      onClick={() => setShowPresets(true)}>
+                      {t.loadNextSemester}
+                    </Button>
+                  </div>
+                )}
+                {!hasValidDates && (
+                  <p className="text-xs text-muted-foreground">{t.addUnlocks}</p>
+                )}
               </AccordionContent>
             </AccordionItem>
-          )}
 
-          <AccordionItem value="tasks" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.tasks}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <TaskSettings />
-            </AccordionContent>
-          </AccordionItem>
+            {hasValidDates && (
+              <AccordionItem id="settings-section-classes" value="classes" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{workMode ? t.groups : t.classes}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <ClassesForm semesterId={activeSemesterId} classes={classes} workMode={workMode} />
+                </AccordionContent>
+              </AccordionItem>
+            )}
 
-          {hasValidDates && (
-            <AccordionItem value="kanban" className="rounded-xl border border-border bg-card px-4">
-              <AccordionTrigger className="text-sm font-semibold py-3">{t.kanban}</AccordionTrigger>
+            {hasValidDates && (
+              <AccordionItem id="settings-section-holidays" value="holidays" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.holidays}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <HolidaysForm semesterId={activeSemesterId} />
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {hasValidDates && hasClasses && !workMode && (
+              <AccordionItem id="settings-section-grades" value="grades" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.gradeComponents}</AccordionTrigger>
+                <AccordionContent className="pb-4 space-y-5">
+                  <GradeScaleSettings />
+                  {classes.map(cls => (
+                    <div key={cls.id} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls.color }} />
+                        <span className="text-sm font-medium">{cls.name}</span>
+                      </div>
+                      <GradeConfigForm semesterId={activeSemesterId} cls={cls}
+                        components={grades[activeSemesterId]?.[cls.id]?.components ?? []} />
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            <AccordionItem id="settings-section-tasks" value="tasks" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.tasks}</AccordionTrigger>
               <AccordionContent className="pb-4">
-                <KanbanSettings semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
+                <TaskSettings />
               </AccordionContent>
             </AccordionItem>
-          )}
 
-          <AccordionItem value="calendar" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.calendar}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <CalendarSettings
-                semesterId={activeSemesterId}
-                semesterStart={semester?.startDate ?? null}
-                semesterEnd={semester?.endDate ?? null}
-              />
-            </AccordionContent>
-          </AccordionItem>
+            {hasValidDates && (
+              <AccordionItem id="settings-section-kanban" value="kanban" className="rounded-xl border border-border bg-card px-4">
+                <AccordionTrigger className="text-sm font-semibold py-3">{t.kanban}</AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <KanbanSettings semesterId={activeSemesterId} columns={kanban[activeSemesterId]?.columns ?? []} />
+                </AccordionContent>
+              </AccordionItem>
+            )}
 
-          <AccordionItem value="focus" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <FocusSettings />
-            </AccordionContent>
-          </AccordionItem>
+            <AccordionItem id="settings-section-calendar" value="calendar" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.calendar}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <CalendarSettings
+                  semesterId={activeSemesterId}
+                  semesterStart={semester?.startDate ?? null}
+                  semesterEnd={semester?.endDate ?? null}
+                />
+              </AccordionContent>
+            </AccordionItem>
 
-          <AccordionItem value="notifications" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.notifications}</AccordionTrigger>
-            <AccordionContent className="pb-4 space-y-4">
-              <NotificationBellSettings />
-            </AccordionContent>
-          </AccordionItem>
+            <AccordionItem id="settings-section-focus" value="focus" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.focus}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <FocusSettings />
+              </AccordionContent>
+            </AccordionItem>
 
-          <AccordionItem value="general" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.general}</AccordionTrigger>
-            <AccordionContent className="pb-4 space-y-4">
-              <GeneralSettings />
-              <WidgetSettings />
-            </AccordionContent>
-          </AccordionItem>
+            <AccordionItem id="settings-section-notifications" value="notifications" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.notifications}</AccordionTrigger>
+              <AccordionContent className="pb-4 space-y-4">
+                <NotificationBellSettings />
+              </AccordionContent>
+            </AccordionItem>
 
-          <AccordionItem value="navbar" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.navbar}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <NavbarSettings />
-            </AccordionContent>
-          </AccordionItem>
+            <AccordionItem id="settings-section-general" value="general" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.general}</AccordionTrigger>
+              <AccordionContent className="pb-4 space-y-4">
+                <GeneralSettings />
+                <WidgetSettings />
+              </AccordionContent>
+            </AccordionItem>
 
-          <AccordionItem value="data" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <DataPanel syncStatus={syncStatus} />
-            </AccordionContent>
-          </AccordionItem>
+            <AccordionItem id="settings-section-navbar" value="navbar" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.navbar}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <NavbarSettings />
+              </AccordionContent>
+            </AccordionItem>
 
-          <AccordionItem value="apps" className="rounded-xl border border-border bg-card px-4">
-            <AccordionTrigger className="text-sm font-semibold py-3">{t.apps}</AccordionTrigger>
-            <AccordionContent className="pb-4">
-              <AppsGrid />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            <AccordionItem id="settings-section-data" value="data" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.data}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <DataPanel syncStatus={syncStatus} />
+              </AccordionContent>
+            </AccordionItem>
 
-        {hasValidDates && <DangerZone semesterId={activeSemesterId} />}
+            <AccordionItem id="settings-section-apps" value="apps" className="rounded-xl border border-border bg-card px-4">
+              <AccordionTrigger className="text-sm font-semibold py-3">{t.apps}</AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <AppsGrid />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+
+        {hasValidDates && !searching && <DangerZone semesterId={activeSemesterId} />}
 
         <p className="pt-1 text-center text-[12px] text-muted-foreground/70">
           <a

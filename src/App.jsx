@@ -31,6 +31,7 @@ import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
+import { QuickActionUndoToast } from '@/components/tasks/quickAction/QuickActionUndoToast'
 import { NotificationsHost } from '@/components/notifications/NotificationsHost'
 import { CollabAliasPromptModal } from '@/components/collab/CollabAliasPromptModal'
 import { SyncRulesUpdateHost } from '@/components/settings/SyncRulesUpdateHost'
@@ -324,7 +325,7 @@ export default function App() {
 
   if (!hydrated) return <AppShell><div className="h-full" /></AppShell>
 
-  if (!onboardingDone) return <AppShell><Onboarding onDone={completeOnboarding} /></AppShell>
+  if (!onboardingDone) return <AppShell><Onboarding onDone={completeOnboarding} onSyncRestored={pullNow} /></AppShell>
 
   if (standbyActive) return <AppShell><StandbyOverlay /></AppShell>
 
@@ -368,6 +369,7 @@ export default function App() {
       <PresetUpdateDialog />
       {showStorageWarning && <StorageWarningModal onDismiss={() => setShowStorageWarning(false)} />}
       <SpotlightOverlay open={spotlightOpen} onClose={() => setSpotlightOpen(false)} />
+      <QuickActionUndoToast />
       <NotificationsHost />
       <CollabAliasPromptModal />
       <SyncRulesUpdateHost syncStatus={syncStatus} onResolved={pullNow} />

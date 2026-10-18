@@ -1,209 +1,136 @@
-import { useMemo, useRef, useState } from 'react'
-import { Briefcase, CalendarRange, Upload, Cloud } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { ThemeToggle } from '@/components/common/ThemeToggle'
-import { LangToggle } from '@/components/common/LangToggle'
+import { cn } from '@/lib/utils'
+import { onboardingSteps, stepBlocker } from '@/lib/onboarding/steps'
 import { PresetPicker } from '@/components/presets/PresetPicker'
-import { FirebaseGuideModal } from '@/components/settings/FirebaseSyncPanel'
-import { SemesterDatesForm } from '@/components/settings/SemesterDatesForm'
-import { ClassesForm } from '@/components/settings/ClassesForm'
-import { importState } from '@/store/persist'
-import { FREE_BOARD_ID } from '@/lib/taskUtils'
-import { sortByOrder } from '@/lib/utils'
-import { TourScene } from './onboarding/TourScene'
-import { TasksPanel } from './onboarding/TasksScene'
-import { KanbanPanel } from './onboarding/KanbanScene'
-import { CalendarPanel } from './onboarding/CalendarScene'
-import { FocusPanel } from './onboarding/FocusScene'
-import { SettingsPanel } from './onboarding/SettingsScene'
-import { SharePanel } from './onboarding/ShareScene'
+import { OnboardingFooter, OnboardingHeader } from './onboarding/OnboardingChrome'
+import { WelcomeStep } from './onboarding/WelcomeStep'
+import { RestoreStep } from './onboarding/RestoreStep'
+import { ProfileStep } from './onboarding/ProfileStep'
+import { DatesStep } from './onboarding/DatesStep'
+import { ClassesStep } from './onboarding/ClassesStep'
+import { AppsStep } from './onboarding/AppsStep'
+import { TourStep } from './onboarding/TourStep'
+import { ReadyStep } from './onboarding/ReadyStep'
 import './onboarding/tour.css'
 
-function ToggleRow({ icon: Icon, title, desc, checked, onChange }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border p-4">
-      <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-      <div className="flex-1">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{desc}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
-    </div>
-  )
+const STEP_VIEWS = {
+  welcome: WelcomeStep,
+  restore: RestoreStep,
+  profile: ProfileStep,
+  dates: DatesStep,
+  classes: ClassesStep,
+  apps: AppsStep,
+  tour: TourStep,
+  ready: ReadyStep,
 }
 
-export function Onboarding({ onDone }) {
-  const lang = useStore(s => s.lang ?? 'pt')
+const BLOCKER_HINT_KEYS = { needsDates: 'obDatesNeeded' }
+
+function isTypingTarget(target) {
+  return Boolean(target?.closest?.('input, textarea, select, button, a, [contenteditable], [role="listbox"]'))
+}
+
+function headerActionFor({ path, current, isLast, t, onDone, onBack }) {
+  if (current === 'restore') return { label: t.obBack, onClick: onBack }
+  if (path === 'fresh' && !isLast) return { label: t.obSkipSetup, onClick: onDone }
+  return null
+}
+
+const BRAND_THEME = {
+  '--primary': '#16a34a',
+  '--primary-foreground': '#ffffff',
+  '--ring': 'color-mix(in oklab, #16a34a 60%, transparent)',
+}
+
+export function Onboarding({ onDone, onSyncRestored }) {
+  const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
-  const updateSettings = useStore(s => s.updateSettings)
-  const importData = useStore(s => s.importData)
-  const workMode = useStore(s => s.settings?.workMode ?? false)
   const noneMode = useStore(s => s.settings?.semesterMode === 'none')
   const semesters = useStore(s => s.semesters)
   const activeSemesterId = useStore(s => s.activeSemesterId)
-  const classes = useStore(s => s.classes)
-  const kanban = useStore(s => s.kanban)
 
-  const [step, setStep] = useState(0)
+  const [path, setPath] = useState(null)
+  const [index, setIndex] = useState(0)
+  const [direction, setDirection] = useState(1)
   const [showPresets, setShowPresets] = useState(false)
-  const [showFirebaseGuide, setShowFirebaseGuide] = useState(false)
-  const [importError, setImportError] = useState(null)
-  const fileRef = useRef(null)
 
-  const steps = useMemo(() => {
-    if (noneMode) return ['welcome', 'mode', 'classes', 'info-tasks', 'info-cal', 'info-done']
-    return ['welcome', 'mode', 'dates', 'classes', 'info-tasks', 'info-cal', 'info-done']
-  }, [noneMode])
+  const steps = onboardingSteps({ path, noneMode })
+  const safeIndex = Math.min(index, steps.length - 1)
+  const current = steps[safeIndex]
+  const blocker = stepBlocker(current, { noneMode, semesters, activeSemesterId })
+  const isLast = safeIndex === steps.length - 1
+  const showFooter = current !== 'welcome' && current !== 'restore'
 
-  const current = steps[step]
-  const activeSemester = semesters.find(s => s.id === activeSemesterId) ?? null
-  const scopeId = noneMode ? null : activeSemesterId
-  const scopedClasses = classes.filter(c => c.semesterId === scopeId)
-  const datesReady = noneMode || (semesters.length > 0 && activeSemesterId)
-  const nextDisabled = current === 'dates' && !datesReady
-
-  const tourColumns = useMemo(() => {
-    const cols = kanban?.[activeSemesterId ?? FREE_BOARD_ID]?.columns
-    if (!cols?.length) return null
-    return sortByOrder(cols).map(c => c.title)
-  }, [kanban, activeSemesterId])
-
-  const tourGroupLabels = useMemo(() => {
-    const names = scopedClasses.map(c => c.name).filter(Boolean)
-    if (names.length >= 2) return names.slice(0, 2)
-    const generic = workMode ? t.group : t.class
-    return [names[0] ?? `${generic} A`, `${generic} B`]
-  }, [scopedClasses, workMode, t])
-
-  const next = () => setStep(s => Math.min(steps.length - 1, s + 1))
-  const back = () => setStep(s => Math.max(0, s - 1))
-
-  const handleImport = async e => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try { setImportError(null); importData(await importState(file), { preferLocalSettings: false }); onDone() }
-    catch { setImportError(lang === 'pt' ? 'Ficheiro inválido.' : 'Invalid file.') }
-    e.target.value = ''
+  const goTo = target => {
+    setDirection(target >= safeIndex ? 1 : -1)
+    setIndex(target)
   }
 
-  if (showPresets) return <PresetPicker onBack={() => setShowPresets(false)} onLoaded={onDone} />
-
-  const titles = {
-    welcome: [t.obWelcomeTitle, t.obWelcomeDesc],
-    mode: [t.obModeTitle, t.obModeDesc],
-    dates: [t.obDatesTitle, t.obDatesDesc],
-    classes: workMode ? [t.obGroupsTitle, t.obGroupsDesc] : [t.obClassesTitle, t.obClassesDesc],
+  const next = () => {
+    if (blocker) return
+    if (isLast) { onDone(); return }
+    goTo(safeIndex + 1)
   }
+
+  const back = () => goTo(Math.max(0, safeIndex - 1))
+
+  const choosePath = choice => {
+    setPath(choice)
+    setDirection(1)
+    setIndex(1)
+  }
+
+  const afterPreset = () => {
+    setShowPresets(false)
+    const classesIndex = onboardingSteps({ path: 'fresh', noneMode: false }).indexOf('classes')
+    setDirection(1)
+    setIndex(classesIndex)
+  }
+
+  const nextRef = useRef(next)
+  useEffect(() => { nextRef.current = next })
+
+  useEffect(() => {
+    if (!showFooter) return
+    const onKey = e => {
+      if (e.key !== 'Enter' || e.shiftKey || isTypingTarget(e.target)) return
+      e.preventDefault()
+      nextRef.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showFooter])
+
+  if (showPresets) {
+    return (
+      <div className="h-full" style={BRAND_THEME}>
+        <PresetPicker onBack={() => setShowPresets(false)} onLoaded={afterPreset} />
+      </div>
+    )
+  }
+
+  const View = STEP_VIEWS[current]
+  const headerAction = headerActionFor({ path, current, isLast, t, onDone, onBack: back })
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8-safe max-w-md mx-auto w-full">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1.5">
-          {steps.map((_, i) => (
-            <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary' : 'w-1.5 bg-border'}`} />
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
-          <LangToggle />
-          <ThemeToggle />
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col justify-center py-6">
-        {titles[current] && (
-          <div className="mb-5 text-center">
-            <h1 className="text-xl font-semibold">{titles[current][0]}</h1>
-            <p className="text-sm text-muted-foreground">{titles[current][1]}</p>
+    <div className="h-full overflow-y-auto" style={BRAND_THEME}>
+      <div className="flex min-h-full flex-col">
+        <OnboardingHeader t={t} steps={steps} index={safeIndex} onJump={goTo}
+          action={headerAction} />
+        <main className="flex flex-1 flex-col items-center justify-center px-5 py-8">
+          <div key={current} className={cn('w-full max-w-xl animate-in fade-in duration-300',
+            direction > 0 ? 'slide-in-from-right-6' : 'slide-in-from-left-6')}>
+            <View t={t} onChoosePath={choosePath} onDone={onDone} onSyncRestored={onSyncRestored}
+              onPresets={() => setShowPresets(true)} />
           </div>
-        )}
-
-        {current === 'welcome' && (
-          <div className="flex flex-col items-center gap-6 py-4">
-            <div className="flex h-14 w-14 items-center justify-center">
-              <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#22c55e"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-2">
-              <LangToggle />
-              <span className="h-4 w-px bg-border" />
-              <ThemeToggle />
-            </div>
-          </div>
-        )}
-
-        {current === 'mode' && (
-          <div className="space-y-3">
-            <ToggleRow icon={Briefcase} title={t.obModeWorkToggle} desc={t.obModeWorkToggleDesc}
-              checked={workMode} onChange={v => updateSettings({ workMode: v })} />
-            <ToggleRow icon={CalendarRange} title={t.obModeWeeksToggle} desc={t.obModeWeeksToggleDesc}
-              checked={noneMode} onChange={v => updateSettings({ semesterMode: v ? 'none' : 'semesters' })} />
-          </div>
-        )}
-
-        {current === 'dates' && (
-          <div className="space-y-4">
-            {activeSemester
-              ? <SemesterDatesForm key={activeSemester.id} semester={activeSemester} />
-              : <SemesterDatesForm />}
-            <Button variant="ghost" className="w-full" onClick={() => setShowPresets(true)}>{t.loadPreset}</Button>
-            <div className="pt-1">
-              <p className="text-center text-xs text-muted-foreground mb-2">{t.obImportOr}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="gap-2" onClick={() => setShowFirebaseGuide(true)}>
-                  <Cloud className="h-4 w-4" /> {t.importFromFirebase}
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}>
-                  <Upload className="h-4 w-4" /> {t.importJson}
-                </Button>
-              </div>
-              {importError && <p className="text-xs text-destructive mt-2">{importError}</p>}
-            </div>
-          </div>
-        )}
-
-        {current === 'classes' && (
-          <ClassesForm semesterId={scopeId} classes={scopedClasses} workMode={workMode} />
-        )}
-
-        {current === 'info-tasks' && (
-          <TourScene title={t.obInfoTasksTitle} desc={t.obInfoTasksDesc}>
-            <TasksPanel groupLabels={tourGroupLabels} />
-            <KanbanPanel columns={tourColumns} t={t} />
-          </TourScene>
-        )}
-        {current === 'info-cal' && (
-          <TourScene title={t.obInfoCalTitle} desc={t.obInfoCalDesc}>
-            <CalendarPanel views={[t.viewDay, t.viewWeek, t.viewMonth, t.viewYear]}
-              weekdays={t.weekdaysShort} />
-            <FocusPanel labels={{
-              ready: t.focusReady, focusing: t.focus, break: t.focusBreak,
-              start: t.focusStart, pause: t.focusPause, reset: t.focusReset,
-              skip: t.skip,
-            }} />
-          </TourScene>
-        )}
-        {current === 'info-done' && (
-          <TourScene title={t.obInfoDoneTitle} desc={t.obInfoDoneDesc}>
-            <SettingsPanel rows={[t.general, t.apps, t.data]} />
-            <SharePanel labels={{ export: t.exportJson, import: t.importJson }} />
-          </TourScene>
+        </main>
+        {showFooter && (
+          <OnboardingFooter t={t} isLast={isLast} onBack={back} onNext={next}
+            blockedHint={blocker ? t[BLOCKER_HINT_KEYS[blocker]] : null} />
         )}
       </div>
-
-      <div className="flex items-center gap-2">
-        {step > 0 && <Button variant="outline" className="flex-1" onClick={back}>{t.obBack}</Button>}
-        {step < steps.length - 1
-          ? <Button className="flex-1" onClick={next} disabled={nextDisabled}>{t.obNext}</Button>
-          : <Button className="flex-1" onClick={onDone}>{t.obFinish}</Button>}
-      </div>
-
-      <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-      {showFirebaseGuide && <FirebaseGuideModal onClose={() => setShowFirebaseGuide(false)} syncStatus="idle" />}
     </div>
   )
 }

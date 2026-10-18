@@ -42,6 +42,8 @@ export const cs = {
   weekOfWords: ['tyden od', 'týden od'],
   atWords: ['v', 've', 'o'],
   timeConnectors: ['a', 'hodin', 'hodina', 'hodiny'],
+  timeFromWords: ['od'],
+  timeRangeWords: ['do'],
   relativeDates: {
     dnes: 0,
     zitra: 1, zítra: 1,

@@ -5,6 +5,7 @@ import { NotesTab } from '@/components/notes/NotesTab'
 export const notesApp = {
   id: 'notes',
   labelKey: 'notes',
+  descKey: 'notesEnableDesc',
   icon: StickyNote,
   keywords: ['notes', 'notas', 'markdown', 'text', 'write'],
   isEnabled: state => state.settings?.apps?.notes === true,

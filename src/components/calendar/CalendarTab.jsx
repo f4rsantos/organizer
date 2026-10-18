@@ -24,6 +24,7 @@ import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import { expandTasksForRange, expandEventsForRange } from '@/lib/recurrence'
+import { eventDateRange } from '@/lib/calendar/dayAgenda'
 import { setProviderEvents } from '@/lib/widgets/extraEvents'
 import { nanoid } from '@/lib/ids'
 
@@ -54,12 +55,6 @@ function getTaskDateRange(task, semesterStartDate, noneMode, year) {
   const s = weekToDateRange(semesterStartDate, task.weekStart)
   const e = weekToDateRange(semesterStartDate, task.weekEnd)
   return { start: s.start, end: e.end }
-}
-
-function eventDateRange(event) {
-  if (event.date) return { start: parseISO(event.date), end: parseISO(event.date) }
-  if (event.startDate) return { start: parseISO(event.startDate), end: parseISO(event.endDate ?? event.startDate) }
-  return null
 }
 
 export function CalendarTab() {

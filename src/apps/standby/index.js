@@ -6,6 +6,7 @@ const DEFAULT_STANDBY = { enabled: false, panelCount: 3, panes: ['wheel-time', '
 export const standbyApp = {
   id: 'standby',
   labelKey: 'standby',
+  descKey: 'standbyDesc',
   icon: MonitorSmartphone,
   keywords: ['standby', 'repouso', 'ambient', 'dashboard', 'clock', 'landscape'],
   isEnabled: state => state.settings?.standby?.enabled === true,

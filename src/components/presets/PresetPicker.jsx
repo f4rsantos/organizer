@@ -1,59 +1,75 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Library, Loader2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { PRESET_GROUPS, checkPresetExists, fetchPreset, applyPreset } from '@/lib/presets'
 import { presetYearLabel, presetSemLabel } from '@/lib/presetLabels'
+import { cn } from '@/lib/utils'
 
-function PresetCard({ presetKey, available, checked, loading, onSelect, lang }) {
-  const isAvail   = available[presetKey] ?? false
+function groupByYear(keys, lang) {
+  const years = new Map()
+  for (const key of keys) {
+    const year = presetYearLabel(key, lang)
+    years.set(year, [...(years.get(year) ?? []), key])
+  }
+  return [...years.entries()]
+}
+
+function PresetPill({ presetKey, lang, available, checked, loading, onSelect }) {
+  const isAvail = available[presetKey] ?? false
   const isLoading = loading === presetKey
-  const busy      = !!loading && !isLoading
-  const faded     = checked && !isAvail
-
-  const year = presetYearLabel(presetKey, lang)
-  const sem  = presetSemLabel(presetKey, lang)
+  if (!checked) return <span className="h-10 animate-pulse rounded-xl bg-secondary" />
 
   return (
-    <button
-      onClick={() => isAvail && !loading && onSelect(presetKey)}
-      disabled={faded || busy}
-      className={[
-        'relative flex flex-col items-center justify-center gap-1 rounded-xl border py-6 px-4 text-center transition-all duration-150',
-        faded  ? 'opacity-30 cursor-not-allowed border-border/30 bg-transparent' :
-        busy   ? 'opacity-50 cursor-wait border-border bg-card' :
-                 'border-border bg-card hover:bg-accent hover:border-accent-foreground/20 active:scale-[0.97] cursor-pointer',
-      ].join(' ')}
-    >
-      {isLoading
-        ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        : <>
-            <span className="text-sm font-medium">{year}</span>
-            <span className="text-xs text-muted-foreground">{sem}</span>
-          </>
-      }
+    <button type="button" onClick={() => onSelect(presetKey)} disabled={!isAvail || Boolean(loading)}
+      className={cn(
+        'flex h-10 items-center justify-center rounded-xl border text-sm font-medium transition-all duration-150',
+        isAvail
+          ? 'border-border bg-card hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-sm active:translate-y-0'
+          : 'border-dashed border-border/70 text-muted-foreground/50',
+        loading && !isLoading && 'opacity-50',
+        isLoading && 'border-primary text-primary',
+      )}>
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : presetSemLabel(presetKey, lang)}
     </button>
   )
 }
 
+function PresetGroup({ title, keys, lang, pillProps }) {
+  return (
+    <section className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
+        {groupByYear(keys, lang).map(([year, yearKeys]) => (
+          <div key={year} className="space-y-1.5">
+            <p className="text-sm font-semibold">{year}</p>
+            <div className="grid gap-1.5">
+              {yearKeys.map(k => <PresetPill key={k} presetKey={k} lang={lang} {...pillProps} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function PresetPicker({ onBack, onLoaded }) {
-  const lang               = useStore(s => s.lang ?? 'pt')
-  const t                  = useStrings(lang)
-  const addSemester        = useStore(s => s.addSemester)
-  const addClass           = useStore(s => s.addClass)
-  const addHoliday         = useStore(s => s.addHoliday)
+  const lang = useStore(s => s.lang ?? 'pt')
+  const t = useStrings(lang)
+  const addSemester = useStore(s => s.addSemester)
+  const addClass = useStore(s => s.addClass)
+  const addHoliday = useStore(s => s.addHoliday)
   const setGradeComponents = useStore(s => s.setGradeComponents)
-  const setTargetGrade     = useStore(s => s.setTargetGrade)
-  const addTask            = useStore(s => s.addTask)
-  const getClasses           = () => useStore.getState().classes
-  const setPresetUpdatedAt   = useStore(s => s.setPresetUpdatedAt)
-  const activeSemesterId     = useStore(s => s.activeSemesterId)
-  const semesters            = useStore(s => s.semesters ?? [])
+  const setTargetGrade = useStore(s => s.setTargetGrade)
+  const addTask = useStore(s => s.addTask)
+  const setPresetUpdatedAt = useStore(s => s.setPresetUpdatedAt)
+  const activeSemesterId = useStore(s => s.activeSemesterId)
+  const semesters = useStore(s => s.semesters ?? [])
 
   const [available, setAvailable] = useState({})
-  const [checked,   setChecked]   = useState(false)
-  const [loading,   setLoading]   = useState(null)
-  const [error,     setError]     = useState(null)
+  const [checked, setChecked] = useState(false)
+  const [loading, setLoading] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const all = [...PRESET_GROUPS.EI, ...PRESET_GROUPS.generic]
@@ -66,12 +82,12 @@ export function PresetPicker({ onBack, onLoaded }) {
       })
   }, [])
 
-  const handleSelect = async (key) => {
+  const handleSelect = async key => {
     setLoading(key)
     setError(null)
     try {
-      const data    = await fetchPreset(key, setPresetUpdatedAt)
-      const actions = { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses }
+      const data = await fetchPreset(key, setPresetUpdatedAt)
+      const actions = { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses: () => useStore.getState().classes }
       const activeSem = semesters.find(s => s.id === activeSemesterId)
       const previousPresetKey = key === 'summer' ? (activeSem?.presetKey ?? null) : null
       applyPreset(data, actions, key, previousPresetKey)
@@ -83,39 +99,24 @@ export function PresetPicker({ onBack, onLoaded }) {
     }
   }
 
-  const cardProps = { available, checked, loading, onSelect: handleSelect, lang }
+  const pillProps = { available, checked, loading, onSelect: handleSelect }
 
   return (
-    <div className="flex h-full min-h-full flex-col items-center justify-center gap-10 overflow-y-auto px-8 py-16">
-      <div className="w-full max-w-xs space-y-8">
-
-        <button onClick={onBack}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+    <div className="flex h-full min-h-full flex-col items-center justify-center overflow-y-auto px-6 py-12">
+      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <button type="button" onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> {t.backToMenu}
         </button>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
+          <Library className="h-7 w-7 text-primary" />
           <h2 className="text-2xl font-semibold tracking-tight">{t.loadPresetTitle}</h2>
-          <p className="text-sm text-muted-foreground">
-            {lang === 'pt' ? 'Escolhe o teu semestre.' : 'Pick your semester.'}
-          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t.presetPickDesc}</p>
         </div>
 
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground tracking-widest uppercase">{t.presetGroupEI}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PRESET_GROUPS.EI.map(k => <PresetCard key={k} presetKey={k} {...cardProps} />)}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground tracking-widest uppercase">{t.presetGroupGeneric}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PRESET_GROUPS.generic.map(k => <PresetCard key={k} presetKey={k} {...cardProps} />)}
-            </div>
-          </div>
-        </div>
+        <PresetGroup title={t.presetGroupEI} keys={PRESET_GROUPS.EI} lang={lang} pillProps={pillProps} />
+        <PresetGroup title={t.presetGroupGeneric} keys={PRESET_GROUPS.generic} lang={lang} pillProps={pillProps} />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>

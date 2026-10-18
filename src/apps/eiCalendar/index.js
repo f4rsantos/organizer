@@ -107,6 +107,7 @@ export function useEICalendarEvents(state) {
 export const eiCalendarApp = {
   id: 'eiCalendar',
   labelKey: 'eiCalendar',
+  descKey: 'eiCalendarEnableDesc',
   icon: CalendarDays,
   keywords: ['ei', 'calendar', 'calendário', 'deadlines', 'exames', 'course', 'curso'],
   isVisible: state => isEIKey(selectActiveSemester(state)?.presetKey),
