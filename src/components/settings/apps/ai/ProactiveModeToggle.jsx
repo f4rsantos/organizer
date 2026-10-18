@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ShieldAlert } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { hasAcceptedProactiveConsent, grantProactiveConsent } from './aiConsent'
+import { SettingToggle } from '../../SettingRow'
 
 export function ProactiveModeToggle({ t, enabled, onChange }) {
   const [showConsent, setShowConsent] = useState(false)
@@ -27,13 +27,7 @@ export function ProactiveModeToggle({ t, enabled, onChange }) {
 
   return (
     <div className="space-y-2 border-t border-border/50 pt-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-medium">{t.aiProactiveLabel}</p>
-          <p className="text-xs text-muted-foreground">{t.aiProactiveDesc}</p>
-        </div>
-        <Switch checked={enabled} onCheckedChange={handleToggle} />
-      </div>
+      <SettingToggle label={t.aiProactiveLabel} desc={t.aiProactiveDesc} checked={enabled} onChange={handleToggle} />
 
       {showConsent && (
         <div className="space-y-2 rounded-lg border border-border/60 bg-muted/40 p-3">

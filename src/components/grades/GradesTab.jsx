@@ -4,12 +4,10 @@ import { useStrings } from '@/lib/strings'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ClassGradeCard } from './ClassGradeCard'
 import { PreviousSemestersSection } from './PreviousSemestersSection'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function GradesTab() {
   const semesters = useStore(s => s.semesters)
   const activeSemesterId = useStore(s => s.activeSemesterId)
-  const setActiveSemester = useStore(s => s.setActiveSemester)
   const allClasses = useStore(s => s.classes)
   const grades = useStore(s => s.grades)
   const lang = useStore(s => s.lang ?? 'en')
@@ -25,23 +23,13 @@ export function GradesTab() {
   return (
     <div className="h-tab-pane overflow-y-auto">
     <div className="space-y-4 p-4 pt-6 pb-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">{t.grades}</h1>
-        {semesters.length > 1 && (
-          <Select value={activeSemesterId} onValueChange={setActiveSemester} items={semesters.map(s => ({ value: s.id, label: s.name }))}>
-            <SelectTrigger className="h-8 text-sm w-auto gap-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {semesters.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+      <h1 className="text-xl font-semibold tracking-tight">{t.grades}</h1>
 
       {classes.length === 0
         ? <EmptyState icon={BookOpen} title={t.noClassesYet} description={t.addClassesInSettings} />
         : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {classes.map(cls => (
                 <ClassGradeCard key={cls.id} cls={cls} semId={activeSemesterId}
                   gradeData={grades[activeSemesterId]?.[cls.id]} />

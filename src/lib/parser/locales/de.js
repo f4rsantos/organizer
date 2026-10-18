@@ -28,6 +28,8 @@ export const de = {
   },
   atWords: ['um', 'gegen'],
   timeConnectors: ['und', 'uhr', 'stunde', 'stunden'],
+  timeFromWords: ['von'],
+  timeRangeWords: ['bis'],
   weekWords: ['woche'],
   weekOfWords: ['woche vom', 'woche von'],
   focusWords: {

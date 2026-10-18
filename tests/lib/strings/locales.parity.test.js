@@ -54,7 +54,7 @@ const SCHEDULE_IMPORT_KEYS = [
 ]
 
 const EISENHOWER_KEYS = [
-  'eisenhower', 'eisenhowerEnable', 'eisenhowerEnableDesc',
+  'eisenhower', 'eisenhowerEnableDesc',
   'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate', 'eisenhowerEliminate',
   'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
   'eisenhowerAddTask', 'eisenhowerCustomize', 'eisenhowerResetDefaults',
@@ -62,7 +62,7 @@ const EISENHOWER_KEYS = [
 ]
 
 const HABITS_KEYS = [
-  'habits', 'habitsEnable', 'habitsEnableDesc', 'habitsEmpty',
+  'habits', 'habitsEnableDesc', 'habitsEmpty',
   'habitAdd', 'habitEdit', 'habitTitleLabel', 'habitTitlePlaceholder',
   'habitCadenceLabel', 'habitCadenceDesc',
   'habitCadenceDaily', 'habitCadence2Days', 'habitCadence3Days', 'habitCadenceWeekly', 'habitCadenceMonthly',
@@ -76,6 +76,10 @@ const HABITS_KEYS = [
   'habitTargetLabel', 'habitTargetDesc', 'habitTargetEndless', 'habitTargetCount', 'habitTargetDate',
   'habitTargetCountPlaceholder', 'habitTargetReached',
 ]
+
+const ONBOARDING_SEARCH_CLI_PREFIXES = ['ob', 'settingsSearch', 'qa', 'cli']
+const NEW_FLOW_KEYS = Object.keys(en).filter(key => ONBOARDING_SEARCH_CLI_PREFIXES.some(prefix => key.startsWith(prefix) && /[A-Z]/.test(key[prefix.length] ?? '')))
+const NEW_FLOW_SHARED_WITH_ENGLISH = new Set(['obStepApps', 'obStepDates', 'obProfileStudent', 'obStepTour'])
 
 const HABIT_TONE_KEYS = ['purpose', 'warm', 'upbeat', 'game']
 const HABIT_MILESTONE_KEYS = ['day1', 'early', 'week', 'month', 'daily', 'rescue']
@@ -151,7 +155,7 @@ describe('pomodoro and eisenhower strings are defined everywhere', () => {
 const SHARED_WITH_ENGLISH = new Set([
   'pomodoro', 'pomodoroInsightsPerDaySuffix', 'pomodoroStreakDaySuffix',
   'eisenhowerCustomize', 'eisenhowerAddTask', 'eisenhowerCleanDone',
-  'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc', 'eisenhowerEnable',
+  'eisenhowerCleanDoneTitle', 'eisenhowerCleanDoneDesc',
   'eisenhowerEnableDesc', 'eisenhowerDoNow', 'eisenhowerSchedule', 'eisenhowerDelegate',
   'eisenhowerEliminate', 'eisenhowerUnsorted', 'eisenhowerUnsortedEmpty', 'eisenhowerEmpty',
   'eisenhowerResetDefaults', 'taskReminderTitle',
@@ -225,3 +229,26 @@ describe('notes editor strings are translated everywhere', () => {
       })
     })
 })
+
+describe('onboarding, settings search, quick action and cli strings', () => {
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name))
+    .forEach(([name, strings]) => {
+      it(`${name} defines every key`, () => {
+        const missing = NEW_FLOW_KEYS.filter(key => !(key in strings))
+        expect(missing).toEqual([])
+      })
+    })
+
+  Object.entries(LOCALES)
+    .filter(([name]) => !IN_TRANSLATION.has(name) && name !== 'pirate')
+    .forEach(([name, strings]) => {
+      it(`${name} does not copy English verbatim`, () => {
+        const copied = NEW_FLOW_KEYS
+          .filter(key => !NEW_FLOW_SHARED_WITH_ENGLISH.has(key))
+          .filter(key => typeof en[key] === 'string' && en[key] === strings[key])
+        expect(copied).toEqual([])
+      })
+    })
+})
+

@@ -21,7 +21,7 @@ vi.mock('@/lib/presetsFirebase', () => ({
 }))
 
 const { useStore } = await import('@/store/useStore')
-const { fetchPreset, applyPreset, updatePreset, dateSourceKey } = await import('@/lib/presets')
+const { fetchPreset, applyPreset, updatePreset, dateSourceKey, replaceWithPreset } = await import('@/lib/presets')
 
 describe('dateSourceKey', () => {
   it('maps EI keys to the generic preset holding the dates', () => {
@@ -162,3 +162,31 @@ describe('preset grade weights', () => {
     expect(useStore.getState().grades[semId][ia.id].components.map(c => c.grade)).toEqual([14, 14])
   })
 })
+
+describe('replaceWithPreset', () => {
+  const DATED_2A2S = { ...EI_2A2S, startDate: '2026-02-09', endDate: '2026-06-03' }
+  beforeEach(() => {
+    useStore.setState({
+      semesters: [], classes: [], tasks: [], events: [], holidays: [],
+      kanban: {}, grades: {}, activeSemesterId: null,
+    })
+  })
+
+  const actions = () => ({ ...useStore.getState(), getState: useStore.getState, getClasses: () => useStore.getState().classes })
+
+  it('swaps a draft semester for the preset so only one semester remains, and it is active', () => {
+    const draftId = useStore.getState().addSemester({ name: 'Draft', startDate: '2026-09-14', endDate: '2027-01-29' })
+    const semId = replaceWithPreset(DATED_2A2S, actions(), '2a2s')
+    const state = useStore.getState()
+    expect(state.semesters.map(s => s.id)).toEqual([semId])
+    expect(state.activeSemesterId).toBe(semId)
+    expect(state.semesters.some(s => s.id === draftId)).toBe(false)
+  })
+
+  it('loads the preset as the active semester when there was none', () => {
+    const semId = replaceWithPreset(DATED_2A2S, actions(), '2a2s')
+    expect(useStore.getState().activeSemesterId).toBe(semId)
+    expect(useStore.getState().classes.map(c => c.name)).toEqual(['CBD', 'IES'])
+  })
+})
+

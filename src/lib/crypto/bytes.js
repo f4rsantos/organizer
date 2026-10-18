@@ -11,15 +11,6 @@ export function fromBase64(b64) {
   return bytes
 }
 
-export function toBase64Url(bytes) {
-  return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-export function fromBase64Url(value) {
-  const b64 = value.replace(/-/g, '+').replace(/_/g, '/')
-  return fromBase64(b64 + '='.repeat((4 - (b64.length % 4)) % 4))
-}
-
 export function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }

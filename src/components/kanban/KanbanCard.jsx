@@ -242,8 +242,8 @@ export function KanbanCard({
         onClick={handleCardClick}
         onDoubleClick={() => setDetailOpen(true)}
         className={cn(
-          "relative rounded-lg border border-board-border bg-card p-3 space-y-2 select-none",
-          "shadow-sm transition-shadow hover:shadow-md",
+          "relative rounded-xl border border-border bg-card p-3 space-y-2 select-none",
+          "transition-shadow hover:shadow-sm",
           isDragging && "opacity-40",
         )}
       >

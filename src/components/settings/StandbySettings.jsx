@@ -1,13 +1,10 @@
-import { useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { standbyApp } from '@/apps/standby'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { SettingList, SettingSelect } from './SettingRow'
 
 const PANE_KEYS = {
   wheel: 'paneWheel', 'wheel-time': 'paneWheelTime', calendar: 'paneCalendar',
@@ -41,17 +38,9 @@ export function StandbySettings() {
   const t = useStrings(lang)
   const standby = useStore(s => s.settings?.standby) ?? DEFAULT_STANDBY
   const updateSettings = useStore(s => s.updateSettings)
-  const wipeAppData = useStore(s => s.wipeAppData)
-  const [confirmOff, setConfirmOff] = useState(false)
   const panes = standby.panes ?? DEFAULT_STANDBY.panes
   const panelCount = standby.panelCount ?? 3
   const save = patch => updateSettings({ standby: { ...standby, panes, panelCount, ...patch } })
-
-  const toggle = v => {
-    if (!v) { setConfirmOff(true); return }
-    save({ enabled: true })
-  }
-  const disable = () => wipeAppData(standbyApp.wipe)
 
   const firstOf = entry => (Array.isArray(entry) ? entry[0] : entry) ?? 'wheel-time'
   const secondOf = entry => (Array.isArray(entry) ? (entry[1] ?? '') : '')
@@ -73,35 +62,15 @@ export function StandbySettings() {
   const countItems = [1, 2, 3].map(n => ({ value: String(n), label: String(n) }))
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">{t.standbyEnable}</p>
-          <p className="text-xs text-muted-foreground">{t.standbyDesc}</p>
+    <SettingList>
+      <SettingSelect label={t.standbyPanels} value={String(panelCount)}
+        onChange={v => save({ panelCount: Number(v) })} options={countItems} />
+      {Array.from({ length: panelCount }, (_, i) => (
+        <div key={i} className="space-y-2 py-3">
+          <PaneSelect label={t.standbyPane(i + 1)} value={firstOf(panes[i])} onChange={v => setFirstPane(i, v)} t={t} />
+          <PaneSelect label={t.standbyPaneSecond} value={secondOf(panes[i])} onChange={v => setSecondPane(i, v)} t={t} allowNone />
         </div>
-        <Switch checked={standby.enabled} onCheckedChange={toggle} />
-      </div>
-      <ConfirmDialog open={confirmOff} onOpenChange={setConfirmOff}
-        title={t.appDisableTitle} description={t.appDisableDesc} onConfirm={disable} />
-      {standby.enabled && (
-        <div className="space-y-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>{t.standbyPanels}</Label>
-            <Select value={String(panelCount)} onValueChange={v => save({ panelCount: Number(v) })} items={countItems}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent position="popper">
-                {countItems.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {Array.from({ length: panelCount }, (_, i) => (
-            <div key={i} className="space-y-2 rounded-lg border border-border/50 p-2">
-              <PaneSelect label={t.standbyPane(i + 1)} value={firstOf(panes[i])} onChange={v => setFirstPane(i, v)} t={t} />
-              <PaneSelect label={t.standbyPaneSecond} value={secondOf(panes[i])} onChange={v => setSecondPane(i, v)} t={t} allowNone />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      ))}
+    </SettingList>
   )
 }

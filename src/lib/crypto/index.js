@@ -1,5 +1,5 @@
 export {
-  toBase64, fromBase64, toBase64Url, fromBase64Url,
+  toBase64, fromBase64,
   bytesToHex, hexToBytes, randomBytes, constantTimeEqualHex, zeroFill,
 } from './bytes'
 
@@ -9,7 +9,7 @@ export {
 
 export {
   WHOLE_STATE, aadForLocalSlice, aadForPersonalSlice, aadForTeamSlice,
-  aadForExport, aadForShare, aadForWrap, aadForNotePresence,
+  aadForExport, aadForWrap, aadForNotePresence,
 } from './aad'
 
 export {

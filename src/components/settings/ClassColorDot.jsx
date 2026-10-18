@@ -3,6 +3,7 @@ import { PRESET_COLORS } from '@/lib/constants'
 import { useStrings } from '@/lib/strings'
 import { useStore } from '@/store/useStore'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 const PICKER_INPUT =
   'absolute inset-0 h-full w-full cursor-pointer appearance-none border-0 bg-transparent p-0 opacity-0'
@@ -15,9 +16,9 @@ function ColorSwatch({ color, size = 'h-6 w-6', title, onClick }) {
   )
 }
 
-function ColorPalette({ shown, onPick, onCustomInput, onCustomChange, onCustomBlur, t }) {
+function ColorPalette({ shown, onPick, onCustomInput, onCustomChange, onCustomBlur, t, singleRowOnWide = false }) {
   return (
-    <div className="flex gap-1.5 flex-wrap items-center max-w-[180px]">
+    <div className={cn('flex gap-1.5 flex-wrap items-center max-w-[180px]', singleRowOnWide && 'md:max-w-none md:flex-nowrap')}>
       {PRESET_COLORS.map(c => (
         <button key={c} type="button" onClick={() => onPick(c)}
           className="h-6 w-6 rounded-full transition-transform hover:scale-110 shrink-0 touch-manipulation"
@@ -61,7 +62,7 @@ export function ClassColorDot({ color, onChange, compact = false }) {
   }
 
   return (
-    <ColorPalette shown={shown} t={t}
+    <ColorPalette shown={shown} t={t} singleRowOnWide
       onPick={commit}
       onCustomInput={e => setDraft(e.target.value)}
       onCustomChange={e => commit(e.target.value)}

@@ -4,17 +4,16 @@ import {
   loadFirebaseConfig, pushToFirebase, pullFromFirebase, REV_CONFLICT, SYNC_RULES_OUTDATED, SYNC_APP_ID_MISSING,
 } from '@/lib/firebase'
 import { migrateState } from '@/store/migrations'
-import { stripTransient, stripLocalSlices } from '@/lib/crypto'
+import { serializableSyncState } from '@/lib/sync/serializable'
 import { createSyncQueue, requestPush, markPulled, markPushed } from '@/lib/syncQueue'
-import { createSyncBase, hasUnsyncedChanges, syncBaseFor, syncedContentChanged, toSyncedView } from '@/lib/sync/syncBase'
+import { createSyncBase, hasUnsyncedChanges, syncBaseFor, syncedContentChanged } from '@/lib/sync/syncBase'
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000
 const PUSH_DEBOUNCE_MS = 1000
 const PULL_GATE_MS = 30 * 1000
 
 function getSerializableState() {
-  const state = stripLocalSlices(stripTransient(useStore.getState()))
-  return JSON.parse(JSON.stringify(toSyncedView(state)))
+  return serializableSyncState(useStore.getState())
 }
 
 const KEY_ERRORS = new Set(['encryption-key-required', 'dek-id-mismatch'])

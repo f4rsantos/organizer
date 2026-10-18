@@ -4,10 +4,10 @@ import { QuickActionAppModal } from '@/components/settings/apps/QuickActionAppMo
 export const quickActionApp = {
   id: 'quickAction',
   labelKey: 'quickActionApp',
+  descKey: 'quickActionAppEnableDesc',
   icon: Zap,
   keywords: ['quick', 'action', 'add', 'spotlight', 'command'],
   isEnabled: state => state.settings?.apps?.quickAction !== false,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, quickAction: value } }),
-  wipe: state => state,
   SettingsModal: QuickActionAppModal,
 }

@@ -29,10 +29,6 @@ export function aadForExport(slice) {
   return build('export', slice)
 }
 
-export function aadForShare() {
-  return build('share')
-}
-
 export function aadForWrap(slot) {
   return build('wrap', slot)
 }

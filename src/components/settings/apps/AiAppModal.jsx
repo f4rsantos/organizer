@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -9,6 +8,7 @@ import { aiAssistantApp } from '@/apps/aiAssistant'
 import { SetupFlow } from './ai/SetupFlow'
 import { ConfiguredView } from './ai/ConfiguredView'
 import { isSlotFilled, withSlotPatch, withSlotCleared } from './ai/aiSlotHelpers'
+import { SettingToggle } from '../SettingRow'
 
 const DEFAULT_AI_SETTINGS = { optimizeFor: 'requests', slots: {} }
 
@@ -89,20 +89,14 @@ export function AiAppModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-5xl">
+      <DialogContent className="w-[95vw] overflow-hidden sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t.aiAssistant}</DialogTitle>
         </DialogHeader>
 
-        <div className="max-h-[85vh] overflow-y-auto overflow-x-hidden space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain -mx-4 px-4 space-y-4">
           {!configured && (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">{t.aiEnable}</p>
-                <p className="text-xs text-muted-foreground">{t.aiEnableDesc}</p>
-              </div>
-              <Switch checked={enabled} onCheckedChange={toggle} />
-            </div>
+            <SettingToggle label={t.aiEnable} desc={t.aiEnableDesc} checked={enabled} onChange={toggle} />
           )}
 
           {enabled && (configured ? (

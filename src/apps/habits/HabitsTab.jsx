@@ -3,6 +3,7 @@ import { BarChart3, Pencil, Plus, Target, Trash2, Undo2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/common/EmptyState'
 import { fireConfetti } from '@/lib/confetti'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -165,11 +166,8 @@ export function HabitsTab() {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 pb-4">
         {!habit ? (
-          <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
-            <Target className="h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">{t.habitsEmpty}</p>
-            <Button size="sm" onClick={openAdd}>{t.habitAdd}</Button>
-          </div>
+          <EmptyState icon={Target} title={t.habitsEmpty} className="h-full"
+            action={<Button size="sm" onClick={openAdd}>{t.habitAdd}</Button>} />
         ) : showHistory ? (
           <HabitHistory habit={habit} periods={periods} completion={completion}
             message={celebrationMessage} t={t} />

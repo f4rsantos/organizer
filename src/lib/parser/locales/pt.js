@@ -23,6 +23,8 @@ export const pt = {
   },
   atWords: ['as', 'às', 'ás', 'a', 'pelas'],
   timeConnectors: ['e', 'hora', 'horas'],
+  timeFromWords: ['das', 'de', 'desde'],
+  timeRangeWords: ['às', 'as', 'ás', 'até', 'a'],
   weekWords: ['semana'],
   weekOfWords: ['semana de'],
   focusWords: {

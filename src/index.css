@@ -112,6 +112,12 @@
         height: 100%;
         overflow: hidden;
     }
+    @media (display-mode: standalone) {
+        html {
+            position: static;
+            min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+        }
+    }
     input[type="date"],
     input[type="time"],
     input[type="datetime-local"],
@@ -376,7 +382,7 @@
 }
 .tiptap-note pre {
     background: var(--secondary);
-    border-radius: 0.6rem;
+    border-radius: calc(var(--radius) * 0.8);
     padding: 0.75rem 0.9rem;
     overflow-x: auto;
 }
@@ -505,4 +511,18 @@
 .dark .tiptap-note .hljs-function .hljs-title,
 .dark .tiptap-note .hljs-section {
     color: #60a5fa;
+}
+
+@supports (corner-shape: superellipse(1.5)) {
+    :root {
+        --radius: 1.05rem;
+        --radius-2xl: 1.45rem;
+        --radius-3xl: 2.1rem;
+    }
+
+    *:not(.rounded-full),
+    *:not(.rounded-full)::before,
+    *:not(.rounded-full)::after {
+        corner-shape: superellipse(1.5);
+    }
 }

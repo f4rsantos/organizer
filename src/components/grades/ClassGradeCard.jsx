@@ -1,9 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { accumulatedScore, formatGrade, gradedFraction, passThresholdOf } from '@/lib/gradeUtils'
+import { accumulatedScore, formatGrade, gradeScaleOf, gradedFraction, passThresholdOf } from '@/lib/gradeUtils'
 import { GradeComponentRow } from './GradeComponentRow'
 import { NeededGradePanel } from './NeededGradePanel'
+import { GradeProgressBar } from './GradeProgressBar'
 import { useGradeHandlers } from './useGradeHandlers'
 
 export function ClassGradeCard({ cls, semId, gradeData }) {
@@ -11,6 +12,7 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const passThreshold = useStore(s => passThresholdOf(s.settings))
+  const scale = useStore(s => gradeScaleOf(s.settings))
   const components = gradeData?.components ?? []
   const score = accumulatedScore(components)
   const { updateGrade, addSubcomponent, removeSubcomponent, updateSubGrade, updateSubWeight } =
@@ -19,9 +21,9 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
   const gradedPct = Math.round(gradedFraction(components) * 100)
 
   return (
-    <Card className="border-board-border">
-      <CardContent className="p-4 space-y-0">
-        <div className="flex items-start gap-2.5 mb-3">
+    <Card className="h-full rounded-2xl border-border py-0">
+      <CardContent className="flex flex-1 flex-col p-4">
+        <div className="flex items-start gap-2.5 mb-2.5">
           <div className="mt-1.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cls.color }} />
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate leading-snug">{cls.name}</p>
@@ -34,6 +36,11 @@ export function ClassGradeCard({ cls, semId, gradeData }) {
             {formatGrade(score)}
           </span>
         </div>
+        {score !== null && (
+          <div className="mb-3">
+            <GradeProgressBar score={score} scale={scale} color={cls.color} failing={score < passThreshold} />
+          </div>
+        )}
 
         {components.length === 0
           ? <p className="text-xs text-muted-foreground py-2">{t.noGradeComponents}</p>

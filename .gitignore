@@ -9,6 +9,7 @@ lerna-debug.log*
 CLAUDE.md
 node_modules
 dist
+dist-cli
 dist-ssr
 *.local
 .graphify-out*

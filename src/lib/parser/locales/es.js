@@ -22,6 +22,8 @@ export const es = {
   },
   atWords: ['a', 'las', 'la', 'sobre'],
   timeConnectors: ['y', 'hora', 'horas'],
+  timeFromWords: ['de', 'desde'],
+  timeRangeWords: ['a', 'hasta'],
   weekWords: ['semana'],
   weekOfWords: ['semana de'],
   focusWords: {

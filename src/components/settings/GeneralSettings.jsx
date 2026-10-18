@@ -1,12 +1,9 @@
-import { Circle, CircleCheck, Plus, X } from 'lucide-react'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { getAppById, getAppTabs } from '@/apps/registry'
+import { WidgetSettings } from './WidgetSettings'
+import { SettingList, SettingRow, SettingSelect, SettingToggle } from './SettingRow'
 
 const CORE_TAB_IDS = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'notes', 'settings']
 
@@ -48,100 +45,29 @@ export function GeneralSettings() {
       .map(id => ({ value: id, label: labelForTab(id) })),
   ]
 
-
-
-
-
-
-
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label>{t.themeColor}</Label>
-            <button onClick={() => updateSettings({ themeFontColor: null, themeBgColor: null, themeHighlightColor: null, themeDoneColor: null })} className="text-xs text-primary hover:underline">
-              {t.themeColorReset}
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground">{t.themeColorDesc}</p>
-          <div className="pt-2 flex flex-col gap-3">
-            <ColorSwatch
-              label={t.themeFontColor}
-              value={settings.themeFontColor ?? '#3b5ea8'}
-              onChange={hex => updateSettings({ themeFontColor: hex })}
-            />
-            <ColorSwatch
-              label={t.themeHighlightColor}
-              value={settings.themeHighlightColor ?? '#e8e6f0'}
-              onChange={hex => updateSettings({ themeHighlightColor: hex })}
-            />
-            <ColorSwatch
-              label={t.themeBgColor}
-              value={settings.themeBgColor ?? '#fafaf9'}
-              onChange={hex => updateSettings({ themeBgColor: hex })}
-            />
-            <ColorSwatch
-              label={t.themeDoneColor}
-              value={settings.themeDoneColor ?? '#22c55e'}
-              onChange={hex => updateSettings({ themeDoneColor: hex })}
-            />
-          </div>
+    <SettingList>
+      <SettingRow label={t.themeColor} desc={t.themeColorDesc} control={
+        <button type="button" onClick={() => updateSettings({ themeFontColor: null, themeBgColor: null, themeHighlightColor: null, themeDoneColor: null })}
+          className="text-xs font-medium text-primary hover:underline">
+          {t.themeColorReset}
+        </button>
+      }>
+        <div className="grid grid-cols-2 gap-3">
+          <ColorSwatch label={t.themeFontColor} value={settings.themeFontColor ?? '#3b5ea8'} onChange={hex => updateSettings({ themeFontColor: hex })} />
+          <ColorSwatch label={t.themeHighlightColor} value={settings.themeHighlightColor ?? '#e8e6f0'} onChange={hex => updateSettings({ themeHighlightColor: hex })} />
+          <ColorSwatch label={t.themeBgColor} value={settings.themeBgColor ?? '#fafaf9'} onChange={hex => updateSettings({ themeBgColor: hex })} />
+          <ColorSwatch label={t.themeDoneColor} value={settings.themeDoneColor ?? '#22c55e'} onChange={hex => updateSettings({ themeDoneColor: hex })} />
         </div>
-      </div>
-      
-
-      <div className="space-y-1.5">
-        <Label>{t.defaultTabLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.defaultTabDesc}</p>
-        <Select value={defaultTab} onValueChange={v => updateSettings({ defaultTab: v })} items={defaultTabOptions}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {defaultTabOptions.map(o => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-
-      <div className="space-y-1.5">
-        <Label>{t.speechInputLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.speechInputDesc}</p>
-        <button type="button" onClick={() => updateSettings({ speechInputEnabled: !speechInputEnabled })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {speechInputEnabled
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {speechInputEnabled ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>{t.semesterModeLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.semesterModeDesc}</p>
-        <button type="button" onClick={() => setSemesterMode(noneMode ? 'semesters' : 'none')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {noneMode
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {noneMode ? t.semesterModeNone : t.semesterModeSemesters}
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>{t.workModeLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.workModeDesc}</p>
-        <button type="button" onClick={() => updateSettings({ workMode: !workMode })}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {workMode
-            ? <CircleCheck className="h-4 w-4 text-primary" />
-            : <Circle className="h-4 w-4" />}
-          {workMode ? t.settingEnabled : t.settingDisabled}
-        </button>
-      </div>
-    </div>
-  )
-}
+      </SettingRow>
+      <SettingSelect label={t.defaultTabLabel} desc={t.defaultTabDesc} value={defaultTab}
+        onChange={v => updateSettings({ defaultTab: v })} options={defaultTabOptions} />
+      <SettingToggle label={t.speechInputLabel} desc={t.speechInputDesc} checked={speechInputEnabled}
+        onChange={v => updateSettings({ speechInputEnabled: v })} />
+      <SettingToggle label={t.semesterModeLabel} desc={t.semesterModeDesc} checked={noneMode}
+        onChange={v => setSemesterMode(v ? 'none' : 'semesters')} />
+      <SettingToggle label={t.workModeLabel} desc={t.workModeDesc} checked={workMode}
+        onChange={v => updateSettings({ workMode: v })} />
+      <WidgetSettings />
+    </SettingList>
+  )}

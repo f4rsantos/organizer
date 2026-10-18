@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FloatingAddButton } from "@/components/common/FloatingAddButton";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ export function AddTaskButton({
   rangeFor = null,
   dateToWeekFn = null,
   className,
+  floating = false,
 }) {
   const [open, setOpen] = useState(false);
   const lang = useStore((s) => s.lang ?? "en");
@@ -27,9 +29,13 @@ export function AddTaskButton({
 
   return (
     <>
-      <Button size="icon" className={className} onClick={() => setOpen(true)}>
-        <Plus className="h-5 w-5" />
-      </Button>
+      {floating
+        ? <FloatingAddButton label={t.addTask} className={className} onClick={() => setOpen(true)} />
+        : (
+          <Button size="icon" aria-label={t.addTask} className={className} onClick={() => setOpen(true)}>
+            <Plus className="h-5 w-5" />
+          </Button>
+        )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

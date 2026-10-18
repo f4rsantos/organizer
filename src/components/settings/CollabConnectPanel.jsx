@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, Link2, Unplug } from 'lucide-react'
+import { Users, Unplug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '@/store/useStore'
@@ -15,11 +15,11 @@ export function CollabGuideModal({ open, onOpenChange, onEnable, confirmLabel })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-hidden">
         <DialogHeader>
           <DialogTitle>{t.collabGuideTitle}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm max-h-[70vh] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain -mx-4 px-4 space-y-3 text-sm">
           <p className="text-muted-foreground">{t.collabGuideIntro}</p>
           <div className="rounded-lg border border-border bg-secondary/40 p-3">
             <p className="text-xs font-medium mb-1">{t.collabGuideImportantTitle}</p>

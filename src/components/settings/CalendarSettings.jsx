@@ -1,25 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Circle, CircleCheck } from 'lucide-react'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { ScheduleImportPanel } from './ScheduleImportPanel'
 import { geocodeCity } from '@/lib/weather'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+import { SettingList, SettingRow, SettingSelect, SettingToggle } from './SettingRow'
 
 const DEFAULT_NOW_COLOR = '#ef4444'
 
-function ColorSwatch({ label, value, onChange }) {
-  return (
-    <div className="flex items-center gap-2">
-      <ClassColorDot compact color={value} onChange={onChange} />
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    </div>
-  )
+const WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
+function weekStartOptions(t) {
+  return WEEK_DAYS.map(dow => ({ value: String(dow), label: t.weekdays[(dow + 6) % 7] }))
 }
 
 function WeatherCitySetting({ t }) {
@@ -52,31 +45,20 @@ function WeatherCitySetting({ t }) {
   }
 
   return (
-    <div className="space-y-1.5 border-t border-border/60 pt-4">
-      <Label>{t.weatherPreview}</Label>
-      <p className="text-xs text-muted-foreground">{t.weatherPreviewDesc}</p>
-      <button type="button" onClick={() => updateSettings({ weatherEnabled: !enabled })}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        {enabled
-          ? <CircleCheck className="h-4 w-4 text-primary" />
-          : <Circle className="h-4 w-4" />}
-        {enabled ? t.settingEnabled : t.settingDisabled}
-      </button>
+    <SettingToggle label={t.weatherPreview} desc={t.weatherPreviewDesc} checked={enabled}
+      onChange={v => updateSettings({ weatherEnabled: v })}>
       {enabled && (
-        <>
+        <div className="space-y-1.5">
           <Input value={input} onChange={e => setInput(e.target.value)}
             onBlur={save} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            placeholder={t.weatherCityPlaceholder} className="mt-1" />
+            placeholder={t.weatherCityPlaceholder} />
           {status === 'loading' && <p className="text-xs text-muted-foreground">{t.weatherCityLoading}</p>}
           {status === 'error' && <p className="text-xs text-destructive">{t.weatherCityError}</p>}
-          {status === 'ok' && coords && (
-            <p className="text-xs text-muted-foreground">{t.weatherCitySaved}</p>
-          )}
-        </>
+          {status === 'ok' && coords && <p className="text-xs text-muted-foreground">{t.weatherCitySaved}</p>}
+        </div>
       )}
-    </div>
-  )
-}
+    </SettingToggle>
+  )}
 
 export function CalendarSettings({ semesterId, semesterStart, semesterEnd }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -86,50 +68,21 @@ export function CalendarSettings({ semesterId, semesterStart, semesterEnd }) {
   const updateSettings = useStore(s => s.updateSettings)
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label>{t.calendarColors}</Label>
-          <button onClick={() => updateSettings({ calendarNowColor: null })}
-            className="text-xs text-primary hover:underline">
+    <SettingList>
+      <SettingRow label={t.calendarNowColor} desc={t.calendarNowColorDesc} control={
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => updateSettings({ calendarNowColor: null })}
+            className="text-xs font-medium text-primary hover:underline">
             {t.themeColorReset}
           </button>
+          <ClassColorDot compact color={nowColor} onChange={hex => updateSettings({ calendarNowColor: hex })} />
         </div>
-        <p className="text-xs text-muted-foreground">{t.calendarNowColorDesc}</p>
-        <div className="pt-2 flex flex-col gap-3">
-          <ColorSwatch
-            label={t.calendarNowColor}
-            value={nowColor}
-            onChange={hex => updateSettings({ calendarNowColor: hex })}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1.5 border-t border-border/60 pt-4">
-        <Label>{t.weekStartDay}</Label>
-        <Select value={String(weekStartsOn)} onValueChange={v => updateSettings({ weekStartsOn: Number(v) })}
-          items={[0, 1, 2, 3, 4, 5, 6].map(dow => ({ value: String(dow), label: t.weekdays[(dow + 6) % 7] }))}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4}>
-            {[0, 1, 2, 3, 4, 5, 6].map(dow => (
-              <SelectItem key={dow} value={String(dow)}>{t.weekdays[(dow + 6) % 7]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
+      } />
+      <SettingSelect label={t.weekStartDay} value={String(weekStartsOn)}
+        onChange={v => updateSettings({ weekStartsOn: Number(v) })} options={weekStartOptions(t)} />
       <WeatherCitySetting t={t} />
-
-      <div className="space-y-2 border-t border-border/60 pt-4">
-        <Label>{t.scheduleImportTitle}</Label>
-        <ScheduleImportPanel
-          semesterId={semesterId}
-          semesterStart={semesterStart}
-          semesterEnd={semesterEnd}
-        />
-      </div>
-    </div>
-  )
-}
+      <SettingRow label={t.scheduleImportTitle}>
+        <ScheduleImportPanel semesterId={semesterId} semesterStart={semesterStart} semesterEnd={semesterEnd} />
+      </SettingRow>
+    </SettingList>
+  )}

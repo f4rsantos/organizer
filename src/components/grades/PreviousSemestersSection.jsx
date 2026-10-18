@@ -36,7 +36,7 @@ export function PreviousSemestersSection({ semId }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
         <div className="flex items-baseline justify-between">
           <div>
             <p className="text-xs text-muted-foreground">{t.semesterAvg}</p>
@@ -88,27 +88,24 @@ export function PreviousSemestersSection({ semId }) {
 
       {pastSemesters.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {t.previousSemesters}
           </h2>
-          {pastSemesters.map((sem) => (
-            <div
-              key={sem.id}
-              className="rounded-xl border border-border bg-card p-4 flex items-center justify-between"
-            >
-              <p className="font-medium text-sm">{sem.name}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {t.finalGrade}
-                </span>
-                <GradeInput
-                  value={grades[sem.id]?._semesterFinalGrade ?? null}
-                  onChange={(v) => setSemesterFinalGrade(sem.id, v)}
-                  className="w-20 h-7 text-center text-sm"
-                />
+          <div className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border bg-card px-4">
+            {pastSemesters.map((sem) => (
+              <div key={sem.id} className="flex items-center justify-between py-3">
+                <p className="text-sm font-medium">{sem.name}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{t.finalGrade}</span>
+                  <GradeInput
+                    value={grades[sem.id]?._semesterFinalGrade ?? null}
+                    onChange={(v) => setSemesterFinalGrade(sem.id, v)}
+                    className="h-7 w-16 text-center text-sm"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

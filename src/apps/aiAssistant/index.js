@@ -12,6 +12,7 @@ export const aiAssistantApp = {
   icon: Sparkles,
   keywords: ['ai', 'assistant', 'agent', 'llm', 'anthropic', 'claude', 'ollama'],
   isEnabled: state => state.settings?.apps?.aiAssistant === true,
+  needsSetup: true,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, aiAssistant: value } }),
   wipe: state => {
     clearAllAiKeys()

@@ -14,18 +14,16 @@ export function NeededGradePanel({ semId, classId, gradeData }) {
   const needed = selectNeededGrade(gradeData, passThreshold)
 
   return (
-    <div className="pt-3 space-y-2">
-      <div className="flex items-center gap-3">
-        <Label className="text-xs shrink-0">{t.targetGrade}</Label>
-        <GradeInput value={gradeData?.targetGrade ?? passThreshold} onChange={v => setTargetGrade(semId, classId, v ?? passThreshold)} className="h-7 w-20 text-sm text-center" />
+    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/50 pt-3">
+      <div className="flex items-center gap-2">
+        <Label className="shrink-0 text-xs text-muted-foreground">{t.targetGrade}</Label>
+        <GradeInput value={gradeData?.targetGrade ?? passThreshold} onChange={v => setTargetGrade(semId, classId, v ?? passThreshold)} className="h-7 w-16 text-center text-sm" />
       </div>
-      {needed !== null && (
-        <p className="text-sm">
-          {t.youNeed} <span className={`font-semibold ${needed > scale ? 'text-destructive' : 'text-primary'}`}>{formatGrade(needed)}</span>
-          {needed > scale ? t.notAchievable : t.onRemaining}
-        </p>
-      )}
-      {needed === null && <p className="text-xs text-muted-foreground">{t.allGraded}</p>}
+      <p className="ml-auto text-xs text-muted-foreground">
+        {needed === null
+          ? t.allGraded
+          : <>{t.youNeed} <span className={`text-sm font-semibold ${needed > scale ? 'text-destructive' : 'text-primary'}`}>{formatGrade(needed)}</span>{needed > scale ? t.notAchievable : t.onRemaining}</>}
+      </p>
     </div>
   )
 }

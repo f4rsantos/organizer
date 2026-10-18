@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Label } from '@/components/ui/label'
+import { SettingList, SettingRow } from './SettingRow'
 import { Input } from '@/components/ui/input'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
@@ -48,18 +48,11 @@ export function GradeScaleSettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label>{t.gradeScaleLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.gradeScaleDesc}</p>
-        <NumberField value={scale} onCommit={handleScale} min={1} max={1000} />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>{t.passingGradeLabel}</Label>
-        <p className="text-xs text-muted-foreground">{t.passingGradeDesc}</p>
-        <NumberField value={passThreshold} onCommit={handlePassThreshold} min={0} max={scale} />
-      </div>
-    </div>
+    <SettingList>
+      <SettingRow label={t.gradeScaleLabel} desc={t.gradeScaleDesc}
+        control={<NumberField value={scale} onCommit={handleScale} min={1} max={1000} />} />
+      <SettingRow label={t.passingGradeLabel} desc={t.passingGradeDesc}
+        control={<NumberField value={passThreshold} onCommit={handlePassThreshold} min={0} max={scale} />} />
+    </SettingList>
   )
 }

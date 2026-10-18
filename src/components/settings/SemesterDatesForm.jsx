@@ -16,7 +16,7 @@ const formOf = semester => semester
     }
   : EMPTY_FORM
 
-export function SemesterDatesForm({ onAdded, semester }) {
+export function SemesterDatesForm({ semester }) {
   const [form, setForm] = useState(() => formOf(semester))
   const addSemester = useStore(s => s.addSemester)
   const updateSemester = useStore(s => s.updateSemester)
@@ -39,8 +39,7 @@ export function SemesterDatesForm({ onAdded, semester }) {
       updateSemester(semester.id, form)
       return
     }
-    const id = addSemester(form)
-    onAdded?.(id)
+    addSemester(form)
     setForm(EMPTY_FORM)
   }
 

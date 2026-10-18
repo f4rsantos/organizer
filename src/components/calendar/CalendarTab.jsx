@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   addWeeks, startOfWeek, endOfWeek, parseISO, format, startOfMonth,
   addMonths, subMonths, addDays, subDays, setISOWeek, startOfISOWeek,
@@ -14,6 +14,7 @@ import { useMergedEvents } from '@/hooks/useMergedEvents'
 import { CalendarEventProviders } from '@/apps/CalendarEventProviders'
 import { EventForm } from './EventForm'
 import { DayDetailDialog } from './DayDetailDialog'
+import { FloatingAddButton } from '@/components/common/FloatingAddButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { ShareToTeamDialog } from '@/components/collab/ShareToTeamDialog'
@@ -24,6 +25,7 @@ import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import { expandTasksForRange, expandEventsForRange } from '@/lib/recurrence'
+import { eventDateRange } from '@/lib/calendar/dayAgenda'
 import { setProviderEvents } from '@/lib/widgets/extraEvents'
 import { nanoid } from '@/lib/ids'
 
@@ -54,12 +56,6 @@ function getTaskDateRange(task, semesterStartDate, noneMode, year) {
   const s = weekToDateRange(semesterStartDate, task.weekStart)
   const e = weekToDateRange(semesterStartDate, task.weekEnd)
   return { start: s.start, end: e.end }
-}
-
-function eventDateRange(event) {
-  if (event.date) return { start: parseISO(event.date), end: parseISO(event.date) }
-  if (event.startDate) return { start: parseISO(event.startDate), end: parseISO(event.endDate ?? event.startDate) }
-  return null
 }
 
 export function CalendarTab() {
@@ -293,9 +289,8 @@ export function CalendarTab() {
       />
 
       {hasScope && (
-        <Button size="icon" className="absolute bottom-6 right-6 z-20 h-12 w-12 rounded-full shadow-lg" onClick={() => openNewEvent(format(new Date(), 'yyyy-MM-dd'))}>
-          <Plus className="h-5 w-5" />
-        </Button>
+        <FloatingAddButton label={t.addEvent} className="absolute bottom-6 right-6 z-20"
+          onClick={() => openNewEvent(format(new Date(), 'yyyy-MM-dd'))} />
       )}
 
       <DayDetailDialog open={Boolean(dayDetail)} onOpenChange={v => !v && setDayDetail(null)}
