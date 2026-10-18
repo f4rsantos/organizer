@@ -361,7 +361,7 @@ export const useStore = create((set, get) => ({
     const id = nanoid()
     set(s => persist({
       ...s,
-      activeSemesterId: s.activeSemesterId ?? id,
+      activeSemesterId: id,
       semesters: [...s.semesters, { id, ...data }],
       kanban: { ...s.kanban, [id]: { columns: DEFAULT_COLUMNS } },
     }))
@@ -1074,6 +1074,10 @@ export const useStore = create((set, get) => ({
       const { focusSecs: _focusSecs, createdAt: _createdAt, ...rest } = p
       return rest
     }),
+  })),
+  reopenNextSemester: semId => set(s => persist({
+    ...s,
+    dismissedNextSemester: Object.fromEntries(Object.entries(s.dismissedNextSemester ?? {}).filter(([k]) => k !== semId)),
   })),
   dismissNextSemester: semId => set(s => persist({
     ...s, dismissedNextSemester: { ...(s.dismissedNextSemester ?? {}), [semId]: true }

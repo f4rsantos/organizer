@@ -124,6 +124,13 @@ export function applyPreset(data, actions, presetKey, previousPresetKey) {
   return semId
 }
 
+export function replaceWithPreset(data, actions, presetKey) {
+  const previousId = actions.getState().activeSemesterId
+  const semId = applyPreset(data, actions, presetKey)
+  if (previousId && previousId !== semId) actions.deleteSemester(previousId)
+  return semId
+}
+
 export async function transitionSemester(oldSemId, nextKey, carry, actions) {
   const { getState, setPresetUpdatedAt, reassignSemesterData, advanceCourseAvg, deleteSemester, setActiveSemester } = actions
 

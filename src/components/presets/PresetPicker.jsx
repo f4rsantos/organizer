@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Library, Loader2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
-import { PRESET_GROUPS, checkPresetExists, fetchPreset, applyPreset } from '@/lib/presets'
+import { PRESET_GROUPS, checkPresetExists, fetchPreset, replaceWithPreset } from '@/lib/presets'
 import { presetYearLabel, presetSemLabel } from '@/lib/presetLabels'
 import { cn } from '@/lib/utils'
 
@@ -63,8 +63,7 @@ export function PresetPicker({ onBack, onLoaded }) {
   const setTargetGrade = useStore(s => s.setTargetGrade)
   const addTask = useStore(s => s.addTask)
   const setPresetUpdatedAt = useStore(s => s.setPresetUpdatedAt)
-  const activeSemesterId = useStore(s => s.activeSemesterId)
-  const semesters = useStore(s => s.semesters ?? [])
+  const deleteSemester = useStore(s => s.deleteSemester)
 
   const [available, setAvailable] = useState({})
   const [checked, setChecked] = useState(false)
@@ -87,10 +86,11 @@ export function PresetPicker({ onBack, onLoaded }) {
     setError(null)
     try {
       const data = await fetchPreset(key, setPresetUpdatedAt)
-      const actions = { addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, getClasses: () => useStore.getState().classes }
-      const activeSem = semesters.find(s => s.id === activeSemesterId)
-      const previousPresetKey = key === 'summer' ? (activeSem?.presetKey ?? null) : null
-      applyPreset(data, actions, key, previousPresetKey)
+      const actions = {
+        addSemester, addClass, addHoliday, setGradeComponents, setTargetGrade, addTask, deleteSemester,
+        getState: useStore.getState, getClasses: () => useStore.getState().classes,
+      }
+      replaceWithPreset(data, actions, key)
       onLoaded()
     } catch {
       setError(t.presetError)

@@ -31,9 +31,6 @@ import { PresetOverlay } from '@/components/presets/PresetOverlay'
 import { GuidesOverlay } from '@/components/guides/GuidesOverlay'
 import { importState } from '@/store/persist'
 import { loadFirebaseConfig } from '@/lib/firebase'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 
 const ALWAYS_AVAILABLE_SECTIONS = ['semester', 'tasks', 'calendar', 'focus', 'notifications', 'general', 'navbar', 'data', 'apps']
 const REVEAL_FLASH_MS = 1600
@@ -77,12 +74,12 @@ function revealSetting({ section, label }) {
 export function SettingsTab({ syncStatus }) {
   const semesters = useStore(s => s.semesters)
   const activeSemesterId = useStore(s => s.activeSemesterId)
-  const setActiveSemester = useStore(s => s.setActiveSemester)
   const allClasses = useStore(s => s.classes)
   const grades = useStore(s => s.grades)
   const kanban = useStore(s => s.kanban)
   const workMode = useStore(s => s.settings?.workMode ?? false)
   const dismissed = useStore(s => s.dismissedNextSemester ?? {})
+  const reopenNextSemester = useStore(s => s.reopenNextSemester)
   const importData = useStore(s => s.importData)
 
   const noneMode = useStore(s => s.settings?.semesterMode === 'none')
@@ -144,7 +141,7 @@ export function SettingsTab({ syncStatus }) {
   }
 
   const semesterEnded = semester?.endDate && new Date(semester.endDate) < new Date()
-  const showNextSemesterHint = semesterEnded && semester?.presetKey && !dismissed[activeSemesterId]
+  const showNextSemesterHint = semesterEnded && semester?.presetKey && dismissed[activeSemesterId]
 
   if (!semesters.length && !noneMode) {
     return (
@@ -209,19 +206,6 @@ export function SettingsTab({ syncStatus }) {
           </div>
         </div>
 
-        {semesters.length > 1 && (
-          <Select value={activeSemesterId} onValueChange={setActiveSemester} items={semesters.map(s => ({ value: s.id, label: s.name }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select semester" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {semesters.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
         <SettingsSearch query={query} onQueryChange={setQuery} sections={sections} onReveal={reveal} />
 
         {!searching && (
@@ -230,18 +214,12 @@ export function SettingsTab({ syncStatus }) {
               <AccordionItem id="settings-section-semester" value="semester" className="px-4">
                 <SectionTrigger section="semester" summary={summaries.semester}>{t.semester}</SectionTrigger>
                 <AccordionContent className="pb-4 space-y-3">
-                  <SemesterDatesForm />
-                  {semester && (
-                    <div className="rounded-lg bg-secondary/60 px-3 py-2.5 text-sm">
-                      <span className="font-medium">{semester.name}</span>
-                      <span className="ml-2 text-muted-foreground">{semester.startDate} → {semester.endDate}</span>
-                    </div>
-                  )}
+                  <SemesterDatesForm semester={semester} />
                   {showNextSemesterHint && (
                     <div className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
                       <span className="text-xs text-muted-foreground">{t.nextSemesterDesc}</span>
                       <Button size="sm" variant="outline" className="ml-3 shrink-0 text-xs"
-                        onClick={() => setShowPresets(true)}>
+                        onClick={() => reopenNextSemester(activeSemesterId)}>
                         {t.loadNextSemester}
                       </Button>
                     </div>
@@ -381,7 +359,6 @@ export function SettingsTab({ syncStatus }) {
         </p>
       </div>
 
-      <PresetOverlay open={showPresets} onClose={() => setShowPresets(false)} />
       <GuidesOverlay open={showGuides} onClose={() => setShowGuides(false)} />
     </div>
   )
