@@ -29,7 +29,7 @@ export function GradesTab() {
         ? <EmptyState icon={BookOpen} title={t.noClassesYet} description={t.addClassesInSettings} />
         : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {classes.map(cls => (
                 <ClassGradeCard key={cls.id} cls={cls} semId={activeSemesterId}
                   gradeData={grades[activeSemesterId]?.[cls.id]} />

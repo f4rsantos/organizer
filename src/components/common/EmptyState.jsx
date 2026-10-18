@@ -1,11 +1,13 @@
 import { CalendarDays } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-export function EmptyState({ icon: Icon = CalendarDays, title, description }) {
+export function EmptyState({ icon: Icon = CalendarDays, title, description, action, className }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      {Icon && <Icon className="h-10 w-10 text-muted-foreground/40" />}
-      <p className="font-medium text-muted-foreground">{title}</p>
-      {description && <p className="text-sm text-muted-foreground/70 max-w-xs">{description}</p>}
+    <div className={cn('flex flex-col items-center justify-center gap-2 py-16 text-center animate-in fade-in duration-300', className)}>
+      {Icon && <Icon className="mb-1 h-9 w-9 text-muted-foreground/40" strokeWidth={1.5} />}
+      <p className="text-sm font-medium">{title}</p>
+      {description && <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">{description}</p>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   )
 }

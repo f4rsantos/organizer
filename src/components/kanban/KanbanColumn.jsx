@@ -58,7 +58,7 @@ export function KanbanColumn({ col, cards, semId, prevColumnId = null, nextColum
 
   return (
     <div ref={setNodeRef}
-      className={cn('relative flex w-full md:min-w-56 shrink-0 flex-col gap-2 rounded-xl p-2 transition-colors',
+      className={cn('relative flex w-full md:min-w-56 shrink-0 flex-col gap-2 rounded-2xl p-2 transition-colors',
         isBanded ? 'md:grid md:[grid-row:1/-1] md:[grid-template-rows:subgrid] md:gap-0' : 'md:flex-1 md:h-full',
         isOverColumn ? 'bg-accent/60 ring-2 ring-inset ring-primary' : 'bg-board')}>
       <button type="button" onClick={() => setCollapsed(v => !v)}

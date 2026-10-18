@@ -11,6 +11,8 @@ import { ClassSection } from "./ClassSection";
 import { AddTaskButton } from "./AddTaskButton";
 import { TaskAlertsPanel } from './TaskAlertsPanel'
 import { SwipePager } from "@/components/calendar/SwipePager";
+import { ListChecks } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 
 function ClassRing({ groups, byClass }) {
   const withTasks = groups.filter((g) => g.tasks.length > 0);
@@ -72,7 +74,7 @@ function MobileWeekPage({ week, activeSemesterId, classes, weekCount, weekStartD
             startDate={weekStartDate}
             rangeFor={weekDateRange}
             dateToWeekFn={dateToWeek}
-            className="h-12 w-12 rounded-full shadow-md"
+            floating
           />
         </div>
       </div>
@@ -215,7 +217,7 @@ export function TasksTab() {
         <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
           {otherGroup && otherGroup.tasks.length > 0
             ? <ClassSection cls={otherGroup.cls} tasks={otherGroup.tasks} ratio={byClass[otherGroup.cls.id] ?? 0} />
-            : <p className="text-sm text-muted-foreground text-center pt-8">{t.noTasks}</p>
+            : <EmptyState icon={ListChecks} title={t.noTasks} />
           }
         </div>
       </div>
@@ -285,7 +287,7 @@ export function TasksTab() {
           startDate={weekStartDate}
           rangeFor={weekDateRange}
           dateToWeekFn={dateToWeek}
-          className="h-12 w-12 rounded-full"
+          floating
         />
       </div>
       <div className="shrink-0 border-t border-border/50 bg-background/80 backdrop-blur-sm px-4 py-3">
