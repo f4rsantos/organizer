@@ -17,6 +17,9 @@ import {
   overflowPresenceKeys, presenceKeysToEvict,
   noteCollabExtensionPlugins,
 } from '@/lib/notes/yDoc'
+import { storedDocFromStrokes, strokesFromStoredDoc } from '@/lib/notes/canvasYDoc'
+import { normalizePaper } from '@/lib/notes/paper'
+import { nanoid } from '@/lib/ids'
 
 export {
   NOTE_FRAGMENT_FIELD, NOTE_TITLE_FIELD, NOTE_TITLE_META_FIELD,
@@ -84,17 +87,25 @@ export async function openPresenceEntriesForNote({ presenceMap, sharedNoteId, te
   return opened.filter(Boolean)
 }
 
-export function buildSharedNoteFromLocalNote({ note, schema, sharedNoteId, createdBy, now = Date.now() }) {
-  const docJSON = note?.doc ?? schema.topNodeType.createAndFill().toJSON()
+function sharedDocState(note, schema) {
   const title = note?.title ?? ''
+  if (note?.kind === 'canvas') return storedDocFromStrokes(note.strokes ?? [], title, nanoid)
+  const docJSON = note?.doc ?? schema.topNodeType.createAndFill().toJSON()
   const ydoc = decodeNoteDoc(tiptapJSONToStoredDoc(docJSON, schema))
   adoptCollaborativeTitle(ydoc, title)
   const ydocState = encodeNoteDoc(ydoc)
   ydoc.destroy()
+  return ydocState
+}
+
+export function buildSharedNoteFromLocalNote({ note, schema, sharedNoteId, createdBy, now = Date.now() }) {
+  const isDrawing = note?.kind === 'canvas'
   return {
     id: sharedNoteId,
-    title,
-    ydocState,
+    title: note?.title ?? '',
+    kind: isDrawing ? 'canvas' : 'text',
+    ...(isDrawing ? { paper: normalizePaper(note.paper) } : {}),
+    ydocState: sharedDocState(note, schema),
     createdBy: createdBy ?? null,
     createdAt: note?.createdAt ?? now,
     updatedAt: now,
@@ -102,12 +113,29 @@ export function buildSharedNoteFromLocalNote({ note, schema, sharedNoteId, creat
   }
 }
 
+function sharedTitle(stored, fallback) {
+  const ydoc = decodeNoteDoc(stored)
+  const title = resolveNoteTitle(ydoc, fallback)
+  ydoc.destroy()
+  return title
+}
+
 export function buildLocalNoteFromSharedNote({ sharedNote, schema, now = Date.now() }) {
   const stored = sharedNote?.ydocState ?? ''
+  const title = sharedTitle(stored, sharedNote?.title)
+  if (sharedNote?.kind === 'canvas') {
+    return {
+      title,
+      kind: 'canvas',
+      doc: null,
+      body: '',
+      strokes: strokesFromStoredDoc(stored).map(({ id: _id, ...stroke }) => stroke),
+      paper: normalizePaper(sharedNote.paper),
+      createdAt: now,
+      updatedAt: now,
+    }
+  }
   const doc = storedDocToTiptapJSON(stored, schema)
-  const ydoc = decodeNoteDoc(stored)
-  const title = resolveNoteTitle(ydoc, sharedNote?.title)
-  ydoc.destroy()
   return {
     title,
     kind: 'text',

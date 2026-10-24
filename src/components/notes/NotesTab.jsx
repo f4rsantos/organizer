@@ -439,6 +439,7 @@ export function NotesTab() {
             <NoteEditor
               note={selected}
               onDeleted={() => setSelectedId(null)}
+              onReplaced={setSelectedId}
               onPrev={handlePrev}
               onNext={handleNext}
               hasPrev={hasPrev}

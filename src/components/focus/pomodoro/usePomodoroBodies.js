@@ -11,6 +11,7 @@ import {
 } from './utils'
 import { createGravitySensor, requiresDeviceOrientationPermission } from './gravity'
 import { advanceBodies, splitFrame, wakeBodies } from './physicsEngine'
+import { fitTomatoesToArea } from './tomatoBudget'
 
 const MAX_WOBBLE_SECONDS = 5
 const FRESH_TOMATO_MS = 15000
@@ -78,11 +79,12 @@ function buildBodiesFromPomodoros(prevBodies, pomodoros, bounds, { dropFresh }) 
   const sorted = [...pomodoros]
     .filter(p => !isPomodoroAggregate(p))
     .sort((a, b) => getPomodoroTimestamp(a) - getPomodoroTimestamp(b))
+  const fitted = fitTomatoesToArea(sorted, { width, height, sizeOf: p => sizeFromPct(getStoredSizePct(p)) })
 
-  if (!sorted.length) return []
+  if (!fitted.length) return []
 
   const now = Date.now()
-  return sorted.map((pomodoro, idx) => {
+  return fitted.map((pomodoro, idx) => {
     const id = String(pomodoro.id ?? `${pomodoro.createdAt}-${idx}`)
     const existing = byId.get(id)
     if (existing) return existing
@@ -206,11 +208,12 @@ export function usePomodoroBodies({
     const dropFresh = hasSyncedBodiesRef.current
     hasSyncedBodiesRef.current = true
     setBodies(prev => {
-      const built = buildBodiesFromPomodoros(prev, pomodoros, bounds, { dropFresh })
-      const next = showPeriodStats && periodIds && periodIds.size > 0
-        ? built.filter(b => periodIds.has(String(b.id)))
-        : built
-      const lostSupport = prev.some(b => !next.some(n => n.id === b.id))
+      const visible = showPeriodStats && periodIds && periodIds.size > 0
+        ? pomodoros.filter(p => periodIds.has(String(p.id)))
+        : pomodoros
+      const next = buildBodiesFromPomodoros(prev, visible, bounds, { dropFresh })
+      const nextIds = new Set(next.map(b => b.id))
+      const lostSupport = prev.some(b => !nextIds.has(b.id))
       return lostSupport ? wakeBodies(next) : next
     })
   }, [getBounds, pomodoros, periodIds, showPeriodStats])

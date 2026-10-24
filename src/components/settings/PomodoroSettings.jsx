@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { SettingList, SettingSelect, SettingToggle } from './SettingRow'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
+import { PomodoroRecoverPanel } from './PomodoroRecoverPanel'
 
 const DEFAULT = { enabled: false, resetPeriod: 'week', trackStats: false, showAbandoned: true, showPeriodStats: true, showOverlay: false, requireFocusOnScreen: true }
 
@@ -48,6 +49,7 @@ export function PomodoroSettings() {
       <SettingToggle label={t.pomodoroShowAbandoned} checked={Boolean(pom.showAbandoned)} onChange={() => toggle('showAbandoned')} />
       <SettingToggle label={t.pomodoroRequireFocus} checked={requiresFocus}
         onChange={() => updatePomodoroSettings({ requireFocusOnScreen: !requiresFocus })} />
+      <PomodoroRecoverPanel t={t} />
       <div className="pt-3.5">
         <Button type="button" variant="ghost" size="sm"
           className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"

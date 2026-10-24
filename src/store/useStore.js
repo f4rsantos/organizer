@@ -11,6 +11,8 @@ import { cacheCollabUserId } from '@/lib/collab/identity'
 import { mergeSyncedState } from '@/lib/sync/threeWayMerge'
 import { createSyncBase, syncBaseFor } from '@/lib/sync/syncBase'
 import { createFocusTomato } from '@/lib/focus/focusCycle'
+import { planPomodoroRecovery, recoveryIntervalSecs } from '@/lib/focus/pomodoroRecovery'
+import { getPeriodPomodoros } from '@/components/focus/pomodoro/utils'
 import { resolveSeriesFolder } from '@/lib/notes/eventFolder'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
@@ -42,6 +44,18 @@ function firstColumnIdFor(state, boardId) {
   return sortedColumns(state, boardId)[0]?.id ?? null
 }
 
+function endOfColumnOrder(tasks, boardId, columnId) {
+  const orders = tasks
+    .filter(t => t.kanban?.columnId === columnId && boardIdForTask(t) === boardId)
+    .map(t => (Number.isFinite(t.kanban.order) ? t.kanban.order : 0))
+  return orders.length ? Math.max(...orders) + 1 : 0
+}
+
+function moveToColumn(tasks, task, columnId) {
+  if (task.kanban?.columnId === columnId) return task.kanban
+  return { ...task.kanban, columnId, order: endOfColumnOrder(tasks, boardIdForTask(task), columnId) }
+}
+
 function applyTaskDone(state, id, resolveDone) {
   return {
     ...state,
@@ -52,7 +66,7 @@ function applyTaskDone(state, id, resolveDone) {
       if (!t.kanban) return { ...t, done }
       const boardId = boardIdForTask(t)
       const targetCol = done ? doneColumnIdFor(state, boardId) : firstColumnIdFor(state, boardId)
-      return { ...t, done, kanban: { ...t.kanban, columnId: targetCol ?? t.kanban.columnId } }
+      return { ...t, done, kanban: moveToColumn(state.tasks, t, targetCol ?? t.kanban.columnId) }
     }),
   }
 }
@@ -67,8 +81,13 @@ function currentWeekOf(state) {
 
 function unionApps(localApps, remoteApps) {
   const merged = { ...(localApps ?? {}) }
-  for (const [id, on] of Object.entries(remoteApps ?? {})) {
-    merged[id] = merged[id] === true || on === true
+  for (const [id, remoteValue] of Object.entries(remoteApps ?? {})) {
+    const localValue = merged[id]
+    if (typeof localValue === 'boolean' || typeof remoteValue === 'boolean') {
+      merged[id] = localValue === true || remoteValue === true
+      continue
+    }
+    merged[id] = localValue !== undefined ? localValue : remoteValue
   }
   return merged
 }
@@ -745,7 +764,7 @@ export const useStore = create((set, get) => ({
       tasks: s.tasks.map(t => {
         if (t.id !== cardId) return t
         const done = doneCol == null ? t.done : targetColId === doneCol
-        return { ...t, done, kanban: { ...t.kanban, columnId: targetColId } }
+        return { ...t, done, kanban: moveToColumn(s.tasks, t, targetColId) }
       }),
     })
   }),
@@ -1068,6 +1087,14 @@ export const useStore = create((set, get) => ({
     return persist({ ...s, pomodoros: [...(s.pomodoros ?? []), tomato] })
   }),
   clearPomodoros: () => set(s => persist({ ...s, pomodoros: [] })),
+  recoverPomodoros: () => set(s => {
+    const all = s.pomodoros ?? []
+    const periodEntries = getPeriodPomodoros(all, s.settings?.pomodoro?.resetPeriod ?? 'week')
+    const { entries, summary } = planPomodoroRecovery(periodEntries, recoveryIntervalSecs(s.settings?.focus), { makeId: nanoid })
+    if (!summary.addedCount) return s
+    const replaced = new Set(periodEntries)
+    return persist({ ...s, pomodoros: [...all.filter(p => !replaced.has(p)), ...entries] })
+  }),
   erasePomodoroStats: () => set(s => persist({
     ...s,
     pomodoros: (s.pomodoros ?? []).map(p => {

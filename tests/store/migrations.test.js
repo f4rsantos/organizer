@@ -152,3 +152,17 @@ describe('normalizeState settings.apps.aiAssistant', () => {
     expect(state.settings.apps.somethingNew).toEqual({ foo: 'bar' })
   })
 })
+
+describe('note normalization keeps the paper', () => {
+  it('keeps the chosen paper and drops unknown values', () => {
+    const state = normalizeState({
+      ...baseRawState(),
+      notes: [
+        { id: 'n1', paper: { pattern: 'grid', style: 'dotted' } },
+        { id: 'n2', paper: { pattern: 'spiral', style: 'neon' } },
+      ],
+    })
+    expect(state.notes[0].paper).toEqual({ pattern: 'grid', style: 'dotted' })
+    expect(state.notes[1].paper).toEqual({ pattern: 'none', style: 'solid' })
+  })
+})

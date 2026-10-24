@@ -1,13 +1,15 @@
 import { useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { isSharedLocalHidden, applyAgentOverlay } from '@/lib/collab/mergeUtils'
+import { normalizePaper } from '@/lib/notes/paper'
 
 function mapRemoteNote(note, teamId, sharedNoteFolders) {
   const id = `shared:${teamId}:${note.id}`
   return {
     id,
     title: note.title ?? '',
-    kind: 'text',
+    kind: note.kind === 'canvas' ? 'canvas' : 'text',
+    paper: normalizePaper(note.paper),
     body: '',
     doc: null,
     strokes: [],
