@@ -54,3 +54,34 @@ describe('reorderKanbanCards', () => {
     expect(a.kanban.columnId).toBe('col_done')
   })
 })
+
+describe('done column keeps the order cards were finished in', () => {
+  const doneOrder = store => store.getState().tasks
+    .filter(t => t.kanban.columnId === 'col_done')
+    .sort((x, y) => x.kanban.order - y.kanban.order)
+    .map(t => t.id)
+
+  it('puts each card ticked off at the bottom of done', async () => {
+    const store = await freshStore()
+    store.getState().toggleTask('c')
+    store.getState().toggleTask('a')
+    store.getState().toggleTask('b')
+    expect(doneOrder(store)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('puts a card moved into done at the bottom', async () => {
+    const store = await freshStore()
+    store.getState().moveKanbanCard('sem1', 'c', 'col_done')
+    store.getState().moveKanbanCard('sem1', 'a', 'col_done')
+    expect(doneOrder(store)).toEqual(['c', 'a'])
+  })
+
+  it('puts a reopened card at the bottom of to do', async () => {
+    const store = await freshStore()
+    store.getState().toggleTask('a')
+    store.getState().toggleTask('a')
+    const todo = store.getState().tasks.filter(t => t.kanban.columnId === 'col_todo')
+      .sort((x, y) => x.kanban.order - y.kanban.order).map(t => t.id)
+    expect(todo).toEqual(['b', 'c', 'a'])
+  })
+})

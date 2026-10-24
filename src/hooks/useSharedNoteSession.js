@@ -3,6 +3,7 @@ import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { getMemberColor, getMemberDisplayName } from '@/lib/collab/teamColors'
 import { resolveTeamUserId } from '@/hooks/useTeamIdentity'
+import { nanoid } from '@/lib/ids'
 
 function buildCursorElement(user) {
   const wrapper = document.createElement('span')
@@ -64,10 +65,12 @@ export function useSharedNoteSession(sharedMeta) {
         { createNoteDocSession, createNoteAwareness, noteCollabExtensionPlugins, encodeAwarenessPresence, presenceEntryKey, presenceKeysToEvict, noteTitleText, noteTitleMeta, adoptCollaborativeTitle, resolveNoteTitle, AWARENESS_HEARTBEAT_MS },
         { publishNotePresence, clearNotePresence, updateTeamState },
         { classifyCollabError },
+        { createSharedCanvas },
       ] = await Promise.all([
         import('@/lib/notes/yDoc'),
         import('@/lib/collab/firebase'),
         import('@/lib/collab/errors'),
+        import('@/lib/notes/canvasYDoc'),
       ])
       if (cancelled) return
 
@@ -116,7 +119,8 @@ export function useSharedNoteSession(sharedMeta) {
       const session = createNoteDocSession({ stored: initialStored, onFlush: writeSharedNote })
       flushedDoc = session.ydoc
       const awareness = createNoteAwareness(session.ydoc, localUser)
-      active = { session, awareness }
+      const canvas = createSharedCanvas(session.ydoc, nanoid)
+      active = { session, awareness, canvas }
       sessionRef.current = active
 
       const beat = () => {
@@ -139,6 +143,7 @@ export function useSharedNoteSession(sharedMeta) {
       }
 
       setCollab({
+        canvas,
         plugins: noteCollabExtensionPlugins({
           ydoc: session.ydoc,
           awareness,
@@ -161,6 +166,7 @@ export function useSharedNoteSession(sharedMeta) {
       sessionRef.current = null
       if (!pending) return
       pending.stopPresence?.()
+      pending.canvas?.destroy()
       pending.awareness?.destroy?.()
       pending.session.destroy().catch(() => {})
     }

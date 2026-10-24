@@ -5,13 +5,12 @@ const MIME = {
   doc: 'application/msword',
 }
 
-function safeFileName(title) {
+export function safeFileName(title) {
   const base = String(title ?? '').trim() || 'note'
   return base.replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80)
 }
 
-function download(content, fileName, mime) {
-  const blob = new Blob([content], { type: `${mime};charset=utf-8` })
+export function downloadBlob(blob, fileName) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -20,7 +19,11 @@ function download(content, fileName, mime) {
   URL.revokeObjectURL(url)
 }
 
-function escapeHtml(text) {
+function download(content, fileName, mime) {
+  downloadBlob(new Blob([content], { type: `${mime};charset=utf-8` }), fileName)
+}
+
+export function escapeHtml(text) {
   return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

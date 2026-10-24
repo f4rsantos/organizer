@@ -187,6 +187,26 @@ describe('edits made before hydration are never discarded', () => {
     expect(settings.gradeScale).toBe(100)
   })
 
+  it('keeps a recorded quick action keybind through a pull', async () => {
+    const { useStore } = await import('../../src/store/useStore.js')
+    useStore.getState().markHydrated()
+    const shortcut = { key: 'j', code: 'KeyJ', ctrl: true, meta: false, alt: false, shift: true }
+    useStore.getState().updateSettings({
+      apps: { quickAction: true, quickActionShortcut: shortcut, quickActionNavbarShortcut: null },
+    })
+
+    useStore.getState().importData({
+      version: 6, theme: 'system', lang: 'en', onboardingDone: true,
+      tasks: [], notes: [],
+      settings: { apps: { quickAction: true } },
+      collab: { userId: 'u1', memberships: [] },
+    })
+
+    const apps = useStore.getState().settings.apps
+    expect(apps.quickActionShortcut).toEqual(shortcut)
+    expect(apps.quickActionNavbarShortcut).toBeNull()
+  })
+
   it('lets an explicit restore replace local settings', async () => {
     const { useStore } = await import('../../src/store/useStore.js')
     useStore.getState().markHydrated()

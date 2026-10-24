@@ -193,3 +193,27 @@ describe('collaborative note titles', () => {
     expect(title).toContain('Our')
   })
 })
+
+describe('sharing a drawing', () => {
+  const drawing = {
+    id: 'draw1', title: 'Diagram', kind: 'canvas', body: '', doc: null,
+    strokes: [{ color: '#000', width: 2, points: [[0, 0], [40, 10]] }, { color: '#f00', width: 4, shape: 'rect', points: [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]] }],
+    paper: { pattern: 'grid', style: 'dotted' },
+  }
+
+  it('keeps every stroke, the paper and the drawing kind through share and save copy', () => {
+    const shared = buildSharedNoteFromLocalNote({ note: drawing, schema, sharedNoteId: 'sh1', createdBy: 'me', now: 5 })
+    expect(shared).toMatchObject({ kind: 'canvas', paper: { pattern: 'grid', style: 'dotted' }, title: 'Diagram' })
+    const local = buildLocalNoteFromSharedNote({ sharedNote: shared, schema, now: 9 })
+    expect(local.kind).toBe('canvas')
+    expect(local.paper).toEqual({ pattern: 'grid', style: 'dotted' })
+    expect(local.strokes.map(s => s.points)).toEqual(drawing.strokes.map(s => s.points))
+    expect(local.title).toBe('Diagram')
+  })
+
+  it('still opens text notes shared before drawings existed as text', () => {
+    const shared = buildSharedNoteFromLocalNote({ note: localNote(RICH_DOC), schema, sharedNoteId: 'sh2', createdBy: 'me', now: 5 })
+    const { kind: _kind, ...legacy } = shared
+    expect(buildLocalNoteFromSharedNote({ sharedNote: legacy, schema, now: 9 }).kind).toBe('text')
+  })
+})

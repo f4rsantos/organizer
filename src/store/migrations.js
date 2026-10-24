@@ -3,6 +3,7 @@ import { nanoid } from '../lib/ids'
 import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 import { normalizeNotificationSettings } from '../lib/notifications/settings'
 import { withAggregateId } from '../components/focus/pomodoro/utils'
+import { normalizePaper } from '../lib/notes/paper'
 
 export const CURRENT_VERSION = 9
 export const FREE_BOARD_ID = '__free__'
@@ -335,6 +336,7 @@ function normalizeNote(note) {
     body: typeof note.body === 'string' ? note.body : '',
     doc: noteDoc(note),
     strokes: Array.isArray(note.strokes) ? note.strokes : [],
+    paper: normalizePaper(note.paper),
     favorite: Boolean(note.favorite),
     archived: Boolean(note.archived),
     archivedAt: Number.isFinite(note.archivedAt) ? note.archivedAt : null,

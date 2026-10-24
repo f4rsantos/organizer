@@ -169,9 +169,41 @@ function resolveBodyPair(bodies, i, j, env, firstPass) {
   bodies[j] = nextB
 }
 
-function resolveBodyCollisions(bodies, env, firstPass) {
+function cellOf(value, cellSize) {
+  return Math.floor(value / cellSize)
+}
+
+function buildGrid(bodies, cellSize) {
+  const grid = new Map()
   for (let i = 0; i < bodies.length; i++) {
-    for (let j = i + 1; j < bodies.length; j++) resolveBodyPair(bodies, i, j, env, firstPass)
+    const key = `${cellOf(bodies[i].x, cellSize)},${cellOf(bodies[i].y, cellSize)}`
+    const cell = grid.get(key)
+    if (cell) cell.push(i)
+    else grid.set(key, [i])
+  }
+  return grid
+}
+
+function neighbourIndices(grid, body, cellSize, after) {
+  const cx = cellOf(body.x, cellSize)
+  const cy = cellOf(body.y, cellSize)
+  const found = []
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const cell = grid.get(`${cx + dx},${cy + dy}`)
+      if (!cell) continue
+      for (const j of cell) if (j > after) found.push(j)
+    }
+  }
+  return found.sort((a, b) => a - b)
+}
+
+function resolveBodyCollisions(bodies, env, firstPass) {
+  const maxRadius = bodies.reduce((max, body) => Math.max(max, body.radius ?? TOMATO_RADIUS), 0)
+  const cellSize = Math.max(1, maxRadius * 2)
+  const grid = buildGrid(bodies, cellSize)
+  for (let i = 0; i < bodies.length; i++) {
+    for (const j of neighbourIndices(grid, bodies[i], cellSize, i)) resolveBodyPair(bodies, i, j, env, firstPass)
   }
 }
 
@@ -284,6 +316,7 @@ export function stepBodies(prevBodies, dt, env) {
   const gDir = gravityDirection(env)
   const surroundings = surroundingsKey(env)
   const bodies = prevBodies.map(body => integrate(body, dt, env, surroundings))
+  if (bodies.every((body, i) => body === prevBodies[i] && body.asleep)) return prevBodies
   const integrated = [...bodies]
 
   for (let pass = 0; pass < SOLVER_PASSES; pass++) {

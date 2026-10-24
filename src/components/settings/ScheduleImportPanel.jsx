@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { addDays, format, startOfWeek, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { Upload, X, Loader2, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PillSwitch } from '@/components/common/PillSwitch'
@@ -11,8 +12,44 @@ import { useStrings } from '@/lib/strings'
 import { ocrScheduleImage } from '@/lib/calendar/scheduleOcr'
 import { buildRowsFromLines } from '@/lib/calendar/scheduleGrid'
 import { resolveRowColors } from '@/lib/calendar/scheduleColors'
+import { scheduleImportOccurrence } from '@/lib/calendar/scheduleImportDates'
 
 const EMPTY = { rows: [], reason: null }
+
+function todayIso() {
+  return format(new Date(), 'yyyy-MM-dd')
+}
+
+function RepeatModePicker({ t, mode, onModeChange, range, onRangeChange }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs">{t.scheduleImportRepeatLabel}</Label>
+      <PillSwitch
+        options={[
+          { value: 'every', label: t.scheduleImportEveryWeek },
+          { value: 'this', label: t.scheduleImportThisWeek },
+          { value: 'range', label: t.scheduleImportDateRange },
+        ]}
+        value={mode}
+        onChange={onModeChange}
+      />
+      {mode === 'range' && (
+        <div className="flex items-center gap-2">
+          <Label className="flex flex-1 flex-col gap-1 text-[11px] text-muted-foreground">
+            {t.scheduleImportRangeFrom}
+            <Input type="date" className="h-8 text-xs" value={range.start}
+              onChange={e => onRangeChange({ ...range, start: e.target.value })} />
+          </Label>
+          <Label className="flex flex-1 flex-col gap-1 text-[11px] text-muted-foreground">
+            {t.scheduleImportRangeTo}
+            <Input type="date" className="h-8 text-xs" value={range.end} min={range.start}
+              onChange={e => onRangeChange({ ...range, end: e.target.value })} />
+          </Label>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -27,7 +64,8 @@ export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) 
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(EMPTY)
-  const [repeat, setRepeat] = useState(true)
+  const [mode, setMode] = useState('every')
+  const [range, setRange] = useState(() => ({ start: todayIso(), end: semesterEnd ?? todayIso() }))
   const fileRef = useRef(null)
 
   const scan = async file => {
@@ -54,29 +92,33 @@ export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) 
 
   const dayOptions = t.weekdaysShort.map((d, k) => ({ value: String(k), label: d }))
 
+  const rangeInvalid = mode === 'range' && (!range.start || !range.end || range.end < range.start)
+
   const apply = () => {
-    const base = semesterStart
-      ? startOfWeek(parseISO(semesterStart), { weekStartsOn: 1 })
-      : startOfWeek(new Date(), { weekStartsOn: 1 })
+    const plan = { mode, semesterStart, semesterEnd, rangeStart: range.start, rangeEnd: range.end }
     const importId = `imp-${Date.now()}`
+    let count = 0
 
     for (const row of result.rows) {
       if (!row.title?.trim()) continue
+      const occurrence = scheduleImportOccurrence(row.dayIndex, plan)
+      if (!occurrence) continue
+      count += 1
       addEvent({
         title: row.title.trim(),
         note: row.note?.trim() ?? '',
         color: row.color ?? null,
-        date: format(addDays(base, row.dayIndex), 'yyyy-MM-dd'),
+        date: occurrence.date,
         startTime: row.startTime,
         endTime: row.endTime,
         allDay: false,
         semesterId: semesterId ?? null,
         importId,
-        recurrence: repeat ? { freq: 'weekly', interval: 1, until: semesterEnd ?? null } : null,
+        recurrence: occurrence.recurrence,
       })
     }
     recordScheduleImport({
-      id: importId, count: result.rows.length, at: Date.now(), repeat,
+      id: importId, count, at: Date.now(), repeat: mode !== 'this', mode,
     })
     setResult(EMPTY)
   }
@@ -106,17 +148,7 @@ export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) 
           </DialogHeader>
 
           <div className="space-y-2 overflow-y-auto -mx-1 px-1">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t.scheduleImportRepeatLabel}</Label>
-              <PillSwitch
-                options={[
-                  { value: 'every', label: t.scheduleImportEveryWeek },
-                  { value: 'this', label: t.scheduleImportThisWeek },
-                ]}
-                value={repeat ? 'every' : 'this'}
-                onChange={next => setRepeat(next === 'every')}
-              />
-            </div>
+            <RepeatModePicker t={t} mode={mode} onModeChange={setMode} range={range} onRangeChange={setRange} />
 
             <div className="rounded-lg border border-border divide-y divide-border/60">
               {result.rows.map((row, i) => (
@@ -163,7 +195,7 @@ export function ScheduleImportPanel({ semesterId, semesterStart, semesterEnd }) 
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" size="sm" onClick={() => setResult(EMPTY)}>{t.cancel}</Button>
-            <Button size="sm" onClick={apply} disabled={!result.rows.length}>
+            <Button size="sm" onClick={apply} disabled={!result.rows.length || rangeInvalid}>
               {t.scheduleImportConfirm}
             </Button>
           </div>

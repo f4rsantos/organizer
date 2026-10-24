@@ -273,13 +273,20 @@ export function useCollabActions() {
       const columns = sortByOrder(state?.kanban?.columns ?? [])
       const doneColumnId = columns[columns.length - 1]?.id ?? null
       const done = doneColumnId == null ? undefined : targetColumnId === doneColumnId
+      const cards = state?.kanban?.cards ?? []
+      const moving = cards.find(card => card.id === sharedCardId)
+      const targetOrders = cards.filter(card => card.columnId === targetColumnId && card.id !== sharedCardId)
+        .map(card => (Number.isFinite(card.order) ? card.order : 0))
+      const order = moving?.columnId === targetColumnId
+        ? moving.order
+        : (targetOrders.length ? Math.max(...targetOrders) + 1 : 0)
       return {
         ...state,
         kanban: {
           ...(state?.kanban ?? { columns: [], cards: [] }),
           cards: (state?.kanban?.cards ?? []).map(card =>
             card.id === sharedCardId
-              ? { ...card, columnId: targetColumnId, ...(done !== undefined && { done }), updatedAt: Date.now() }
+              ? { ...card, columnId: targetColumnId, order, ...(done !== undefined && { done }), updatedAt: Date.now() }
               : card
           ),
         },

@@ -17,6 +17,11 @@ import { EditorToolbar } from './EditorToolbar'
 import { TableControls } from './TableControls'
 import { useTaskMention } from './useTaskMention'
 import { TaskMentionPopup } from '../TaskMentionPopup'
+import { paperTileImage } from '@/lib/notes/paper'
+import { cn } from '@/lib/utils'
+
+const CODE_TAB_SIZE = 2
+const PAPER_SURFACE = '[background-image:var(--note-paper)] [background-size:1lh_1lh] [background-position:1rem_1rem] [background-attachment:local]'
 
 const SAVE_DEBOUNCE_MS = 400
 const EMPTY = []
@@ -37,6 +42,7 @@ function NoteEditorSurface({ note, collabPlugins, editable }) {
   const tasks = useStore(s => s.tasks ?? EMPTY)
   const saveTimer = useRef(null)
   const pendingSave = useRef(false)
+  const savedDocRef = useRef(note.doc)
   const scrollRef = useRef(null)
 
   const collaborative = Boolean(collabPlugins)
@@ -51,7 +57,7 @@ function NoteEditorSurface({ note, collabPlugins, editable }) {
     NoteTableKit,
     TaskList,
     TaskItem.configure({ nested: true }),
-    CodeBlockLowlight.configure({ lowlight }),
+    CodeBlockLowlight.configure({ lowlight, enableTabIndentation: true, tabSize: CODE_TAB_SIZE }),
     TaskMention,
     MathGraph,
     ...(mathEnabled ? [MathSolve.configure({ solveEquations, selectionGraph, stepByStep })] : []),
@@ -78,7 +84,9 @@ function NoteEditorSurface({ note, collabPlugins, editable }) {
       clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
         pendingSave.current = false
-        updateNote(note.id, { doc: instance.getJSON(), body: instance.getText() })
+        const doc = instance.getJSON()
+        savedDocRef.current = doc
+        updateNote(note.id, { doc, body: instance.getText() })
       }, SAVE_DEBOUNCE_MS)
     },
   }, [note.id, extensions])
@@ -97,14 +105,26 @@ function NoteEditorSurface({ note, collabPlugins, editable }) {
   }, [editor, editable])
 
   useEffect(() => {
+    if (!editor || editor.isDestroyed || collaborative) return
+    if (note.doc === savedDocRef.current || pendingSave.current) return
+    savedDocRef.current = note.doc
+    if (JSON.stringify(note.doc ?? null) === JSON.stringify(editor.getJSON())) return
+    editor.commands.setContent(note.doc ?? '', { emitUpdate: false })
+  }, [editor, note.doc, collaborative])
+
+  useEffect(() => {
     if (!editor || collaborative) return
     return () => {
       clearTimeout(saveTimer.current)
       if (!pendingSave.current || editor.isDestroyed) return
       pendingSave.current = false
-      updateNote(note.id, { doc: editor.getJSON(), body: editor.getText() })
+      const doc = editor.getJSON()
+      savedDocRef.current = doc
+      updateNote(note.id, { doc, body: editor.getText() })
     }
   }, [editor, note.id, updateNote, collaborative])
+
+  const paperImage = paperTileImage(note.paper)
 
   if (!editor) return null
 
@@ -115,7 +135,8 @@ function NoteEditorSurface({ note, collabPlugins, editable }) {
         <EditorContent
           editor={editor}
           ref={scrollRef}
-          className="h-full overflow-y-auto rounded-xl bg-secondary/20 p-4 text-sm"
+          style={paperImage ? { '--note-paper': paperImage } : undefined}
+          className={cn('h-full overflow-y-auto rounded-xl bg-secondary/20 p-4 text-sm', paperImage && PAPER_SURFACE)}
         />
         <TableControls editor={editor} scrollRef={scrollRef} t={t} />
         {mention.mention && (

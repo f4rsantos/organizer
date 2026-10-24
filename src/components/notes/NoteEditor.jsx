@@ -1,5 +1,5 @@
 import { lazy, useEffect, useRef, useState } from 'react'
-import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus, CloudOff } from 'lucide-react'
+import { Star, Trash2, Archive, ArchiveRestore, Download, Upload, FileText, PenLine, ChevronLeft, Folder, Share2, Users, CopyPlus, Cloud, CloudOff } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -14,7 +14,9 @@ import { useSharedNoteSession } from '@/hooks/useSharedNoteSession'
 import { useSharedNoteTitle } from '@/hooks/useSharedNoteTitle'
 import { LazyBoundary } from '@/components/common/LazyBoundary'
 import { NoteCanvas } from './NoteCanvas'
+import { PaperPicker } from './PaperPicker'
 import { exportNote } from '@/lib/notes/noteExport'
+import { exportDrawing } from '@/lib/notes/canvasRender'
 import { markdownToDoc, titleFromMarkdown } from '@/lib/notes/noteImport'
 import { noteHasContent } from './notesUtils'
 
@@ -25,6 +27,11 @@ const EXPORT_FORMATS = [
   { value: 'txt', label: 'Plain text (.txt)' },
   { value: 'html', label: 'Web page (.html)' },
   { value: 'doc', label: 'Word (.doc)' },
+  { value: 'pdf', label: 'PDF (print)' },
+]
+
+const DRAWING_EXPORT_FORMATS = [
+  { value: 'png', label: 'Image (.png)' },
   { value: 'pdf', label: 'PDF (print)' },
 ]
 
@@ -52,7 +59,7 @@ function NoteKindToggle({ note, t, onChangeKind }) {
   )
 }
 
-function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onToggleOfflineOnly, onShare }) {
+function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, onToggleArchive, onToggleOfflineOnly, onShare, onChangePaper }) {
   return (
     <>
       <NoteKindToggle note={note} t={t} onChangeKind={onChangeKind} />
@@ -67,8 +74,9 @@ function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, o
       <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
         title={note.offlineOnly ? t.notesOfflineOnlyOn : t.notesOfflineOnlyOff}
         onClick={onToggleOfflineOnly}>
-        <CloudOff className={cn('h-3.5 w-3.5', note.offlineOnly && 'text-primary')} />
+        {note.offlineOnly ? <CloudOff className="h-3.5 w-3.5 text-primary" /> : <Cloud className="h-3.5 w-3.5" />}
       </Button>
+      <PaperPicker paper={note.paper} t={t} onChange={onChangePaper} />
       {canShare && (
         <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.collabShareNote} onClick={onShare}>
           <Share2 className="h-3.5 w-3.5" />
@@ -79,7 +87,7 @@ function LocalNoteActions({ note, t, canShare, onChangeKind, onToggleFavorite, o
 }
 
 export function NoteEditor({
-  note, onDeleted, onPrev, onNext, hasPrev = false, hasNext = false,
+  note, onDeleted, onReplaced, onPrev, onNext, hasPrev = false, hasNext = false,
   folderName = null, onBack = null,
 }) {
   const lang = useStore(s => s.lang ?? 'en')
@@ -139,7 +147,7 @@ export function NoteEditor({
     if (!shareTeamId) return
     setShareOpen(false)
     const shared = await shareNoteToTeam(note.id, shareTeamId)
-    if (shared) onDeleted?.()
+    if (shared) onReplaced?.(`shared:${shared.teamId}:${shared.sharedNoteId}`)
   }
 
   const handleDelete = async () => {
@@ -150,6 +158,12 @@ export function NoteEditor({
     }
     const deleted = await deleteSharedNote({ teamId: sharedMeta.teamId, sharedNoteId: sharedMeta.sharedNoteId })
     if (deleted) onDeleted?.()
+  }
+
+  const exportCurrent = format => {
+    if (note.kind !== 'canvas') return exportNote(note, format)
+    const strokes = collab?.canvas ? collab.canvas.read() : note.strokes
+    return exportDrawing({ ...note, strokes }, format)
   }
 
   const handleImport = async event => {
@@ -232,34 +246,33 @@ export function NoteEditor({
               onToggleArchive={() => note.archived ? unarchiveNote(note.id) : archiveNote(note.id)}
               onToggleOfflineOnly={() => toggleOfflineOnlyNote(note.id)}
               onShare={() => setShareOpen(true)}
+              onChangePaper={paper => updateNote(note.id, { paper })}
             />
           )}
 
           {note.kind !== 'canvas' && (
-            <>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.notesImport}
-                onClick={() => importRef.current?.click()}>
-                <Upload className="h-3.5 w-3.5" />
-              </Button>
-              <div className="relative">
-                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.notesExport}
-                  onClick={() => setExportOpen(v => !v)}>
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                {exportOpen && (
-                  <div className="absolute left-0 top-8 z-20 w-44 rounded-lg border border-border bg-popover p-1 shadow-md">
-                    {EXPORT_FORMATS.map(format => (
-                      <button key={format.value} type="button"
-                        className="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent"
-                        onClick={() => { exportNote(note, format.value); setExportOpen(false) }}>
-                        {format.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.notesImport}
+              onClick={() => importRef.current?.click()}>
+              <Upload className="h-3.5 w-3.5" />
+            </Button>
           )}
+          <div className="relative">
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title={t.notesExport}
+              onClick={() => setExportOpen(v => !v)}>
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            {exportOpen && (
+              <div className="absolute left-0 top-8 z-30 w-44 rounded-lg border border-border bg-popover p-1 shadow-md">
+                {(note.kind === 'canvas' ? DRAWING_EXPORT_FORMATS : EXPORT_FORMATS).map(format => (
+                  <button key={format.value} type="button"
+                    className="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent"
+                    onClick={() => { exportCurrent(format.value); setExportOpen(false) }}>
+                    {format.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {canEditShared && (
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive transition-colors" title={t.notesDeleteNote} onClick={() => setConfirmDelete(true)}>
@@ -272,7 +285,7 @@ export function NoteEditor({
 
       <div className="flex-1 min-h-0">
         {note.kind === 'canvas'
-          ? <NoteCanvas note={note} />
+          ? <NoteCanvas note={note} collab={collab} editable={canEditShared} />
           : (
             <LazyBoundary
               retryKey={editorRetry}
