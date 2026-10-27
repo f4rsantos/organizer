@@ -4,6 +4,8 @@ import { EISENHOWER_DISMISSED } from '../lib/taskUtils'
 import { normalizeNotificationSettings } from '../lib/notifications/settings'
 import { withAggregateId } from '../components/focus/pomodoro/utils'
 import { normalizePaper } from '../lib/notes/paper'
+import { normalizeBreakActivitySettings } from '../lib/breakActivity/breakSettings'
+import { normalizeBreakSudoku } from '../lib/breakActivity/sudoku'
 
 export const CURRENT_VERSION = 9
 export const FREE_BOARD_ID = '__free__'
@@ -516,6 +518,7 @@ function normalizeSettings(settings) {
   if (!['semesters', 'none'].includes(s.semesterMode)) s.semesterMode = 'semesters'
   s.navbar = normalizeNavbar(s.navbar)
   s.standby = normalizeStandby(s.standby)
+  s.breakActivity = normalizeBreakActivitySettings(s.breakActivity)
   s.apps = normalizeApps(s.apps, s)
   return s
 }
@@ -574,6 +577,7 @@ export function normalizeState(state) {
   }
 
   state.focusSync = normalizeFocusSync(state.focusSync)
+  state.breakSudoku = normalizeBreakSudoku(state.breakSudoku)
 
   state.pomodoros = (Array.isArray(state.pomodoros) ? state.pomodoros : []).map(withAggregateId)
   if (!state.taskAlertStates || typeof state.taskAlertStates !== 'object') state.taskAlertStates = {}

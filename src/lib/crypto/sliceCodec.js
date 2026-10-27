@@ -9,7 +9,7 @@ export const DATA_SLICES = [
   'activeSemesterId', 'semesters', 'classes', 'tasks', 'events', 'notes', 'noteFolders',
   'sharedNoteFolders', 'habits', 'kanban', 'grades', 'settings', 'collab', 'focusSync',
   'pomodoros', 'taskAlertStates', 'courseAvg', 'holidays', 'dismissedNextSemester',
-  'presetUpdatedAt', 'scheduleImports',
+  'presetUpdatedAt', 'scheduleImports', 'breakSudoku',
 ]
 
 export const LOCAL_SLICES = ['agentJournal', 'agentRuntime', 'syncBase']

@@ -13,6 +13,7 @@ export const SYNC_SHAPES = {
   activeSemesterId: VALUE,
   courseAvg: VALUE,
   focusSync: VALUE,
+  breakSudoku: VALUE,
   semesters: LIST,
   classes: LIST,
   tasks: LIST,

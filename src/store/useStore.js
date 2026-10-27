@@ -14,6 +14,7 @@ import { createFocusTomato } from '@/lib/focus/focusCycle'
 import { planPomodoroRecovery, recoveryIntervalSecs } from '@/lib/focus/pomodoroRecovery'
 import { getPeriodPomodoros } from '@/components/focus/pomodoro/utils'
 import { resolveSeriesFolder } from '@/lib/notes/eventFolder'
+import { defaultBreakActivity } from '@/lib/breakActivity/breakSettings'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
@@ -266,6 +267,7 @@ function buildInitialState() {
       semesterMode: 'semesters',
       navbar: { order: ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings'], visibility: {}, folders: [], showAddButton: false, labelMode: 'both', mobilePosition: 'bottom', addAction: 'task', addButtonLabel: '', customNames: {} },
       standby: { enabled: false, panelCount: 3, panes: ['wheel-time', 'calendar', 'tasks-by-category'] },
+      breakActivity: defaultBreakActivity(),
       apps: { collab: false, notes: false, eisenhower: false, googleCalendar: false, habits: false },
     },
     collab: {
@@ -287,6 +289,7 @@ function buildInitialState() {
       updatedAt: 0,
     },
     pomodoros: [],
+    breakSudoku: null,
     resetSignal: null,
     taskAlertStates: {},
     notificationQueue: emptyNotificationQueue(),
@@ -887,6 +890,10 @@ export const useStore = create((set, get) => ({
   updatePomodoroSettings: data => set(s => persist({
     ...s, settings: { ...s.settings, pomodoro: { ...s.settings.pomodoro, ...data } }
   })),
+  updateBreakActivitySettings: data => set(s => persist({
+    ...s, settings: { ...s.settings, breakActivity: { ...(s.settings.breakActivity ?? defaultBreakActivity()), ...data } }
+  })),
+  setBreakSudoku: breakSudoku => set(s => persist({ ...s, breakSudoku })),
   setCollabUserId: userId => set(s => persist({
     ...s,
     collab: {

@@ -7,8 +7,9 @@ import { googleCalendarApp } from './googleCalendar'
 import { habitsApp } from './habits'
 import { pomodoroApp } from './pomodoro'
 import { aiAssistantApp } from './aiAssistant'
+import { breakActivityApp } from './breakActivity'
 
-export const APP_PLUGINS = [notesApp, standbyApp, eiCalendarApp, eisenhowerApp, googleCalendarApp, habitsApp, quickActionApp, pomodoroApp, aiAssistantApp]
+export const APP_PLUGINS = [notesApp, standbyApp, eiCalendarApp, eisenhowerApp, googleCalendarApp, habitsApp, quickActionApp, pomodoroApp, breakActivityApp, aiAssistantApp]
 
 export function getAppTabs() {
   return APP_PLUGINS.filter(p => p.tab).map(p => p.tab)

@@ -30,6 +30,7 @@ import { consumeLaunchTab } from '@/lib/widgets/bridge'
 import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
+import { BreakActivityHost } from '@/components/breakActivity/BreakActivityHost'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
 import { QuickActionUndoToast } from '@/components/tasks/quickAction/QuickActionUndoToast'
 import { NotificationsHost } from '@/components/notifications/NotificationsHost'
@@ -353,6 +354,7 @@ export default function App() {
               </TabPanel>
             )
           })}
+          <BreakActivityHost />
         </div>
       </div>
       {nativeTabBarActive && <NativeTabBar activeTab={activeTab} onTabChange={setActiveTab} placement={nativeTabBarPlacement} />}
