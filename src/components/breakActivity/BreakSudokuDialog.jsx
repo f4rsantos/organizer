@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
 import { fireConfetti } from '@/lib/confetti'
 import {
@@ -56,15 +55,18 @@ export function BreakSudokuDialog({ open, onOpenChange, game, difficulty, t }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-md">
+      <DialogContent className="max-w-md sm:max-w-md short:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t.sudoku}</DialogTitle>
           <DialogDescription>{solved ? t.sudokuSolved : difficultyLabel(t, game.difficulty)}</DialogDescription>
         </DialogHeader>
-        <SudokuBoard game={game} selected={selected} conflicts={conflicts} onSelect={setSelected} />
-        <SudokuKeypad onDigit={enterDigit} completed={completed} notesMode={notesMode} onToggleNotes={() => setNotesMode(v => !v)}
-          eraseLabel={t.sudokuErase} notesLabel={t.sudokuNotes} disabled={solved || selected === null} />
-        <Button type="button" variant="ghost" size="sm" onClick={startNew}>{t.sudokuNewPuzzle}</Button>
+        <div className="flex flex-col gap-4 short:flex-row short:items-center">
+          <SudokuBoard game={game} selected={selected} conflicts={conflicts} onSelect={setSelected}
+            className="mx-auto w-full max-w-[calc(85dvh-16rem)] shrink-0 short:mx-0 short:w-[calc(85dvh-7rem)] short:max-w-[60%]" />
+          <SudokuKeypad onDigit={enterDigit} completed={completed} notesMode={notesMode} onToggleNotes={() => setNotesMode(v => !v)}
+            onNew={startNew} eraseLabel={t.sudokuErase} notesLabel={t.sudokuNotes} newLabel={t.sudokuNewPuzzle}
+            disabled={solved || selected === null} className="short:flex-1" />
+        </div>
       </DialogContent>
     </Dialog>
   )

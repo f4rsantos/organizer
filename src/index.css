@@ -5,6 +5,7 @@
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant touch (@media (hover: none));
+@custom-variant short (@media (max-height: 32rem));
 
 :root {
     color-scheme: light;

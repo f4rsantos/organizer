@@ -18,7 +18,7 @@ function cellBorders(index) {
 
 function CellNotes({ notes, highlight }) {
   return (
-    <span className="grid size-full grid-cols-3 grid-rows-3 p-px text-[0.5rem] leading-none text-muted-foreground sm:text-[0.6rem]">
+    <span className="grid size-full grid-cols-3 grid-rows-3 p-px text-[2.6cqw] leading-none text-muted-foreground">
       {NOTE_DIGITS.map(d => (
         <span key={d} className={cn('flex items-center justify-center', d === highlight && 'font-bold text-primary')}>
           {notes.includes(d) ? d : ''}
@@ -32,7 +32,7 @@ function SudokuCell({ index, value, notes, given, selected, related, sameDigit, 
   return (
     <button type="button" onClick={() => onSelect(index)}
       className={cn(
-        'flex aspect-square items-center justify-center border-r border-b border-border text-base tabular-nums sm:text-lg',
+        'flex aspect-square items-center justify-center border-r border-b border-border text-[6cqw] leading-none tabular-nums',
         cellBorders(index),
         given ? 'font-semibold text-foreground' : 'text-primary',
         related && 'bg-muted/60',
@@ -45,10 +45,10 @@ function SudokuCell({ index, value, notes, given, selected, related, sameDigit, 
   )
 }
 
-export function SudokuBoard({ game, selected, conflicts, onSelect }) {
+export function SudokuBoard({ game, selected, conflicts, onSelect, className }) {
   const selectedDigit = selected === null ? '0' : game.entries[selected]
   return (
-    <div className="grid grid-cols-9 overflow-hidden rounded-md border-2 border-foreground/40">
+    <div className={cn('@container grid grid-cols-9 overflow-hidden rounded-md border-2 border-foreground/40', className)}>
       {[...game.entries].map((value, index) => (
         <SudokuCell key={index} index={index} value={value} notes={game.notes?.[index] ?? ''} selectedDigit={selectedDigit}
           given={game.puzzle[index] !== '0'}
