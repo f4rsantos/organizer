@@ -14,6 +14,12 @@ export const DATA_SLICES = [
 
 export const LOCAL_SLICES = ['agentJournal', 'agentRuntime', 'syncBase']
 
+const PLUGIN_SLICES = ['breakSudoku']
+
+function isAbsentPluginSlice(slice, value) {
+  return PLUGIN_SLICES.includes(slice) && (value === undefined || value === null)
+}
+
 function withoutEntities(run) {
   if (!run || typeof run !== 'object') return run
   const rest = { ...run }
@@ -91,6 +97,7 @@ export async function encodeSlices({
 
     const rawValue = state?.[slice]
     const value = LOCAL_SLICES.includes(slice) ? sanitizeLocalSlice(slice, rawValue) : rawValue
+    if (isAbsentPluginSlice(slice, value)) continue
     if (value === undefined) {
       slices[slice] = null
       continue
