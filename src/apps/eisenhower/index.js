@@ -10,7 +10,7 @@ export const eisenhowerApp = {
   keywords: ['eisenhower', 'matrix', 'urgent', 'important', 'priority'],
   isEnabled: state => state.settings?.apps?.eisenhower === true,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, eisenhower: value } }),
-  wipe: state => ({
+  cleanup: state => ({
     ...state,
     tasks: (state.tasks ?? []).map(t => t.eisenhower ? { ...t, eisenhower: null } : t),
   }),

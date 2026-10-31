@@ -28,6 +28,8 @@ import { expandTasksForRange, expandEventsForRange } from '@/lib/recurrence'
 import { eventDateRange } from '@/lib/calendar/dayAgenda'
 import { setProviderEvents } from '@/lib/widgets/extraEvents'
 import { nanoid } from '@/lib/ids'
+import { nonClassEventDates } from '@/lib/classes/classEvents'
+import { usePublicHolidays } from '@/hooks/usePublicHolidays'
 
 const VIEWS = ['day', 'week', 'month', 'year']
 
@@ -67,6 +69,7 @@ export function CalendarTab() {
   const allClasses = useStore(s => s.classes)
   const allTasks = useMergedTasks(activeSemesterId)
   const allHolidays = useStore(s => s.holidays)
+  const publicHolidays = usePublicHolidays()
   const allEvents = useMergedEvents()
   const [pluginEvents, setPluginEvents] = useState({})
   const handleProviderEvents = useCallback((id, events) => {
@@ -80,6 +83,7 @@ export function CalendarTab() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
+  const highlightOtherEvents = useStore(s => s.settings?.calendarHighlightOtherEvents === true)
 
   const hasScope = Boolean(semester) || noneMode
   const semStart = semester ? parseISO(semester.startDate) : null
@@ -103,7 +107,7 @@ export function CalendarTab() {
   const [shareTeamId, setShareTeamId] = useState('')
 
   const classes = hasScope ? allClasses.filter(c => c.semesterId === activeSemesterId) : []
-  const holidays = hasScope ? (allHolidays ?? []).filter(h => h.semesterId === activeSemesterId) : []
+  const holidays = hasScope ? [...(allHolidays ?? []).filter(h => h.semesterId === activeSemesterId), ...publicHolidays] : []
   const expandRangeStart = new Date(anchor.getFullYear() - 1, 0, 1)
   const expandRangeEnd = new Date(anchor.getFullYear() + 1, 11, 31)
   const events = hasScope
@@ -126,6 +130,8 @@ export function CalendarTab() {
           : getTaskDateRange(tk, semester?.startDate, noneMode, year),
       }))
     : []
+
+  const highlightDates = highlightOtherEvents ? nonClassEventDates(events, classes) : null
 
   const clampMonth = m => {
     if (semStart && startOfMonth(m) < startOfMonth(semStart)) return startOfMonth(semStart)
@@ -268,7 +274,7 @@ export function CalendarTab() {
         renderPage={step => {
           const pageAnchor = shiftAnchor(anchor, step)
           if (view === 'month') return (
-            <MonthView month={pageAnchor} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenDay={setDayDetail} />
+            <MonthView month={pageAnchor} tasks={tasks} holidays={holidays} events={events} classes={classes} onOpenDay={setDayDetail} highlightDates={highlightDates} />
           )
           if (view === 'day') return (
             <DayView day={pageAnchor} tasks={tasks} holidays={holidays} events={events} classes={classes}

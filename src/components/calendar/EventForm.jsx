@@ -15,6 +15,7 @@ import { parseTaskText } from '@/lib/parser/nlpParse'
 import { useSpeechInput } from '@/hooks/useSpeechInput'
 import { pushEventDeletion } from '@/apps/googleCalendar/useGoogleCalendarSync'
 import { loadGoogleClientId } from '@/apps/googleCalendar/googleAuth'
+import { isSubmitEnter } from '@/lib/enterToSubmit'
 import { format } from 'date-fns'
 
 const EMPTY = { title: '', date: '', startDate: '', endDate: '', multiDay: false, color: '#6366f1', note: '', startTime: '', endTime: '', syncToGoogle: false, recurrence: null }
@@ -242,13 +243,13 @@ export function EventForm({ open, onOpenChange, event, semesterId, defaultDate, 
         <DialogHeader>
           <DialogTitle>{event ? t.editEvent : t.newEvent}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3"
+          onKeyDown={e => { if (valid && isSubmitEnter(e)) { e.preventDefault(); submit() } }}>
           <div className="flex flex-col gap-1.5">
             <Label>{t.eventTitle}</Label>
             <div className="relative">
               <Input autoFocus value={rawTitle} onChange={handleTitleChange}
                 onBlur={handleTitleBlur}
-                onKeyDown={e => { if (e.key === 'Enter') submit() }}
                 className={speechSupported ? 'pr-9' : undefined} />
               {speechSupported && (
                 <Button type="button" variant="ghost" size="icon-sm"

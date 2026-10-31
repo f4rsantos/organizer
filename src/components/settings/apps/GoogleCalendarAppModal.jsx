@@ -37,7 +37,7 @@ export function GoogleCalendarAppModal({ open, onOpenChange }) {
   const t = useStrings(lang)
   const apps = useStore(s => s.settings?.apps) ?? {}
   const updateSettings = useStore(s => s.updateSettings)
-  const wipeAppData = useStore(s => s.wipeAppData)
+  const disableApp = useStore(s => s.disableApp)
   const [confirmOff, setConfirmOff] = useState(false)
   const [clientId, setClientId] = useState(() => loadGoogleClientId())
   const [step, setStep] = useState(0)
@@ -63,7 +63,7 @@ export function GoogleCalendarAppModal({ open, onOpenChange }) {
   }
 
   const handleDisconnectConfirmed = () => {
-    wipeAppData(googleCalendarApp.wipe)
+    disableApp(googleCalendarApp.id, googleCalendarApp.cleanup)
     updateSettings({ apps: { ...apps, googleCalendar: false } })
     setStep(0)
   }

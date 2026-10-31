@@ -28,6 +28,7 @@ export const SYNC_SHAPES = {
   taskAlertStates: mapOf(1),
   dismissedNextSemester: mapOf(1),
   sharedNoteFolders: mapOf(1),
+  lessons: mapOf(3),
 }
 
 export function isPlainObject(value) {

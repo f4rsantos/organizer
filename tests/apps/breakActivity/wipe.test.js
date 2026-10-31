@@ -25,7 +25,7 @@ describe('disabling the break app', () => {
     await flushPersist()
     expect((await readStoredContainer()).slices).toHaveProperty('breakSudoku')
 
-    useStore.getState().wipeAppData(breakActivityApp.wipe)
+    useStore.getState().disableApp(breakActivityApp.id, breakActivityApp.cleanup)
     await flushPersist()
 
     expect((await readStoredContainer()).slices).not.toHaveProperty('breakSudoku')

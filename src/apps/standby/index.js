@@ -11,7 +11,6 @@ export const standbyApp = {
   keywords: ['standby', 'repouso', 'ambient', 'dashboard', 'clock', 'landscape'],
   isEnabled: state => state.settings?.standby?.enabled === true,
   setEnabled: (updateSettings, _apps, value, state) => updateSettings({ standby: { ...(state.settings?.standby ?? DEFAULT_STANDBY), enabled: value } }),
-  wipe: state => ({ ...state, settings: { ...state.settings, standby: { ...DEFAULT_STANDBY } } }),
   SettingsModal: StandbyAppModal,
   tab: null,
 }

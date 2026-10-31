@@ -20,6 +20,8 @@ export const SETTINGS_INDEX = [
   { id: 'kanbanChecklistInline', section: 'kanban', labelKey: 'kanbanChecklistInlineLabel', descKey: 'kanbanChecklistInlineDesc', keywords: ['kanban', 'checklist', 'card', 'subtask'] },
   { id: 'weekStartDay', section: 'calendar', labelKey: 'weekStartDay', keywords: ['week', 'start', 'first day', 'monday', 'sunday', 'saturday'] },
   { id: 'weatherPreview', section: 'calendar', labelKey: 'weatherPreview', descKey: 'weatherPreviewDesc', keywords: ['weather', 'forecast', 'rain', 'city'] },
+  { id: 'calendarHighlightOtherEvents', section: 'calendar', labelKey: 'calendarHighlightOtherEvents', descKey: 'calendarHighlightOtherEventsDesc', keywords: ['highlight', 'border', 'events', 'busy', 'day', 'outline'] },
+  { id: 'publicHolidays', section: 'calendar', labelKey: 'publicHolidays', descKey: 'publicHolidaysDesc', keywords: ['holiday', 'holidays', 'feriado', 'public', 'country', 'national'] },
   { id: 'calendarNowColor', section: 'calendar', labelKey: 'calendarNowColor', descKey: 'calendarNowColorDesc', keywords: ['calendar', 'now', 'line', 'colour', 'color'] },
   { id: 'scheduleImport', section: 'calendar', labelKey: 'scheduleImportTitle', descKey: 'scheduleImportDesc', keywords: ['schedule', 'timetable', 'import', 'scan', 'photo', 'screenshot'] },
   { id: 'focusAlerts', section: 'focus', labelKey: 'focusAlertsEnabledLabel', descKey: 'focusAlertsEnabledDesc', keywords: ['focus', 'timer', 'alert', 'sound', 'pomodoro'] },
