@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ClassColorDot } from '@/components/settings/ClassColorDot'
 import { useStore } from '@/store/useStore'
 import { useStrings } from '@/lib/strings'
 import { ScheduleImportPanel } from './ScheduleImportPanel'
 import { geocodeCity } from '@/lib/weather'
+import { fetchCountries } from '@/lib/publicHolidays'
 import { SettingList, SettingRow, SettingSelect, SettingToggle } from './SettingRow'
 
 const DEFAULT_NOW_COLOR = '#ef4444'
@@ -60,11 +62,56 @@ function WeatherCitySetting({ t }) {
     </SettingToggle>
   )}
 
+function useCountries(enabled, lang) {
+  const [countries, setCountries] = useState([])
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    fetchCountries(lang).then(list => { if (!cancelled) setCountries(list) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [enabled, lang])
+  return countries
+}
+
+function browserRegion() {
+  const region = (navigator.language ?? '').split('-')[1]
+  return region ? region.toUpperCase() : ''
+}
+
+function CountryPicker({ t, country, countries, onChange }) {
+  const options = countries.map(c => ({ value: c.code, label: c.name }))
+  if (!options.length) return <p className="text-xs text-muted-foreground">{t.publicHolidaysLoading}</p>
+  return (
+    <Select value={country || null} onValueChange={onChange} items={options}>
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder={t.publicHolidaysPickCountry} />
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false} sideOffset={4}>
+        {options.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function PublicHolidaysSetting({ t, lang }) {
+  const settings = useStore(s => s.settings?.publicHolidays) ?? { enabled: false, country: '' }
+  const updateSettings = useStore(s => s.updateSettings)
+  const countries = useCountries(settings.enabled, lang)
+  const save = patch => updateSettings({ publicHolidays: { ...settings, ...patch } })
+  const enable = value => save({ enabled: value, country: settings.country || (value ? browserRegion() : '') })
+  return (
+    <SettingToggle label={t.publicHolidays} desc={t.publicHolidaysDesc} checked={settings.enabled} onChange={enable}>
+      {settings.enabled && <CountryPicker t={t} country={settings.country} countries={countries} onChange={country => save({ country })} />}
+    </SettingToggle>
+  )
+}
+
 export function CalendarSettings({ semesterId, semesterStart, semesterEnd }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const nowColor = useStore(s => s.settings?.calendarNowColor ?? DEFAULT_NOW_COLOR)
   const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
+  const highlightOtherEvents = useStore(s => s.settings?.calendarHighlightOtherEvents === true)
   const updateSettings = useStore(s => s.updateSettings)
 
   return (
@@ -80,7 +127,10 @@ export function CalendarSettings({ semesterId, semesterStart, semesterEnd }) {
       } />
       <SettingSelect label={t.weekStartDay} value={String(weekStartsOn)}
         onChange={v => updateSettings({ weekStartsOn: Number(v) })} options={weekStartOptions(t)} />
+      <SettingToggle label={t.calendarHighlightOtherEvents} desc={t.calendarHighlightOtherEventsDesc}
+        checked={highlightOtherEvents} onChange={v => updateSettings({ calendarHighlightOtherEvents: v })} />
       <WeatherCitySetting t={t} />
+      <PublicHolidaysSetting t={t} lang={lang} />
       <SettingRow label={t.scheduleImportTitle}>
         <ScheduleImportPanel semesterId={semesterId} semesterStart={semesterStart} semesterEnd={semesterEnd} />
       </SettingRow>

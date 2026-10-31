@@ -22,7 +22,7 @@ export function AiAppModal({ open, onOpenChange }) {
   const apps = useStore(s => s.settings?.apps) ?? {}
   const aiSettings = useStore(s => s.settings?.apps?.ai) ?? DEFAULT_AI_SETTINGS
   const updateSettings = useStore(s => s.updateSettings)
-  const wipeAppData = useStore(s => s.wipeAppData)
+  const disableApp = useStore(s => s.disableApp)
   const [confirmOff, setConfirmOff] = useState(false)
 
   const providers = listProviders()
@@ -82,7 +82,7 @@ export function AiAppModal({ open, onOpenChange }) {
   const defaultSlot = aiSettings.selectedSlot ?? 'medium'
 
   const handleDisableConfirmed = () => {
-    wipeAppData(aiAssistantApp.wipe)
+    disableApp(aiAssistantApp.id, aiAssistantApp.cleanup)
     const currentApps = useStore.getState().settings?.apps ?? {}
     updateSettings({ apps: { ...currentApps, aiAssistant: false, ai: DEFAULT_AI_SETTINGS } })
   }

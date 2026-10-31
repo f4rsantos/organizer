@@ -1,5 +1,6 @@
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
+const RAIN_LIKELY_PCT = 50
 
 export async function geocodeCity(city) {
   const params = new URLSearchParams({ name: city, count: '1', language: 'en', format: 'json' })
@@ -16,18 +17,30 @@ export async function fetchDailyForecast(lat, lon) {
     latitude: String(lat),
     longitude: String(lon),
     daily: 'weathercode,temperature_2m_max,temperature_2m_min',
+    hourly: 'precipitation_probability',
     forecast_days: '7',
     timezone: 'auto',
   })
   const res = await fetch(`${FORECAST_URL}?${params}`)
   if (!res.ok) throw new Error('forecast failed')
-  const data = await res.json()
-  const days = data.daily?.time ?? []
+  return parseForecast(await res.json())
+}
+
+function firstLikelyRainHour(hourly, date) {
+  const times = hourly?.time ?? []
+  const chances = hourly?.precipitation_probability ?? []
+  const index = times.findIndex((time, i) => time.startsWith(date) && chances[i] >= RAIN_LIKELY_PCT)
+  return index < 0 ? null : times[index].slice(-5)
+}
+
+export function parseForecast(data) {
+  const days = data?.daily?.time ?? []
   return days.map((date, i) => ({
     date,
     code: data.daily.weathercode[i],
     max: data.daily.temperature_2m_max[i],
     min: data.daily.temperature_2m_min[i],
+    rainFrom: firstLikelyRainHour(data.hourly, date),
   }))
 }
 

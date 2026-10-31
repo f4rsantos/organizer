@@ -9,6 +9,5 @@ export const pomodoroApp = {
   keywords: ['pomodoro', 'focus', 'timer', 'tomato'],
   isEnabled: state => state.settings?.pomodoro?.enabled === true,
   setEnabled: (updateSettings, _apps, value, state) => updateSettings({ pomodoro: { ...state.settings?.pomodoro, enabled: value } }),
-  wipe: state => ({ ...state, pomodoros: [] }),
   SettingsModal: PomodoroAppModal,
 }

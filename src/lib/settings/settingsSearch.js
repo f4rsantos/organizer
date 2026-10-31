@@ -125,13 +125,18 @@ function scoreEntry(entry, tokens, t) {
   return scores.reduce((sum, s) => sum + s, 0) * (0.5 + coverage)
 }
 
-function appEntries(apps) {
+export function appKeywords(app, t) {
+  const localized = app.keywordsKey ? t?.[app.keywordsKey] : null
+  return Array.isArray(localized) ? localized : app.keywords ?? []
+}
+
+function appEntries(apps, t) {
   return (apps ?? []).map(app => ({
     id: `app:${app.id}`,
     section: 'apps',
     labelKey: app.labelKey,
     descKey: app.descKey,
-    keywords: app.keywords ?? [],
+    keywords: appKeywords(app, t),
     appId: app.id,
   }))
 }
@@ -139,7 +144,7 @@ function appEntries(apps) {
 export function searchSettings(query, { t, apps = [], sections = null }) {
   const tokens = queryTokens(query)
   if (!tokens.length) return []
-  const entries = [...SETTINGS_INDEX, ...appEntries(apps)]
+  const entries = [...SETTINGS_INDEX, ...appEntries(apps, t)]
     .filter(entry => !sections || sections.has(entry.section))
   return entries
     .map((entry, order) => ({ ...entry, order, score: scoreEntry(entry, tokens, t) }))

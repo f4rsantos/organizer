@@ -1,12 +1,8 @@
 import { Switch } from '@/components/ui/switch'
 import { useStore } from '@/store/useStore'
-import { APP_PLUGINS } from '@/apps/registry'
+import { onboardingApps } from '@/apps/registry'
 import { cn } from '@/lib/utils'
 import { StepHeading } from './StepHeading'
-
-function offeredApps(state) {
-  return APP_PLUGINS.filter(p => p.descKey && p.setEnabled && (!p.isVisible || p.isVisible(state)))
-}
 
 function AppToggle({ app, t, enabled, onToggle }) {
   const Icon = app.icon
@@ -28,7 +24,7 @@ function AppToggle({ app, t, enabled, onToggle }) {
 export function AppsStep({ t }) {
   const state = useStore(s => s)
   const updateSettings = useStore(s => s.updateSettings)
-  const apps = offeredApps(state)
+  const apps = onboardingApps(state)
 
   const toggle = (app, value) => {
     const current = useStore.getState()

@@ -10,7 +10,6 @@ export const notesApp = {
   keywords: ['notes', 'notas', 'markdown', 'text', 'write'],
   isEnabled: state => state.settings?.apps?.notes === true,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, notes: value } }),
-  wipe: state => ({ ...state, notes: [], noteFolders: [] }),
   SettingsModal: NotesAppModal,
   tab: { id: 'notes', component: NotesTab },
 }

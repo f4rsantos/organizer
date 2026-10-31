@@ -15,6 +15,8 @@ import { planPomodoroRecovery, recoveryIntervalSecs } from '@/lib/focus/pomodoro
 import { getPeriodPomodoros } from '@/components/focus/pomodoro/utils'
 import { resolveSeriesFolder } from '@/lib/notes/eventFolder'
 import { defaultBreakActivity } from '@/lib/breakActivity/breakSettings'
+import { withManualSession, withSessionPatch, withoutSession } from '@/lib/classes/lessons'
+import { wipeOwnedData } from '@/lib/appOwnership'
 import {
   emptyNotificationQueue, enqueueNotification, dismissToast as dismissToastEntry, readToast as readToastEntry,
   dismissActiveAlert as dismissActiveAlertEntry, clearUnread as clearUnreadEntry, clearAllUnread,
@@ -290,6 +292,7 @@ function buildInitialState() {
     },
     pomodoros: [],
     breakSudoku: null,
+    lessons: null,
     resetSignal: null,
     taskAlertStates: {},
     notificationQueue: emptyNotificationQueue(),
@@ -366,7 +369,10 @@ export const useStore = create((set, get) => ({
     return id
   },
 
-  wipeAppData: wipeFn => set(s => persist(wipeFn(s))),
+  disableApp: (appId, cleanup) => set(s => {
+    const wiped = wipeOwnedData(s, appId, initialState)
+    return persist(cleanup ? cleanup(wiped) : wiped)
+  }),
   wipeCollabData: () => set(s => persist({
     ...s,
     settings: { ...s.settings, collabEnabled: false, apps: { ...s.settings.apps, collab: false } },
@@ -894,6 +900,15 @@ export const useStore = create((set, get) => ({
     ...s, settings: { ...s.settings, breakActivity: { ...(s.settings.breakActivity ?? defaultBreakActivity()), ...data } }
   })),
   setBreakSudoku: breakSudoku => set(s => persist({ ...s, breakSudoku })),
+  addManualLesson: (classId, { date, type }) => {
+    const key = `man:${nanoid()}`
+    set(s => persist({ ...s, lessons: withManualSession(s.lessons, classId, { key, date, type }) }))
+    return key
+  },
+  patchLessonSession: (classId, key, patch) => set(s => persist({
+    ...s, lessons: withSessionPatch(s.lessons, classId, key, patch),
+  })),
+  removeLessonSession: (classId, key) => set(s => persist({ ...s, lessons: withoutSession(s.lessons, classId, key) })),
   setCollabUserId: userId => set(s => persist({
     ...s,
     collab: {

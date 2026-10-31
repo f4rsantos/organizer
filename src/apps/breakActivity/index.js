@@ -11,7 +11,6 @@ export const breakActivityApp = {
   isEnabled: state => state.settings?.breakActivity?.enabled === true,
   setEnabled: (updateSettings, _apps, value, state) =>
     updateSettings({ breakActivity: { ...(state.settings?.breakActivity ?? defaultBreakActivity()), enabled: value } }),
-  wipe: state => ({ ...state, breakSudoku: null, settings: { ...state.settings, breakActivity: defaultBreakActivity() } }),
   needsSetup: true,
   SettingsModal: BreakActivityAppModal,
   tab: null,

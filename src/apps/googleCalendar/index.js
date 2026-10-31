@@ -14,7 +14,7 @@ export const googleCalendarApp = {
   isEnabled,
   needsSetup: true,
   setEnabled: (updateSettings, apps, value) => updateSettings({ apps: { ...apps, googleCalendar: value } }),
-  wipe: state => {
+  cleanup: state => {
     disconnectGoogle()
     return { ...state, events: (state.events ?? []).filter(e => !e.googleEventId) }
   },

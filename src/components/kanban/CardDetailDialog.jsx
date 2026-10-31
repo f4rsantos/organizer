@@ -12,6 +12,7 @@ import { useStrings } from '@/lib/strings'
 import { parseTaskText } from '@/lib/parser/nlpParse'
 import { ChecklistItem } from './ChecklistItem'
 import { getMemberList, getMemberDisplayName } from '@/lib/collab/teamColors'
+import { isSubmitEnter } from '@/lib/enterToSubmit'
 import { useTeamUserId, entityTeamId } from '@/hooks/useTeamIdentity'
 
 const PRIORITIES = [{ value: '', label: 'No priority' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]
@@ -102,7 +103,7 @@ export function CardDetailDialog({ open, onOpenChange, card, semId, onSave }) {
     <Dialog open={open} onOpenChange={v => { if (!v) save(); onOpenChange(v) }}>
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Edit card</DialogTitle></DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4" onKeyDown={e => { if (isSubmitEnter(e)) { e.preventDefault(); save() } }}>
           <Input placeholder="Card title" value={local.title} onChange={handleTitleChange} />
           <div className="grid grid-cols-2 gap-2">
             <Select value={local.priority ?? ''} onValueChange={v => setLocal(c => ({ ...c, priority: v || null }))}>

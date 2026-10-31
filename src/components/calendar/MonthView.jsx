@@ -25,7 +25,7 @@ function Chip({ color, children, onClick }) {
   )
 }
 
-function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen, weatherByDate, maxChips }) {
+function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen, weatherByDate, maxChips, highlighted }) {
   const isToday = isSameDay(day, new Date())
   const { dayHolidays, dayEvents, dayTasks } = itemsForDay(day, tasks, holidays, events)
   const lang = useStore(s => s.lang ?? 'en')
@@ -46,7 +46,7 @@ function DayCell({ day, isCurrentMonth, tasks, holidays, events, classes, onOpen
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen(day)}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(day) } }}
-      className={`min-h-[76px] h-full text-left px-0.5 pt-1 pb-0.5 border-t border-border/25 flex flex-col gap-0.5 overflow-hidden transition-colors hover:bg-accent/30 cursor-pointer ${!isCurrentMonth ? 'opacity-35' : ''}`}>
+      className={`min-h-[76px] h-full text-left px-0.5 pt-1 pb-0.5 border-t border-border/25 flex flex-col gap-0.5 overflow-hidden transition-colors hover:bg-accent/30 cursor-pointer ${!isCurrentMonth ? 'opacity-35' : ''} ${highlighted ? 'rounded-lg bg-primary/[0.06] ring-1 ring-inset ring-primary/25' : ''}`}>
       <div className="flex items-center justify-center gap-1 mb-0.5">
         <span className={`text-[11px] font-medium leading-none w-[22px] h-[22px] flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
           {format(day, 'd')}
@@ -84,7 +84,7 @@ function useMaxChips(gridRef, weekCount) {
   return maxChips
 }
 
-export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }) {
+export function MonthView({ month, tasks, holidays, events, classes, onOpenDay, highlightDates }) {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const weekStartsOn = useStore(s => s.settings?.weekStartsOn ?? 1)
@@ -119,7 +119,8 @@ export function MonthView({ month, tasks, holidays, events, classes, onOpenDay }
         {visibleDays.map(day => (
           <DayCell key={day.toISOString()} day={day} isCurrentMonth={isSameMonth(day, month)}
             tasks={tasks} holidays={holidays} events={events} classes={classes} onOpen={onOpenDay}
-            weatherByDate={weatherByDate} maxChips={maxChips} />
+            weatherByDate={weatherByDate} maxChips={maxChips}
+            highlighted={highlightDates?.has(format(day, 'yyyy-MM-dd')) ?? false} />
         ))}
       </div>
     </div>

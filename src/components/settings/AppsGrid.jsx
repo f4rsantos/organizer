@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CollabAppModal } from './apps/CollabAppModal'
+import { appKeywords } from '@/lib/settings/settingsSearch'
 import { APP_PLUGINS, getAppById } from '@/apps/registry'
 
 const COLLAB = { id: 'collab', labelKey: 'collabApp', icon: Users, keywords: ['collab', 'colaboração', 'teams', 'share', 'firebase'] }
@@ -41,7 +42,7 @@ export function AppsGrid() {
   const lang = useStore(s => s.lang ?? 'en')
   const t = useStrings(lang)
   const state = useStore(s => s)
-  const wipeAppData = useStore(s => s.wipeAppData)
+  const disableApp = useStore(s => s.disableApp)
   const collabEnabled = useStore(s => s.settings?.collabEnabled === true)
   const [modal, setModal] = useState(null)
   const [confirmOff, setConfirmOff] = useState(null)
@@ -51,7 +52,7 @@ export function AppsGrid() {
     const all = [
       { ...COLLAB, active: collabEnabled, hasSettings: true },
       ...APP_PLUGINS.filter(p => !p.isVisible || p.isVisible(state)).map(p => ({
-        id: p.id, labelKey: p.labelKey, descKey: p.descKey, icon: p.icon, keywords: p.keywords ?? [],
+        id: p.id, labelKey: p.labelKey, descKey: p.descKey, icon: p.icon, keywords: appKeywords(p, t).map(k => k.toLowerCase()),
         active: p.isEnabled(state), hasSettings: Boolean(p.SettingsModal),
       })),
     ]
@@ -63,14 +64,14 @@ export function AppsGrid() {
   const toggle = (id, value) => {
     if (id === COLLAB.id) { setModal(id); return }
     const plugin = getAppById(id)
-    if (!value && plugin.wipe) { setConfirmOff(id); return }
+    if (!value) { setConfirmOff(id); return }
     setAppEnabled(plugin, value)
     if (value && plugin.needsSetup) setModal(id)
   }
 
   const disableConfirmed = () => {
     const plugin = getAppById(confirmOff)
-    wipeAppData(plugin.wipe)
+    disableApp(plugin.id, plugin.cleanup)
     setAppEnabled(plugin, false)
   }
 

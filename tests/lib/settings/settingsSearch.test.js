@@ -25,6 +25,12 @@ describe('settings search', () => {
     expect(topIds('back up my data')).toContain('exportJson')
   })
 
+  it('finds an app by the search words of the current language', () => {
+    const apps = [{ id: 'classesPanel', labelKey: 'classesPanel', keywordsKey: 'classesPanelKeywords' }]
+    const ids = searchSettings('matéria', { t: ptStrings, apps }).map(r => r.id)
+    expect(ids).toContain('app:classesPanel')
+  })
+
   it('tolerates a typo', () => {
     expect(topIds('notifcations')[0]).toBe('notificationBell')
   })

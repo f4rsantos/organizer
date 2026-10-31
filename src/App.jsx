@@ -31,6 +31,7 @@ import { useHydrateState } from '@/hooks/useHydrateState'
 import { StandbyOverlay } from '@/components/standby/StandbyOverlay'
 import { GlobalTomatoLayer } from '@/components/pomodoro/GlobalTomatoLayer'
 import { BreakActivityHost } from '@/components/breakActivity/BreakActivityHost'
+import { useTodayLanding } from '@/apps/today/useTodayLanding'
 import { SpotlightOverlay } from '@/apps/quickAction/SpotlightOverlay'
 import { QuickActionUndoToast } from '@/components/tasks/quickAction/QuickActionUndoToast'
 import { NotificationsHost } from '@/components/notifications/NotificationsHost'
@@ -152,6 +153,7 @@ function TabPanel({ id, activeTab, children }) {
 
 export default function App() {
   const hydrated = useHydrateState()
+  useTodayLanding(hydrated)
   useTheme()
   useCollabSync()
   useCollabDeepLink()

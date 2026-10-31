@@ -1,4 +1,5 @@
 import { encryptWithKey, decryptWithKey, isEnvelope } from './envelope'
+import { APP_OWNED_SLICES } from '../appOwnership'
 
 export const CONTAINER_FORMAT = 'blue-tangerine'
 const CONTAINER_FORMATS = [CONTAINER_FORMAT, 'organizer-sliced-1']
@@ -9,15 +10,14 @@ export const DATA_SLICES = [
   'activeSemesterId', 'semesters', 'classes', 'tasks', 'events', 'notes', 'noteFolders',
   'sharedNoteFolders', 'habits', 'kanban', 'grades', 'settings', 'collab', 'focusSync',
   'pomodoros', 'taskAlertStates', 'courseAvg', 'holidays', 'dismissedNextSemester',
-  'presetUpdatedAt', 'scheduleImports', 'breakSudoku',
+  'presetUpdatedAt', 'scheduleImports', 'breakSudoku', 'lessons',
 ]
 
 export const LOCAL_SLICES = ['agentJournal', 'agentRuntime', 'syncBase']
 
-const PLUGIN_SLICES = ['breakSudoku']
 
 function isAbsentPluginSlice(slice, value) {
-  return PLUGIN_SLICES.includes(slice) && (value === undefined || value === null)
+  return !LOCAL_SLICES.includes(slice) && APP_OWNED_SLICES.includes(slice) && (value === undefined || value === null)
 }
 
 function withoutEntities(run) {

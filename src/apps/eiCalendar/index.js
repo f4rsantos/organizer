@@ -63,7 +63,7 @@ function mapDates(item) {
 function toEvent(item, title) {
   const dates = mapDates(item)
   if (!dates) return null
-  return { id: 'ei-' + item.id, title, color: EI_COLOR, note: '', _remote: true, ...dates }
+  return { id: 'ei-' + item.id, title, color: EI_COLOR, note: '', _remote: true, assessment: true, ...dates }
 }
 
 function parseItems(items, digit) {
