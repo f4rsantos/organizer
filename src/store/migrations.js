@@ -14,6 +14,7 @@ export const CURRENT_VERSION = 9
 export const FREE_BOARD_ID = '__free__'
 export const NAV_ADD_ID = '__add__'
 export const DEFAULT_TAB_ORDER = ['tasks', 'kanban', 'grades', 'calendar', 'focus', 'settings']
+export const APP_TAB_IDS = ['notes', 'eisenhower', 'habits', 'today', 'classesPanel', 'aiAssistant']
 export const NAV_VISIBILITY_MODES = ['both', 'none', 'desktop', 'mobile']
 export const STANDBY_PANES = ['wheel', 'wheel-time', 'calendar', 'focus', 'kanban', 'tasks-by-category']
 
@@ -249,7 +250,7 @@ export function plaintextToDoc(text) {
 
 function normalizeNavbar(navbar) {
   const n = navbar && typeof navbar === 'object' ? navbar : {}
-  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, 'notes', 'eisenhower', 'habits'])
+  const known = new Set([...DEFAULT_TAB_ORDER, NAV_ADD_ID, ...APP_TAB_IDS])
   const rawFolders = Array.isArray(n.folders) ? n.folders : []
   const folderIds = new Set(rawFolders.map(f => (f && typeof f.id === 'string' ? f.id : null)).filter(Boolean))
   const knownWithFolders = new Set([...known, ...folderIds])

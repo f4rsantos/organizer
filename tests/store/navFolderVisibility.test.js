@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { normalizeState } from '../../src/store/migrations'
+import { getAppTabs } from '../../src/apps/registry'
 
 const FOLDER_ID = 'folder_abc123'
 
@@ -43,6 +44,28 @@ describe('navbar folder visibility', () => {
       folders: [],
     })
     expect(navbar.visibility.bogusTab).toBeUndefined()
+  })
+})
+
+describe('navbar app tabs', () => {
+  const appTabIds = getAppTabs().map(tab => tab.id)
+
+  it.each(appTabIds)('keeps %s hidden after a reload', id => {
+    const navbar = normalizeNavbar({ order: ['tasks', id, 'settings'], visibility: { [id]: 'none' } })
+    expect(navbar.visibility[id]).toBe('none')
+  })
+
+  it.each(appTabIds)('keeps %s in its saved order position', id => {
+    const navbar = normalizeNavbar({ order: [id, 'tasks', 'settings'] })
+    expect(navbar.order[0]).toBe(id)
+  })
+
+  it.each(appTabIds)('keeps %s inside its folder', id => {
+    const navbar = normalizeNavbar({
+      order: ['tasks', FOLDER_ID, 'settings'],
+      folders: [{ id: FOLDER_ID, label: 'More', icon: 'more', children: [id] }],
+    })
+    expect(navbar.folders[0].children).toContain(id)
   })
 })
 
