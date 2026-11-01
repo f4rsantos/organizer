@@ -353,6 +353,7 @@ export const en = {
     classesLessonDetails: 'Topics and more',
     todayScheduleTitle: 'Your day',
     todayUpcomingTitle: 'Coming up',
+    todayNextStepsTitle: 'Next steps',
     todaySettingsName: 'Your name',
     todaySettingsNameDesc: 'Shown in the greeting',
     todaySettingsShowOnOpen: 'Open on the first visit of the day',

@@ -448,6 +448,7 @@ export const cs = {
     classesLessonDetails: 'Témata a další',
     todayScheduleTitle: 'Tvůj den',
     todayUpcomingTitle: 'Brzy',
+    todayNextStepsTitle: 'Další kroky',
     todaySettingsName: 'Tvé jméno',
     todaySettingsNameDesc: 'Zobrazí se v pozdravu',
     todaySettingsShowOnOpen: 'Otevřít při první návštěvě dne',

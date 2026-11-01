@@ -1,95 +1,101 @@
+import { ChevronRight, Coffee } from 'lucide-react'
 import { GlassPanel } from '@/components/common/GlassPanel'
 import { cn } from '@/lib/utils'
-import { Coffee } from 'lucide-react'
 import { briefText } from './briefVisuals'
-import { CardAction } from './CardAction'
 import { HIGHLIGHT_KINDS, countdownLabel, highlightContext, highlightKindLabel, highlightTab } from './highlightLabels'
 
-const TAB_LABEL_KEYS = { calendar: 'calendar', tasks: 'tasks', kanban: 'kanban', classesPanel: 'classesPanel' }
-
 function CountdownFigure({ t, daysLeft }) {
-  if (daysLeft === 0) return <p className="text-4xl font-semibold tracking-tight">{t.todayDueToday}</p>
+  if (daysLeft === 0) return <p className="text-2xl font-semibold tracking-tight">{t.todayDueToday}</p>
   return (
     <>
-      <p className="text-6xl font-semibold tracking-tight tabular-nums">{daysLeft}</p>
-      <p className="mt-2 text-xs text-muted-foreground">{countdownLabel(t, daysLeft)}</p>
+      <p className="text-4xl font-semibold leading-none tracking-tight tabular-nums">{daysLeft}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{countdownLabel(t, daysLeft)}</p>
     </>
   )
 }
 
-function HighlightText({ item, compact }) {
-  const context = highlightContext(item)
+function DuePill({ t, daysLeft }) {
   return (
-    <>
-      <p className={cn('font-medium leading-snug', compact ? 'text-base' : 'text-lg')}>{item.title}</p>
-      {context && <p className="mt-0.5 truncate text-sm text-muted-foreground">{context}</p>}
-    </>
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums',
+      daysLeft === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>
+      {daysLeft === 0 ? t.todayDueToday : t.todayInDays(daysLeft)}
+    </span>
   )
 }
 
 function KindLabel({ t, item }) {
-  return <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{highlightKindLabel(t, item)}</p>
+  return <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{highlightKindLabel(t, item)}</p>
 }
 
-function Countdown({ t, item }) {
+function HighlightDetails({ item, studyLabel }) {
+  const context = highlightContext(item)
   return (
-    <div className="flex items-start gap-5">
-      <div className="shrink-0 text-center leading-none">
+    <>
+      <p className="mt-0.5 line-clamp-2 font-medium leading-snug">{item.title}</p>
+      {context && <p className="truncate text-xs text-muted-foreground">{context}</p>}
+      {studyLabel && <p className="mt-1 truncate text-xs font-medium text-primary">{studyLabel}</p>}
+    </>
+  )
+}
+
+function WideHighlight({ t, item, studyLabel }) {
+  return (
+    <>
+      <div className="w-20 shrink-0 text-center">
         <CountdownFigure t={t} daysLeft={item.daysLeft} />
       </div>
-      <div className="min-w-0 flex-1 space-y-1 pt-1">
+      <div className="min-w-0 flex-1">
         <KindLabel t={t} item={item} />
-        <HighlightText item={item} />
+        <HighlightDetails item={item} studyLabel={studyLabel} />
       </div>
-    </div>
+    </>
   )
 }
 
-function CompactHighlight({ t, item }) {
+function CompactHighlight({ t, item, studyLabel }) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 flex-1">
       <div className="flex items-center justify-between gap-2">
         <KindLabel t={t} item={item} />
-        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums',
-          item.daysLeft === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>
-          {item.daysLeft === 0 ? t.todayDueToday : t.todayInDays(item.daysLeft)}
-        </span>
+        <DuePill t={t} daysLeft={item.daysLeft} />
       </div>
-      <HighlightText item={item} compact />
+      <HighlightDetails item={item} studyLabel={studyLabel} />
     </div>
   )
 }
 
-function RestMessage({ t, item, compact }) {
+function RestBody({ t, item }) {
   return (
-    <div className="space-y-4">
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Coffee className="h-6 w-6" strokeWidth={1.75} />
-      </span>
-      <p className={cn('font-medium leading-snug tracking-tight', compact ? 'text-base' : 'text-xl')}>{briefText(t, item)}</p>
-    </div>
+    <>
+      <Coffee className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+      <p className="flex-1 text-sm leading-relaxed">{briefText(t, item)}</p>
+    </>
   )
 }
 
-function headlineAction(t, item, classesPanelEnabled) {
-  if (item.study && classesPanelEnabled) return { label: t.todayStudyAction(item.study.className), tab: 'classesPanel' }
-  const tab = highlightTab(item)
-  return tab ? { label: t[TAB_LABEL_KEYS[tab]], tab } : null
-}
-
-function HighlightBody({ t, item, compact }) {
-  return compact ? <CompactHighlight t={t} item={item} /> : <Countdown t={t} item={item} />
+function headlineTarget(t, item, classesPanelEnabled) {
+  if (item.study && classesPanelEnabled) return { tab: 'classesPanel', studyLabel: t.todayStudyAction(item.study.className) }
+  return { tab: highlightTab(item), studyLabel: null }
 }
 
 export function BriefHeadline({ t, item, compact = false, classesPanelEnabled, onNavigate }) {
   const isHighlight = HIGHLIGHT_KINDS.includes(item.kind)
-  const action = headlineAction(t, item, classesPanelEnabled)
+  if (!isHighlight) {
+    return (
+      <GlassPanel className="flex items-center gap-3 p-4">
+        <RestBody t={t} item={item} />
+      </GlassPanel>
+    )
+  }
+  const { tab, studyLabel } = headlineTarget(t, item, classesPanelEnabled)
   return (
-    <GlassPanel className="flex flex-col p-5">
-      <div className="flex-1">
-        {isHighlight ? <HighlightBody t={t} item={item} compact={compact} /> : <RestMessage t={t} item={item} compact={compact} />}
-      </div>
-      {action && <CardAction label={action.label} onClick={() => onNavigate(action.tab)} />}
+    <GlassPanel className="transition-colors hover:bg-accent/40">
+      <button type="button" onClick={() => onNavigate(tab)} className={cn('flex h-full w-full gap-3 p-4 text-left', compact ? 'items-start' : 'items-center')}>
+        {compact
+          ? <CompactHighlight t={t} item={item} studyLabel={studyLabel} />
+          : <WideHighlight t={t} item={item} studyLabel={studyLabel} />}
+        {!compact && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
+      </button>
     </GlassPanel>
   )
 }

@@ -337,6 +337,7 @@ export const pirate = {
   classesLessonDetails: 'Charts an’ more',
   todayScheduleTitle: 'Yer day',
   todayUpcomingTitle: 'On the horizon',
+  todayNextStepsTitle: 'Orders for the crew',
   todaySettingsName: 'Yer name, sailor',
   todaySettingsNameDesc: 'Shouted in the greetin’',
   todaySettingsShowOnOpen: 'Hoist it on the first visit o’ the day',

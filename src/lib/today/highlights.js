@@ -78,7 +78,7 @@ export function layoutToday({ brief, highlights, count }) {
   const studyShown = headlines.some(item => item.study)
   return {
     headlines,
-    upcoming: withStudy.slice(count),
+    upcoming: withStudy.slice(count).filter(item => item.daysLeft !== 0),
     recommendationItems: brief.filter(item => !shown.has(item) && !(item === study && studyShown)),
     excludeIds: new Set(leads.map(item => item.id)),
   }

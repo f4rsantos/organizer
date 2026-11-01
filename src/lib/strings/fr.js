@@ -337,6 +337,7 @@ export const fr = {
     classesLessonDetails: 'Notions et plus',
     todayScheduleTitle: 'Ta journée',
     todayUpcomingTitle: 'À venir',
+    todayNextStepsTitle: 'Prochaines étapes',
     todaySettingsName: 'Ton prénom',
     todaySettingsNameDesc: 'Affiché dans la salutation',
     todaySettingsShowOnOpen: 'Ouvrir à la première visite du jour',

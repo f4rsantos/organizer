@@ -78,6 +78,12 @@ describe('layoutToday', () => {
     expect([...layout.excludeIds]).toEqual(['t', 'e'])
   })
 
+  it('leaves items due today out of coming up, since your day already lists them', () => {
+    const list = [{ kind: 'exam', id: 'lead', daysLeft: 1 }, { kind: 'event', id: 'now', daysLeft: 0 }, { kind: 'task', id: 'later', daysLeft: 3 }]
+    const layout = layoutToday({ brief: [], highlights: list, count: 1 })
+    expect(layout.upcoming.map(h => h.id)).toEqual(['later'])
+  })
+
   it('leads with rest when nothing is coming up', () => {
     const layout = layoutToday({ brief: [rest], highlights: [], count: 1 })
     expect(layout.headlines).toEqual([rest])

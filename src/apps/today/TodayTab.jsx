@@ -6,7 +6,7 @@ import { dailyGreeting, dailyMotivation } from '@/lib/today/dailyPhrases'
 import { useWeatherForecast } from '@/hooks/useWeatherForecast'
 import { isPending } from '@/lib/habits'
 import { dayNotes } from '@/lib/today/dayNotes'
-import { NotesCard } from './NotesCard'
+import { NotesStrip } from './NotesStrip'
 import { useStrings } from '@/lib/strings'
 import { longDate } from '@/lib/dateLabels'
 import { buildTodayBrief, holidayToday } from '@/lib/today/todayBrief'
@@ -18,11 +18,11 @@ import { CalendarEventProviders } from '@/apps/CalendarEventProviders'
 import { AmbientGlow } from '@/components/common/GlassPanel'
 import { useClassesSettings } from '@/apps/classesPanel/useClassesSettings'
 import { BriefHeadline } from './BriefHeadline'
-import { RecommendationCard, ScheduleCard, UpcomingCard } from './TodayCards'
+import { NextStepsSection, ScheduleSection, UpcomingSection } from './TodaySections'
 import { TodayWeather } from './TodayWeather'
 import { useTodaySettings } from './useTodaySettings'
 
-const HEADLINE_GRID = { 1: '', 2: 'grid-cols-2', 3: 'grid-cols-3' }
+const HEADLINE_GRID = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3' }
 const MAX_UPCOMING = 5
 
 function greetingFor(t, { today, forecastDay, name }) {
@@ -108,15 +108,16 @@ export function TodayTab() {
     <div className="relative h-tab-pane overflow-y-auto">
       <CalendarEventProviders onEvents={provider.onEvents} />
       <AmbientGlow />
-      <div className="relative mx-auto max-w-3xl space-y-5 px-4 pt-10 pb-10 md:px-6">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-1">
+      <div className="relative mx-auto max-w-2xl space-y-5 px-4 pt-6 pb-8 md:px-6">
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
             <p className="text-sm text-muted-foreground">{greeting}</p>
-            <h1 className="text-3xl font-semibold tracking-tight">{longDate(t, today)}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{longDate(t, today)}</h1>
             {motivation && <p className="text-sm italic text-muted-foreground">{motivation}</p>}
           </div>
           {settings.showWeather && <TodayWeather today={today} />}
         </header>
+        {notes.length > 0 && <NotesStrip t={t} notes={notes} />}
         {headlines.length > 0 && (
           <div className={cn('grid gap-3', HEADLINE_GRID[headlines.length])}>
             {headlines.map((item, index) => (
@@ -124,14 +125,12 @@ export function TodayTab() {
             ))}
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {settings.showSchedule && (
-            <ScheduleCard t={t} lessons={lessonsToday} events={eventsToday} tasksDue={countOf(items, 'tasksDue')} overdue={countOf(items, 'overdue')} />
-          )}
-          {notes.length > 0 && <NotesCard t={t} notes={notes} />}
-          {settings.showUpcoming && upcoming.length > 0 && <UpcomingCard t={t} items={upcoming} />}
-          {recommendations.map(rec => <RecommendationCard key={rec.kind} t={t} rec={rec} {...navigation} />)}
-        </div>
+        {settings.showSchedule && (
+          <ScheduleSection t={t} lessons={lessonsToday} events={eventsToday}
+            tasksDue={countOf(items, 'tasksDue')} overdue={countOf(items, 'overdue')} onNavigate={setActiveTab} />
+        )}
+        {settings.showUpcoming && upcoming.length > 0 && <UpcomingSection t={t} items={upcoming} onNavigate={setActiveTab} />}
+        {recommendations.length > 0 && <NextStepsSection t={t} recs={recommendations} {...navigation} />}
       </div>
     </div>
   )

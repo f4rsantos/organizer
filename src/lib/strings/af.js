@@ -241,6 +241,7 @@ export const af = {
     classesLessonDetails: 'Onderwerpe en meer',
     todayScheduleTitle: 'Jou dag',
     todayUpcomingTitle: 'Wat kom',
+    todayNextStepsTitle: 'Volgende stappe',
     todaySettingsName: 'Jou naam',
     todaySettingsNameDesc: 'Word in die groet gewys',
     todaySettingsShowOnOpen: 'Maak oop by die eerste besoek van die dag',
