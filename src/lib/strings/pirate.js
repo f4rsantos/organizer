@@ -273,6 +273,7 @@ export const pirate = {
   classesNoLessonsDesc: 'Lessons from yer calendar wash up here once they be done. Use Log a lesson to count one by hand.',
   classesManualTag: 'Logged by hand',
   classesLessonDate: 'Day o’ the lesson',
+  taskCarryOverLabel: "Carry unfinished chores along", taskCarryOverDesc: "Unfinished chores keep showin' in later weeks, marked overdue, 'til ye plunder 'em", taskOverduePill: "Overdue, matey",
   classesLessonType: 'Kind o’ lesson',
   calendarHighlightOtherEvents: 'Mark days with doin’s',
   calendarHighlightOtherEventsDesc: 'Gently marks days with doin’s, leavin’ out yer regular lessons',

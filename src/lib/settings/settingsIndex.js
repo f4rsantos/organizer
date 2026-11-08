@@ -7,6 +7,7 @@ export const SETTINGS_INDEX = [
   { id: 'gradeScale', section: 'grades', labelKey: 'gradeScaleLabel', descKey: 'gradeScaleDesc', keywords: ['grade', 'scale', 'maximum', 'twenty'] },
   { id: 'passingGrade', section: 'grades', labelKey: 'passingGradeLabel', descKey: 'passingGradeDesc', keywords: ['grade', 'pass', 'fail', 'minimum'] },
   { id: 'hideCompletedTasks', section: 'tasks', labelKey: 'hideCompletedTasksLabel', descKey: 'hideCompletedTasksDesc', keywords: ['task', 'hide', 'done', 'completed', 'finished'] },
+  { id: 'carryOverTasks', section: 'tasks', labelKey: 'taskCarryOverLabel', descKey: 'taskCarryOverDesc', keywords: ['task', 'overdue', 'carry', 'unfinished', 'late', 'next week'] },
   { id: 'taskSpan', section: 'tasks', labelKey: 'taskSpanLabel', descKey: 'taskSpanDesc', keywords: ['task', 'span', 'weeks', 'multi week'] },
   { id: 'taskDefaultToCalendar', section: 'tasks', labelKey: 'taskDefaultToCalendarLabel', descKey: 'taskDefaultToCalendarDesc', keywords: ['task', 'calendar', 'default'] },
   { id: 'taskTimes', section: 'tasks', labelKey: 'taskTimesLabel', descKey: 'taskTimesDesc', keywords: ['task', 'time', 'hour', 'slot'] },

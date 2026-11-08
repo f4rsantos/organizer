@@ -273,6 +273,7 @@ export const de = {
     classesNoLessonsDesc: 'Stunden aus deinem Kalender erscheinen hier, sobald sie stattgefunden haben. Mit Stunde hinzufügen zählst du selbst eine.',
     classesManualTag: 'Von dir hinzugefügt',
     classesLessonDate: 'Datum der Stunde',
+    taskCarryOverLabel: "Offene Aufgaben mitnehmen", taskCarryOverDesc: "Offene Aufgaben erscheinen in den folgenden Wochen als überfällig, bis du sie erledigst", taskOverduePill: "Überfällig",
     classesLessonType: 'Art der Stunde',
     calendarHighlightOtherEvents: 'Tage mit Terminen umranden',
     calendarHighlightOtherEventsDesc: 'Markiert dezent Tage mit Terminen, ohne deine regulären Kurse',

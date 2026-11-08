@@ -273,6 +273,7 @@ export const fr = {
     classesNoLessonsDesc: 'Les séances de ton calendrier apparaissent ici une fois passées. Utilise Ajouter une séance pour en compter une toi-même.',
     classesManualTag: 'Ajoutée par toi',
     classesLessonDate: 'Date de la séance',
+    taskCarryOverLabel: "Reporter les tâches non terminées", taskCarryOverDesc: "Les tâches non terminées restent visibles les semaines suivantes, marquées en retard, jusqu'à ce que vous les terminiez", taskOverduePill: "En retard",
     classesLessonType: 'Type de séance',
     calendarHighlightOtherEvents: 'Encadrer les jours avec des événements',
     calendarHighlightOtherEventsDesc: 'Marque discrètement les jours avec des événements, hors cours habituels',

@@ -384,6 +384,7 @@ export const cs = {
     classesNoLessonsDesc: 'Hodiny z tvého kalendáře se tu objeví, jakmile proběhnou. Tlačítkem Přidat hodinu si jednu započítáš sám.',
     classesManualTag: 'Přidáno tebou',
     classesLessonDate: 'Datum hodiny',
+    taskCarryOverLabel: "Přenášet nedokončené úkoly", taskCarryOverDesc: "Nedokončené úkoly se zobrazují i v dalších týdnech jako po termínu, dokud je nesplníš", taskOverduePill: "Po termínu",
     classesLessonType: 'Typ hodiny',
     calendarHighlightOtherEvents: 'Zvýraznit dny s událostmi',
     calendarHighlightOtherEventsDesc: 'Jemně označí dny s událostmi, bez tvé běžné výuky',

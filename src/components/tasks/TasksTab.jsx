@@ -39,13 +39,14 @@ function ClassRing({ groups, byClass }) {
   );
 }
 
-function MobileWeekPage({ week, activeSemesterId, classes, weekCount, weekStartDate, weekDateRange, dateToWeek, semesterTasks, weekDateBounds, t }) {
+function MobileWeekPage({ week, currentWeek, activeSemesterId, classes, weekCount, weekStartDate, weekDateRange, dateToWeek, semesterTasks, weekDateBounds, t }) {
   const { overall, byClass, groups } = useTaskProgress(
     activeSemesterId,
     classes,
     week,
     semesterTasks,
     weekDateBounds ? weekDateBounds(week) : null,
+    currentWeek,
   );
   const allDone = overall >= 1 && groups.some((g) => g.tasks.length > 0);
 
@@ -190,6 +191,7 @@ export function TasksTab() {
     week,
     semesterTasks,
     weekDateBounds ? weekDateBounds(week) : null,
+    currentWeek,
   );
 
   const prevOverall = useRef(overall);
@@ -250,6 +252,7 @@ export function TasksTab() {
           renderPage={step => (
             <MobileWeekPage
               week={Math.min(weekCount, Math.max(1, week + step))}
+              currentWeek={currentWeek}
               activeSemesterId={activeSemesterId}
               classes={classes}
               weekCount={weekCount}

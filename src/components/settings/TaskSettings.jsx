@@ -18,6 +18,7 @@ export function TaskSettings() {
   const taskDefaultToCalendar = settings.taskDefaultToCalendar ?? false
   const taskTimes = settings.taskTimes ?? false
   const hideCompletedTasks = settings.hideCompletedTasks ?? false
+  const carryOverTasks = settings.carryOverTasks ?? false
   const reminderOffsets = settings.taskReminderOffsets ?? [0]
   const taskReminderTime = settings.taskReminderTime ?? '09:00'
   const [newOffset, setNewOffset] = useState('')
@@ -53,6 +54,8 @@ export function TaskSettings() {
       <SettingToggle label={t.taskTimesLabel} desc={t.taskTimesDesc} checked={taskTimes} onChange={v => updateSettings({ taskTimes: v })} />
 
       <SettingToggle label={t.hideCompletedTasksLabel} desc={t.hideCompletedTasksDesc} checked={hideCompletedTasks} onChange={v => updateSettings({ hideCompletedTasks: v })} />
+
+      <SettingToggle label={t.taskCarryOverLabel} desc={t.taskCarryOverDesc} checked={carryOverTasks} onChange={v => updateSettings({ carryOverTasks: v })} />
 
       <SettingToggle label={t.taskAlertModeLabel} desc={t.taskAlertModeDesc} checked={taskAlertsEnabled} onChange={v => updateSettings({ taskAlertsEnabled: v })} />
 

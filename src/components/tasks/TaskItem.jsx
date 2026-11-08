@@ -233,6 +233,9 @@ export function TaskItem({ task }) {
             {task.priority && (
               <span className={cn('inline-block h-2 w-2 rounded-full mt-1 shrink-0', PRIORITY_COLORS[task.priority])} />
             )}
+            {task.carriedOver && !isDoneShared && (
+              <Badge variant="destructive" className="text-xs h-5">{t.taskOverduePill}</Badge>
+            )}
             {task.dueDate && (
               <Badge variant="secondary" className="text-xs h-5">{formatDueDate(task.dueDate)}</Badge>
             )}

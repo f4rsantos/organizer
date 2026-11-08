@@ -273,6 +273,7 @@ export const pt = {
     classesNoLessonsDesc: 'As aulas do teu calendário aparecem aqui depois de acontecerem. Usa Adicionar aula para contar uma à mão.',
     classesManualTag: 'Adicionada por ti',
     classesLessonDate: 'Data da aula',
+    taskCarryOverLabel: "Continuar tarefas por concluir", taskCarryOverDesc: "As tarefas por concluir continuam a aparecer nas semanas seguintes, marcadas como atrasadas, até as concluir", taskOverduePill: "Atrasada",
     classesLessonType: 'Tipo de aula',
     calendarHighlightOtherEvents: 'Destacar dias com eventos',
     calendarHighlightOtherEventsDesc: 'Marca suavemente os dias com eventos, ignorando as aulas habituais',

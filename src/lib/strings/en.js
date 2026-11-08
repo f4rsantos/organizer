@@ -289,6 +289,7 @@ export const en = {
     classesNoLessonsDesc: 'Lessons from your calendar show up here once they happen. Use Add lesson to count one yourself.',
     classesManualTag: 'Added by you',
     classesLessonDate: 'Lesson date',
+    taskCarryOverLabel: "Carry over unfinished tasks", taskCarryOverDesc: "Unfinished tasks keep showing in later weeks, marked overdue, until you finish them", taskOverduePill: "Overdue",
     classesLessonType: 'Lesson type',
     calendarHighlightOtherEvents: 'Outline days with events',
     calendarHighlightOtherEventsDesc: 'Softly marks days that have events, leaving out your regular classes',

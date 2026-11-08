@@ -82,6 +82,15 @@ function CellInput({ value, placeholder, onSave, className }) {
   )
 }
 
+function DateCell({ t, session, onSave }) {
+  if (!session.manual) return <span className="px-1.5 text-muted-foreground">{shortDate(t, session.date)}</span>
+  return (
+    <input type="date" value={session.date} aria-label={t.classesLessonDate}
+      onChange={e => { if (e.target.value) onSave(e.target.value) }}
+      className="rounded-md bg-transparent px-1.5 py-1 text-muted-foreground outline-none transition-colors hover:bg-accent/40 focus:bg-accent/60" />
+  )
+}
+
 function AddLessonMenu({ t, summaries, classId, onAdd }) {
   if (classId !== 'all') {
     return (
@@ -118,7 +127,9 @@ function LessonTableRow({ t, row, studySteps, lessonTypes, onPatch, onOpen }) {
         <CellInput key={`${session.key}:n:${session.number ?? ''}`} value={session.number} placeholder="—"
           onSave={number => onPatch({ number })} className="w-14 tabular-nums" />
       </td>
-      <td className="whitespace-nowrap px-3 py-1.5 tabular-nums text-muted-foreground">{shortDate(t, session.date)}</td>
+      <td className="whitespace-nowrap px-2 py-1.5 tabular-nums">
+        <DateCell t={t} session={session} onSave={date => onPatch({ date })} />
+      </td>
       <td className="max-w-[9rem] px-3 py-1.5">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cls.color }} />

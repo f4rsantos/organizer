@@ -66,10 +66,11 @@ function applyTaskDone(state, id, resolveDone) {
       if (t.id !== id) return t
       const done = resolveDone(t)
       if (done === t.done) return t
-      if (!t.kanban) return { ...t, done }
+      const doneWeek = done ? currentWeekOf(state) : null
+      if (!t.kanban) return { ...t, done, doneWeek }
       const boardId = boardIdForTask(t)
       const targetCol = done ? doneColumnIdFor(state, boardId) : firstColumnIdFor(state, boardId)
-      return { ...t, done, kanban: moveToColumn(state.tasks, t, targetCol ?? t.kanban.columnId) }
+      return { ...t, done, doneWeek, kanban: moveToColumn(state.tasks, t, targetCol ?? t.kanban.columnId) }
     }),
   }
 }

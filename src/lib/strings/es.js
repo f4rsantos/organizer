@@ -273,6 +273,7 @@ export const es = {
     classesNoLessonsDesc: 'Las clases de tu calendario aparecen aquí cuando ocurren. Usa Añadir clase para contar una a mano.',
     classesManualTag: 'Añadida por ti',
     classesLessonDate: 'Fecha de la clase',
+    taskCarryOverLabel: "Arrastrar tareas pendientes", taskCarryOverDesc: "Las tareas sin terminar siguen apareciendo en las semanas siguientes, marcadas como atrasadas, hasta que las completes", taskOverduePill: "Atrasada",
     classesLessonType: 'Tipo de clase',
     calendarHighlightOtherEvents: 'Resaltar días con eventos',
     calendarHighlightOtherEventsDesc: 'Marca suavemente los días con eventos, sin contar tus clases habituales',

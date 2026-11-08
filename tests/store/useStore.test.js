@@ -67,6 +67,21 @@ describe('useStore - Tasks & Eisenhower Actions', () => {
     expect(useStore.getState().tasks[0].done).toBe(true)
   })
 
+  it('records the week a task was finished and clears it when reopened', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-04T12:00:00'))
+    useStore.setState({ settings: { ...useStore.getState().settings, semesterMode: 'none' } })
+    useStore.getState().addTask({ title: 'Late essay' })
+    const taskId = useStore.getState().tasks[0].id
+
+    useStore.getState().toggleTask(taskId)
+    expect(useStore.getState().tasks[0].doneWeek).toBe(10)
+
+    useStore.getState().toggleTask(taskId)
+    expect(useStore.getState().tasks[0].doneWeek).toBeNull()
+    vi.useRealTimers()
+  })
+
   it('handles eisenhower quadrant assignment and clearing completed items', () => {
     useStore.getState().addTask({ title: 'Urgent task' })
     const taskId = useStore.getState().tasks[0].id

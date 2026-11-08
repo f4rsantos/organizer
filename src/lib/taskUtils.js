@@ -24,6 +24,25 @@ export function getTasksForWeek(tasks, week) {
   return tasks.filter(t => isTaskInWeek(t, week))
 }
 
+function lastCarriedWeek(task, currentWeek) {
+  if (!task.done) return currentWeek
+  return task.doneWeek
+}
+
+function isCarriedIntoWeek(task, week, currentWeek) {
+  if (task.recurrence) return false
+  const lastWeek = lastCarriedWeek(task, currentWeek)
+  return Number.isFinite(lastWeek) && week > task.weekEnd && week <= lastWeek
+}
+
+export function tasksForWeekWithCarryOver(tasks, week, { carryOver, currentWeek }) {
+  return tasks.flatMap(task => {
+    if (isTaskInWeek(task, week)) return [task]
+    if (carryOver && isCarriedIntoWeek(task, week, currentWeek)) return [{ ...task, carriedOver: true }]
+    return []
+  })
+}
+
 export function groupTasksByClass(tasks, classes) {
   const groups = {}
   for (const cls of classes) {
