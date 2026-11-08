@@ -4,7 +4,7 @@ export const LANGS = [
   { code: 'fr', label: 'Français', short: 'FR' },
   { code: 'de', label: 'Deutsch', short: 'DE' },
   { code: 'es', label: 'Español', short: 'ES' },
-  { code: 'af', label: 'Afrikaans', short: 'AF', hidden: true },
+  { code: 'af', label: 'Afrikaans', short: 'AF' },
   { code: 'cs', label: 'Čeština', short: 'CS' },
   { code: 'pirate', label: '☠ Pirate', short: '☠' },
 ]

@@ -762,7 +762,7 @@ export const af = {
     pomodoroResetDay: "Daagliks",
     pomodoroResetWeek: "Weekliks",
     pomodoroResetMonth: "Maandeliks",
-    pomodoroResetSemester: "Per semester",
+    pomodoroResetSemester: "Elke semester",
     pomodoroTrackPeriodStats: "Hou presiese tydsduur by",
     pomodoroShowAbandoned: "Wys prysgegewe tamaties",
     pomodoroShowPeriodPomodoros: "Wys statistiekry",
